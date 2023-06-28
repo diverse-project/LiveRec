@@ -46,6 +46,8 @@ LiveFromDAP/.idea/
 LiveFromDAP/.vscode/
 LiveFromDAP/venv
 LiveFromDAP/venv/
+
+*.egg-info/
 # Remove all directory everywhere name __pycache__
 LiveFromDAP/**/__pycache__/
 # Remove all file in directory named tmp excepted thos named .ignore

@@ -41,8 +41,8 @@ class BaseLiveAgent:
             # output stdout in a file
             debuggee = subprocess.Popen(
                 output["arguments"]["args"],
-                stdout=open("stdout.txt", "w"),
-                stderr=open("stderr.txt", "w")
+                stdout=open("tmp/stdout.txt", "w"),
+                stderr=open("tmp/stderr.txt", "w")
             )
             process_id = debuggee.pid
             self.debugee = debuggee
