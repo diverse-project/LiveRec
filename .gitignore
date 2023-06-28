@@ -1,0 +1,58 @@
+JavaProbes/target/
+JavaProbes/!.mvn/wrapper/maven-wrapper.jar
+JavaProbes/!**/src/main/**/target/
+JavaProbes/!**/src/test/**/target/
+
+### IntelliJ IDEA ###
+JavaProbes/.idea/modules.xml
+JavaProbes/.idea/jarRepositories.xml
+JavaProbes/.idea/compiler.xml
+JavaProbes/.idea/libraries/
+JavaProbes/*.iws
+JavaProbes/*.iml
+JavaProbes/*.ipr
+
+### Eclipse ###
+JavaProbes/.apt_generated
+JavaProbes/.classpath
+JavaProbes/.factorypath
+JavaProbes/.project
+JavaProbes/.settings
+JavaProbes/.springBeans
+JavaProbes/.sts4-cache
+
+### NetBeans ###
+JavaProbes//nbproject/private/
+JavaProbes//nbbuild/
+JavaProbes//dist/
+JavaProbes//nbdist/
+JavaProbes//.nb-gradle/
+JavaProbes/build/
+JavaProbes/!**/src/main/**/build/
+JavaProbes/!**/src/test/**/build/
+
+### VS Code ###
+JavaProbes/.vscode/
+
+### Mac OS ###
+JavaProbes/.DS_Store
+
+JavaProbes/.idea/*
+JavaProbes/!.idea/.gitignore
+
+
+## LiveFromDAP ##
+LiveFromDAP/.idea/
+LiveFromDAP/.vscode/
+LiveFromDAP/venv
+LiveFromDAP/venv/
+# Remove all directory everywhere name __pycache__
+LiveFromDAP/**/__pycache__/
+# Remove all file in directory named tmp excepted thos named .ignore
+LiveFromDAP/**/tmp/*
+!LiveFromDAP/**/tmp/.ignore
+
+LiveFromDAP/src/livefromdap/bin/*
+!LiveFromDAP/src/livefromdap/bin/.ignore
+
+.vscode/
