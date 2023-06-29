@@ -2,7 +2,7 @@ import os
 import subprocess
 import time
 
-from livefromdap.utils.Stackframe import Stackframe, Stacktrace
+from livefromdap.utils.StackRecord import Stackframe, StackRecord
 from .BaseLiveAgent import BaseLiveAgent
 
 class CLiveAgent(BaseLiveAgent):
@@ -168,7 +168,7 @@ class CLiveAgent(BaseLiveAgent):
         frame_id = self.get_stackframes(thread_id=self.thread_id)[0]["id"]
         self.evaluate(command, frame_id=frame_id)
         self.wait("event", event="stopped")
-        stacktrace = Stacktrace()
+        stacktrace = StackRecord()
         while True:
             stop, line, variables = self.get_local_variables()
             stackframe = Stackframe(line, variables)

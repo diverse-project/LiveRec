@@ -1,6 +1,6 @@
 from pycparser import c_ast, parse_file
 
-from livefromdap.utils.Stackframe import Stacktrace
+from livefromdap.utils.StackRecord import StackRecord
 
 
 class CPrettyPrinter(c_ast.NodeVisitor):
@@ -12,7 +12,7 @@ class CPrettyPrinter(c_ast.NodeVisitor):
         self.changed_source = False
         # Get the number of lines in the file
     
-    def pretty_print(self, stacktrace : Stacktrace, return_value=None):
+    def pretty_print(self, stacktrace : StackRecord, return_value=None):
         self.return_value = return_value
         self.stacktrace = stacktrace
         self.ast = parse_file(self.target_path, use_cpp=True)

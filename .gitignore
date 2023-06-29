@@ -58,3 +58,15 @@ LiveFromDAP/src/livefromdap/bin/*
 !LiveFromDAP/src/livefromdap/bin/.ignore
 
 .vscode/
+
+## paper ##
+# exclude evrery latex auxilary files
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.log
+paper/*.out
+paper/*.bcf
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.run.xml

@@ -24,7 +24,7 @@ class Stackframe():
             if v["name"] == name:
                 return v["value"]
 
-class Stacktrace():
+class StackRecord():
     stackframes : list
     last_stackframe : Stackframe
     
