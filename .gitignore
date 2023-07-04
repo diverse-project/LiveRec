@@ -70,3 +70,7 @@ paper/*.bcf
 paper/*.fdb_latexmk
 paper/*.fls
 paper/*.run.xml
+
+.idea/
+
+*.synctex.gz

@@ -1,44 +1,63 @@
 import subprocess
 from debugpy.common.messaging import JsonIOStream
+import os
+import shutil
 
-class BaseLiveAgent:
-    """Communicate with the debugpy adapter to get stackframes of the execution of a method"""
+class BaseLiveAgentInterface:
+    """Interface for the LiveAgent
+    This class define all methods that a LiveAgent should implement"""
+    def __init__(self):
+        pass
 
-    seq : int = 0
-
-    def __init__(self, runner_path : str, target_path : str, target_method : str, debug : bool = False, **kwargs):
-        self.runner_path = runner_path
-        self.target_path = target_path
-        self.target_method = target_method
-        self.debug = debug
-        self.seq = 0
-        self.job = self.create_job()
-        self.io = JsonIOStream.from_process(self.job)
-
-    def new_seq(self):
-        self.seq += 1
-        return self.seq
-
-    def create_job(self) -> subprocess.Popen:
-        """Create a subprocess with the agent"""
-        return NotImplemented
-    
     def stop(self):
         """Stop the agent"""
-        self.job.kill()
+        raise NotImplemented
+
+    def start_server(self):
+        """Start the Debugger Adapter Protocol server and return the JsonIOStream"""
+        return NotImplemented
     
-    def init(self):
+    def restart_server(self):
+        """Restart the DAP server"""
+        raise NotImplemented
+    
+    def initialize(self):
         """Initialize and launch the adapter"""
         raise NotImplemented
     
     def load_code(self):
         """Load the code to debug"""
         raise NotImplemented
+    
+    def execute(self, method : str, args : list):
+        """Execute the code"""
+        raise NotImplemented
+    
+class BaseLiveAgent(BaseLiveAgentInterface):
+    """Base class for the LiveAgent
+    This class implements the common and utility methods for a LiveAgent
+    This class should not be used directly, but should be inherited by a specific LiveAgent"""
+
+    seq : int = 0
+
+    def __init__(self, debug : bool = False, **kwargs):
+        self.debug = debug
+        self.seq = 0
+        super().__init__(**kwargs)
+
+    def new_seq(self):
+        self.seq += 1
+        return self.seq
         
-    def handleRunInTerminal(self, output : dict):
-        """Handle the runInTerminal request from the adapter"""
+    def _handleRunInTerminal(self, output : dict):
+        """Handle the runInTerminal request from DAP"""
         if output["type"] == "request" and output["command"] == "runInTerminal":
             # output stdout in a file
+            # clean the tmp folder
+            #if os.path.exists("tmp"):
+            #    shutil.rmtree("tmp")
+            #os.mkdir("tmp")
+
             debuggee = subprocess.Popen(
                 output["arguments"]["args"],
                 stdout=open("tmp/stdout.txt", "w"),
@@ -62,7 +81,7 @@ class BaseLiveAgent:
             return True
         return False
     
-    def _set_breakpoint(self, path : str, lines : list):
+    def set_breakpoint(self, path : str, lines : list):
         """Set a breakpoint in the debuggee"""
         breakpoint_request = {
             "seq": self.new_seq(),
@@ -84,7 +103,7 @@ class BaseLiveAgent:
         }
         self.io.write_json(breakpoint_request)
 
-    def _set_function_breakpoint(self, names : list):
+    def set_function_breakpoint(self, names : list):
         """Set a breakpoint in the debuggee"""
         breakpoint_request = {
             "seq": self.new_seq(),
@@ -100,15 +119,13 @@ class BaseLiveAgent:
         }
         self.io.write_json(breakpoint_request)
 
-    def setup_breakpoint(self):
-        """Setup the first breakpoints in the debuggee"""
+    def configuration_done(self):
         complete_request = {
             "seq": self.new_seq(),
             "type": "request",
             "command": "configurationDone"
         }
         self.io.write_json(complete_request)
-    
     
     def get_stackframes(self, thread_id : int = 1):
         stackframe_request = {
@@ -125,7 +142,7 @@ class BaseLiveAgent:
         output = self.wait("response", command="stackTrace")
         return output["body"]["stackFrames"]
             
-    def _continue(self, thread_id : int = 1):
+    def next_breakpoint(self, thread_id : int = 1):
         continue_request = {
             "seq": self.new_seq(),
             "type": "request",
@@ -199,19 +216,16 @@ class BaseLiveAgent:
         self.io.write_json(evaluate_request)
         return self.wait("response", command="evaluate")
 
-    def execute(self, args : list):
-        return NotImplemented
-
     def wait(self, type, event=None, command=None):
         while True:
             output = self.io.read_json()
             if self.debug: print(output)
             if output["type"] == "request" and output["command"] == "runInTerminal":
-                if self.handleRunInTerminal(output):
+                if self._handleRunInTerminal(output):
                     continue
             if output["type"] == type:
                 if event is None or output["event"] == event:
                     if command is None or output["command"] == command:
                         return output
             if output["type"] == "event" and output["event"] == "terminated":
-                exit(1)
+                self.restart_server()
