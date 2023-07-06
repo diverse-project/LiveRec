@@ -2,36 +2,44 @@ import subprocess
 from debugpy.common.messaging import JsonIOStream
 import os
 import shutil
+from abc import ABC, abstractmethod
 
-class BaseLiveAgentInterface:
+from livefromdap.utils.StackRecording import StackRecording
+
+class BaseLiveAgentInterface(ABC):
     """Interface for the LiveAgent
     This class define all methods that a LiveAgent should implement"""
-    def __init__(self):
+
+    @abstractmethod
+    def start_server(self) -> None:
+        """Start the Agent (start the DAP server)"""
         pass
-
-    def stop(self):
-        """Stop the agent"""
-        raise NotImplemented
-
-    def start_server(self):
-        """Start the Debugger Adapter Protocol server and return the JsonIOStream"""
-        return NotImplemented
     
-    def restart_server(self):
-        """Restart the DAP server"""
-        raise NotImplemented
+    @abstractmethod
+    def stop_server(self) -> None:
+        """Stop the Agent"""
+        pass
     
-    def initialize(self):
+    @abstractmethod
+    def restart_server(self) -> None:
+        """Restart the Agent"""
+        pass
+    
+    @abstractmethod
+    def initialize(self) -> None:
         """Initialize and launch the adapter"""
-        raise NotImplemented
+        pass
     
-    def load_code(self):
-        """Load the code to debug"""
-        raise NotImplemented
+    @abstractmethod
+    def load_code(self, *args, **kwargs) -> None:
+        """Load code in the debuggee
+        If the piece of code is already loaded, it should be reloaded"""
+        pass
     
-    def execute(self, method : str, args : list):
-        """Execute the code"""
-        raise NotImplemented
+    @abstractmethod
+    def execute(self, *args, **kwargs) -> StackRecording:
+        """Execute the method in the debuggee"""
+        pass
     
 class BaseLiveAgent(BaseLiveAgentInterface):
     """Base class for the LiveAgent
@@ -40,10 +48,9 @@ class BaseLiveAgent(BaseLiveAgentInterface):
 
     seq : int = 0
 
-    def __init__(self, debug : bool = False, **kwargs):
-        self.debug = debug
+    def __init__(self, *args, **kwargs):
+        self.debug = kwargs.get("debug", False)
         self.seq = 0
-        super().__init__(**kwargs)
 
     def new_seq(self):
         self.seq += 1
@@ -201,8 +208,8 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         self.io.write_json(variables_request)
         output = self.wait("response", command="variables")
         return output["body"]["variables"]
-            
-    def evaluate(self, expression : str, frame_id : int = None):
+
+    def evaluate(self, expression : str, frame_id : int = None, context : str = "repl"):
         evaluate_request = {
             "seq": self.new_seq(),
             "type": "request",
@@ -213,6 +220,8 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         }
         if frame_id:
             evaluate_request["arguments"]["frameId"] = frame_id
+        if context:
+            evaluate_request["arguments"]["context"] = context
         self.io.write_json(evaluate_request)
         return self.wait("response", command="evaluate")
 
@@ -228,4 +237,7 @@ class BaseLiveAgent(BaseLiveAgentInterface):
                     if command is None or output["command"] == command:
                         return output
             if output["type"] == "event" and output["event"] == "terminated":
-                self.restart_server()
+                self.stop_server()
+                raise Exception("Debuggee terminated")
+
+    

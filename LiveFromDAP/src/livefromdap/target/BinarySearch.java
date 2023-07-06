@@ -1,6 +1,5 @@
 public class BinarySearch {
     public static int binarySearch(char[] array, char key) throws InterruptedException {
-        // test
         int low = 0;
         int high = array.length - 1;
         while (low <= high) {

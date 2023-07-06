@@ -8,26 +8,20 @@ from livefromdap.utils.StackRecording import Stackframe, StackRecording
 from .BaseLiveAgent import BaseLiveAgent
 
 class JavaLiveAgent(BaseLiveAgent):
-    def __init__(self, target_file : str, target_class_path : str, target_class_name : str, target_methods : list[str] = [], auto_compile : bool = True,**kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.ls_server = None
-        self.target_file = target_file
-        self.target_class_path = target_class_path
-        self.target_class_name = target_class_name
-        self.target_methods = target_methods
-        self.auto_compile = auto_compile
-        if auto_compile:
-            self.compile_command = kwargs.get("compile_command", f"javac -g {self.target_class_name}")
-        
+        self.ls_server_path = kwargs.get("ls_server_path", os.path.join(os.path.dirname(__file__), "..", "bin", "jdt-language-server", "bin", "jdtls"))
         self.runner_path = kwargs.get("runner_path", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "runner")))
-        self.runner_file = kwargs.get("runner_file", "JavaRunner.java")
+        self.runner_file = kwargs.get("runner_file", "Runner.java")
         self.project_name = None
-        self.method_loaded = False
+        self.method_loaded= None
+        self.loaded_classes = {}
+        self.loaded_class_paths = []
 
     def start_ls_server(self):
-        ls_server_path = os.path.join(os.path.dirname(__file__), "..", "bin", "jdt-language-server", "bin", "jdtls")
         self.ls_server = subprocess.Popen(
-            [ls_server_path],
+            [self.ls_server_path],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
@@ -636,20 +630,7 @@ class JavaLiveAgent(BaseLiveAgent):
             "params": {}
         })
         runner_file_path = os.path.join(self.runner_path, self.runner_file)
-        with open(runner_file_path, "r") as f:
-            runner_code = f.read()
-        self.ls_io.write_json({
-            "jsonrpc": "2.0",
-            "method": "textDocument/didOpen",
-            "params": {
-                "textDocument": {
-                    "uri": f"file://{runner_file_path}",
-                    "languageId": "java",
-                    "version": 1,
-                    "text": runner_code
-                }
-            }
-        })
+        self.lsp_add_document(runner_file_path)
         while True:
             response = self.ls_io.read_json()
             if self.debug: print("[LanguageServer]", response)
@@ -660,13 +641,9 @@ class JavaLiveAgent(BaseLiveAgent):
             "id": 30,
             "method": "workspace/executeCommand",
             "params": {
-                "title": "Java: Getting Started",
-                "command": "java.project.getSettings",
+                "command": "java.resolvePath",
                 "arguments": [
-                    f"file://{self.runner_path}",
-                    [
-                        "org.eclipse.jdt.ls.core.outputPath",
-                    ]
+                    f"file://{runner_file_path}",
                 ]
             }
         })
@@ -675,9 +652,24 @@ class JavaLiveAgent(BaseLiveAgent):
             if self.debug: print("[LanguageServer]",response)
             if "id" in response and response["id"] == 30:
                 break
-        output_path = response["result"]["org.eclipse.jdt.ls.core.outputPath"]
-        self.project_name = output_path.split("/")[-2]
+        self.project_name = response["result"][0]["name"]
 
+
+    def lsp_add_document(self, file_path):
+        with open(file_path, "r") as f:
+            file_code = f.read()
+        self.ls_io.write_json({
+            "jsonrpc": "2.0",
+            "method": "textDocument/didOpen",
+            "params": {
+                "textDocument": {
+                    "uri": f"file://{file_path}",
+                    "languageId": "java",
+                    "version": 1,
+                    "text": file_code
+                }
+            }
+        })
 
 
     def restart_ls_server(self):
@@ -753,7 +745,7 @@ class JavaLiveAgent(BaseLiveAgent):
                 "cwd": self.runner_path,
                 "console": "internalConsole",
                 "stopOnEntry": False,
-                "mainClass": "JavaRunner",
+                "mainClass": "Runner",
                 "args": "",
                 "vmArgs": "",
                 "env": {},
@@ -761,7 +753,6 @@ class JavaLiveAgent(BaseLiveAgent):
                 "classPaths": [
                     f"{self.runner_path}/bin",
                     self.runner_path,
-                    self.target_class_path,
                 ],
                 "projectName": self.project_name,
             }
@@ -769,33 +760,41 @@ class JavaLiveAgent(BaseLiveAgent):
         self.io.write_json(init_request)
         self.io.write_json(launch_request)
         self.wait("event", "initialized")
-        self._setup_breakpoint()
+        self.setup_runner_breakpoint()
         brk = self.wait("event", "stopped")
         self.thread_id = brk["body"]["threadId"]
 
-
-    def stop(self):
+    def stop_server(self):
         """Stop the target program"""
         self.ls_server.kill()
         self.server.close()
-        
-
-    def compile(self):
-        """Compile the target file"""
-        pass
     
-    def _setup_breakpoint(self):
-        self.set_breakpoint(os.path.join(self.runner_path, self.runner_file), [27, 28])
-        self.set_breakpoint(os.path.abspath(self.target_file), [2,3,4])
-        #self.set_function_breakpoint(["main"])
+    def setup_runner_breakpoint(self):
+        self.set_breakpoint(os.path.join(self.runner_path, self.runner_file), [51])
         self.configuration_done()
 
-    def load_code(self):
-        if self.method_loaded:
+    def add_classpath(self, classpath):
+        frame_id = self.get_stackframes(self.thread_id)[0]["id"]
+        self.evaluate(f"runner.addPath(\"{classpath}\")", frame_id)
+        self.loaded_class_paths.append(classpath)
+    
+    def load_code(self, class_path, class_name):
+        """For this agent, loading code is loading a class in the runner"""
+        if class_path not in self.loaded_class_paths:
+            self.add_classpath(class_path)
+        if class_name in self.loaded_classes.keys():
             pass # TODO: hot reload procedure
         frame_id = self.get_stackframes(self.thread_id)[0]["id"]
-        self.evaluate(f"runner.loadMethod(\"{self.target_class_name}\", \"{self.target_methods[0]}\")", frame_id)
-        self.method_loaded = True
+        self.evaluate(f"runner.loadClass(\"{class_name}\")", frame_id)
+        self.loaded_classes[class_name] = os.path.abspath(os.path.join(class_path, class_name + ".java"))
+        target_file = os.path.join(class_path, class_name + ".java")
+        self.lsp_add_document(target_file)
+
+    def load_method(self, method_name):
+        frame_id = self.get_stackframes(self.thread_id)[0]["id"]
+        self.evaluate(f"runner.loadMethod(\"{method_name}\")", frame_id)
+        self.method_loaded = method_name
+
 
     def get_threads(self):
         request= {
@@ -808,34 +807,52 @@ class JavaLiveAgent(BaseLiveAgent):
         response = self.wait("response", command="threads")
         return response["body"]["threads"]
             
-
-    def evaluate(self, expression, frame_id, context="repl"):
-        evaluate_request = {
-            "seq": self.new_seq(),
-            "type": "request",
-            "command": "evaluate",
-            "arguments": {
-                "expression": expression,
-                "context": context,
-                "frameId": frame_id,
+    def get_start_line(self, file_path, class_name, method_name):
+        """Get the first line of the file"""
+        seq_id = self.new_seq()
+        def_req = {
+            "jsonrpc": "2.0",
+            "id": seq_id,
+            "method": "textDocument/documentSymbol",
+            "params": {
+                "textDocument": {
+                    "uri": f"file://{os.path.abspath(file_path)}"
+                }
             }
         }
-        self.io.write_json(evaluate_request)
-        self.wait("response", command="evaluate")
-
+        self.ls_io.write_json(def_req)
+        while True:
+            output = self.ls_io.read_json()
+            if self.debug: print("[LSP]", output)
+            if "id" in output and output["id"] == seq_id:
+                break
+        classes = output["result"]
+        for clazz in classes:
+            if clazz["name"] == class_name:
+                for method in clazz["children"]:
+                    if f"{method_name}(" in method["name"]:
+                        return method["range"]["start"]["line"]
+    
     def get_local_variables(self):
         stacktrace = self.get_stackframes(thread_id=self.thread_id)
         frame_id = stacktrace[0]["id"]
         scope_name,line_number = stacktrace[0]["name"], stacktrace[0]["line"]
         scope = self.get_scopes(frame_id)[0]
         variables = self.get_variables(scope["variablesReference"])
-        return (not self.target_methods[0] in scope_name), line_number, variables
+        return (not self.method_loaded in scope_name), line_number, variables
 
     
-    def execute(self, method, args):
+    def execute(self, clazz, method, args):
         """Execute a method with the given arguments"""
-        if method not in self.target_methods:
-            raise ValueError(f"Method {method} not found")
+        if not clazz in self.loaded_classes.keys(): # error, class not loaded
+            raise Exception(f"Class {clazz} not loaded")
+        if method != self.method_loaded:
+            self.load_method(method)
+
+        # Setup function breakpoints
+        breakpoint = self.get_start_line(self.loaded_classes[clazz], clazz, method) + 1
+        self.set_breakpoint(self.loaded_classes[clazz], [breakpoint])
+
         frame_id = self.get_stackframes(self.thread_id)[0]["id"]
         # We need to load the arguments into the target program
         self.evaluate(f"runner.args = new Object[{len(args)}]", frame_id)

@@ -8,17 +8,15 @@ from debugpy.common.messaging import JsonIOStream
 
 class PythonLiveAgent(BaseLiveAgent):
     """Communicate with the debugpy adapter to get stackframes of the execution of a method"""
-    def __init__(self, target_path, target_method, **kwargs):
-        super().__init__(**kwargs)
-        self.target_path = target_path
-        self.target_method = target_method
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.runner_path = kwargs.get("runner_path", os.path.join(os.path.dirname(__file__), "..", "runner", "py_runner.py"))
+        self.debugpy_adapter_path = kwargs.get("debugpy_adapter_path", os.path.join(os.path.dirname(debugpy.__file__), "adapter"))
 
     def start_server(self):
         """Create a subprocess with the agent"""
-        debugpy_adapter_path = os.path.join(os.path.dirname(debugpy.__file__), "adapter")
         self.server = subprocess.Popen(
-            ["python", debugpy_adapter_path],
+            ["python", self.debugpy_adapter_path],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
@@ -28,6 +26,10 @@ class PythonLiveAgent(BaseLiveAgent):
     def restart_server(self):
         self.server.kill()
         self.start_server()
+
+    def stop_server(self):
+        """Kill the subprocess"""
+        self.server.kill()
     
     def initialize(self):
         """Send data to the agent"""
@@ -87,62 +89,30 @@ class PythonLiveAgent(BaseLiveAgent):
         self.io.write_json(init_request)
         self.io.write_json(launch_request)
         self.wait("event", "initialized")
-        self._setup_breakpoint()
+        self.setup_runner_breakpoint()
         self.wait("event", "stopped")
-        print("Agent initialized")
     
-    def _setup_breakpoint(self):
-        self.set_breakpoint(self.runner_path, [30])
-        #self._set_breakpoint(self.target_path, [1, 2]) #TODO: get line number of method
-        self.set_function_breakpoint([self.target_method])
+    def setup_runner_breakpoint(self):
+        self.set_breakpoint(self.runner_path, [16])
         self.configuration_done()
     
-    def load_code(self):
+    def load_code(self, path: str):
         stacktrace = self.get_stackframes()
         frameId = stacktrace[0]["id"]
-        self.evaluate(f"set_import('{self.target_path}', '{self.target_method}')", frame_id=frameId)
-        # We need to run the debug agent loop until method is loaded (and at least 3 times to be sure)
-        i = 0
-        method_loaded = True
-        while i < 3 or not method_loaded:
-            # Get the value of method variable
-            scope = self.get_scopes(frameId)[0]
-            variables = self.get_variables(scope["variablesReference"])
-            for variable in variables:
-                if variable["name"] == 'method' and variable["value"] != 'None':
-                    method_loaded = True
-            self.next_breakpoint()
-            self.wait("event", "stopped")
-            i += 1
+        self.evaluate(f"set_import('{os.path.abspath(path)}')", frame_id=frameId)
+        self.next_breakpoint()
+        self.wait("event", "stopped")
             
-    def evaluate(self, expression, frame_id=None):
-        evaluate_request = {
-            "seq": self.new_seq(),
-            "type": "request",
-            "command": "evaluate",
-            "arguments": {
-                "expression": expression,
-                "context": "repl"
-            }
-        }
-        if frame_id:
-            evaluate_request["arguments"]["frameId"] = frame_id
-        self.io.write_json(evaluate_request)
-        self.wait("response", command="evaluate")
-
     def execute(self, method, args):
-        if method != self.target_method:
-            self.target_method = method
-            self.set_function_breakpoint([self.target_method])
-            self.load_code()
+        self.set_function_breakpoint([method])
         stacktrace = self.get_stackframes()
         frameId = stacktrace[0]["id"]
-        self.evaluate(f"set_method([{','.join(args)}])", frame_id=frameId)
+        self.evaluate(f"set_method('{method}',[{','.join(args)}])", frame_id=frameId)
         # We need to run the debug agent loop until we are on a breakpoint in the target method
         stackrecording = StackRecording()
         while True:
             stacktrace = self.get_stackframes()
-            if stacktrace[0]["name"] == self.target_method:
+            if stacktrace[0]["name"] == method:
                 break
             self.next_breakpoint()
             self.wait("event", "stopped")
@@ -150,7 +120,7 @@ class PythonLiveAgent(BaseLiveAgent):
         scope = None
         while True:
             stacktrace = self.get_stackframes()
-            if stacktrace[0]["name"] != self.target_method:
+            if stacktrace[0]["name"] != method:
                 break
             # We need to get local variables
             if not scope:
@@ -164,7 +134,7 @@ class PythonLiveAgent(BaseLiveAgent):
         variables = self.get_variables(scope["variablesReference"])
         return_value = None
         for variable in variables:
-            if variable["name"] == f'(return) {self.target_method}':
+            if variable["name"] == f'(return) {method}':
                 return_value = variable["value"]
         for i in range(2): # Needed to reset the debugger agent loop
             self.next_breakpoint()

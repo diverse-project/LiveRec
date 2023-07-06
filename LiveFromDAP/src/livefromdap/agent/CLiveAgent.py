@@ -1,41 +1,56 @@
 import os
 import subprocess
 import time
+import pycparser
 from debugpy.common.messaging import JsonIOStream
 
 from livefromdap.utils.StackRecording import Stackframe, StackRecording
 from .BaseLiveAgent import BaseLiveAgent
 
-class CLiveAgent(BaseLiveAgent):
-    def __init__(self, target_file : str, target_methods : list[str] = [], auto_compile : bool = True,**kwargs):
-        super().__init__()
-        self.target_file = target_file
-        self.target_methods = target_methods
-        self.auto_compile = auto_compile
-        if auto_compile:
-            self.target_file_exec = kwargs.get("target_file_exec", f"{self.target_file[:self.target_file.rfind('.')]}.so")
-            self.compile_command = kwargs.get("compile_command", f"gcc -g -fPIC -shared -o {self.target_file_exec} {self.target_file}")
-        else:
-            self.target_file_exec = kwargs.get("target_file_exec", None)
-            if not self.target_file_exec:
-                raise ValueError("target_file_exec must be specified if auto_compile is False")
-            self.compile_command = kwargs.get("compile_command", f"gcc -g -fPIC -shared -o {self.target_file_exec} {self.target_file}")
+class FunctionEndFinder(pycparser.c_ast.NodeVisitor):
+    """Find the possible end line of a function(return and closing bracket)"""
+
+    def __init__(self, path, function_name):
+        self.function_name = function_name
+        self.ast = pycparser.parse_file(path, use_cpp=True)
+        self.end_line = []
+        self.visit(self.ast)
         
+
+    def visit_FuncDef(self, node):
+        if node.decl.name == self.function_name:
+            self.generic_visit(node)
+            
+
+    def visit_Return(self, node):
+        self.end_line.append(node.coord.line)
+        self.generic_visit(node)
+
+
+
+class CLiveAgent(BaseLiveAgent):
+    def __init__(self, *args,**kwargs):
+        super().__init__(*args, **kwargs)
+        self.compile_command = kwargs.get("compile_command", "gcc -g -fPIC -shared -o {target_input} {target_output}")
         self.runner_path = kwargs.get("runner_path", os.path.join(os.path.dirname(__file__), "..", "runner", "c_runner.c"))
         self.runner_path_exec = kwargs.pop("runner_path_exec", os.path.join(os.path.dirname(__file__), "..", "runner", "c_runner"))
-        self.is_shared_lib_loaded = False
-        self.target_exit_lines = []
+        self.dap_server_path = kwargs.get("dap_server_path", os.path.join(os.path.dirname(__file__), "..", "bin", "OpenDebugAD7", "OpenDebugAD7"))
+        self.current_loaded_shared_libraries = None
+        self.main_thread_id = None
 
     def start_server(self):
         """Create a subprocess with the agent"""
-        opendegugad7_path = os.path.join(os.path.dirname(__file__), "..", "bin", "OpenDebugAD7", "OpenDebugAD7")
         self.server = subprocess.Popen(
-            [opendegugad7_path],
+            [self.dap_server_path],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
         self.io = JsonIOStream.from_process(self.server)
+
+    def stop_server(self) -> None:
+        """Stop the Agent"""
+        self.server.kill()
     
     def restart_server(self):
         self.server.kill()
@@ -107,83 +122,64 @@ class CLiveAgent(BaseLiveAgent):
         self.io.write_json(init_request)
         self.io.write_json(launch_request)
         self.wait("event", "initialized")
-        self._setup_breakpoint()
+        self.setup_runner_breakpoint()
         brk = self.wait("event", "stopped")
-        self.thread_id = brk["body"]["threadId"]
+        self.main_thread_id = brk["body"]["threadId"]
 
-    def compile(self):
+    def compile(self, input_file=None, output_file=None):
         """Compile the target file"""
-        compilation = subprocess.run(self.compile_command, shell=True, check=True)
-        #return the return code of the compilation
+        compilation = subprocess.run(self.compile_command.format(target_input=input_file, target_output=output_file), shell=True, check=True)
         return compilation.returncode
     
-    def _setup_breakpoint(self):
+    def setup_runner_breakpoint(self):
         self.set_breakpoint(self.runner_path, [14])
-        self.set_function_breakpoint(self.target_methods)
         self.configuration_done()
 
-    def set_target_methods(self, methods):
-        self.target_methods = methods
-        self.set_function_breakpoint(self.target_methods)
-
-    def find_return(self):
-        self.return_line = [] # TODO : find function end when no return
-        with open(self.target_file, "r") as f:
-            for i,line in enumerate(f):
-                if "return" in line:
-                    self.return_line.append(i+1)
-
-    def load_code(self):
-        if self.auto_compile:
-            self.compile()
-        frame_id = self.get_stackframes(thread_id=self.thread_id)[0]["id"]
-        if self.is_shared_lib_loaded:
+    def load_code(self, path: str):
+        """Load the code to debug,
+        compile it if needed"""
+        # check if the file is not a shared library
+        if not path.endswith(".so"):
+            # change the extension to .so
+            compiled_path = path[:-2] + ".so"
+            # compile the file
+            self.compile(input_file=os.path.abspath(path), output_file=os.path.abspath(compiled_path))
+            path = compiled_path
+        frame_id = self.get_stackframes(thread_id=self.main_thread_id)[0]["id"]
+        libname = os.path.basename(path)
+        if self.current_loaded_shared_libraries is not None:
             self.evaluate(f"-exec call close_lib()", frame_id=frame_id)
-        self.evaluate(f"-exec call load_lib(\"{self.target_file_exec}\")", frame_id=frame_id)
-        self.is_shared_lib_loaded = True
-        self.find_return()
+        self.evaluate(f"-exec call load_lib(\"{path}\")", frame_id=frame_id)
+        self.current_loaded_shared_libraries = libname
             
 
-    def evaluate(self, expression, frame_id):
-        evaluate_request = {
-            "seq": self.new_seq(),
-            "type": "request",
-            "command": "evaluate",
-            "arguments": {
-                "expression": expression,
-                "frameId": frame_id,
-            }
-        }
-        self.io.write_json(evaluate_request)
-        self.wait("response", command="evaluate")
-
-
-    def get_local_variables(self):
-        stacktrace = self.get_stackframes(thread_id=self.thread_id)
-        frame_id = stacktrace[0]["id"]
-        _,line_number = stacktrace[0]["source"]["name"], stacktrace[0]["line"]
+    def add_variable(self, frame_id, stackframe, stackrecording):
+        line = stackframe["line"]
         scope = self.get_scopes(frame_id)[0]
         variables = self.get_variables(scope["variablesReference"])
-        return int(line_number) in self.return_line, line_number, variables
+        recorded_stackframe = Stackframe(line, variables)
+        stackrecording.add_stackframe(recorded_stackframe)
     
-    def execute(self, method, args):
-        if not method in self.target_methods:
-            self.set_target_methods([method])
+    def execute(self, source_file, method, args):
+        self.set_function_breakpoint([method])
         command = f"-exec call {method}({','.join(args)})"
-        frame_id = self.get_stackframes(thread_id=self.thread_id)[0]["id"]
+        frame_id = self.get_stackframes(thread_id=self.main_thread_id)[0]["id"]
         self.evaluate(command, frame_id=frame_id)
         self.wait("event", event="stopped")
-        stacktrace = StackRecording()
+        end_lines = FunctionEndFinder(os.path.abspath(source_file),method).end_line
+        stackrecording = StackRecording()
         while True:
-            stop, line, variables = self.get_local_variables()
-            stackframe = Stackframe(line, variables)
-            stacktrace.add_stackframe(stackframe)
-            if stop:
-                self.step_out(thread_id=self.thread_id)
+            stackframes = self.get_stackframes(thread_id=self.main_thread_id)
+            frame_id = stackframes[0]["id"]
+            self.add_variable(frame_id, stackframes[0], stackrecording)
+            if stackframes[0]["line"] in end_lines:
+                self.step_out(thread_id=self.main_thread_id)
                 self.wait("event", event="stopped")
-                _, _, variables = self.get_local_variables()
+                stackframes = self.get_stackframes(thread_id=self.main_thread_id)
+                scope = self.get_scopes(stackframes[0]["id"])[0]
+                variables = self.get_variables(scope["variablesReference"])
                 return_value = variables[0]
                 break
-            self.step(thread_id=self.thread_id)
+            self.step(thread_id=self.main_thread_id)
             self.wait("event", event="stopped")
-        return return_value, stacktrace
+        return return_value, stackrecording
