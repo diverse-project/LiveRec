@@ -63,7 +63,8 @@
 %  articlenumber=1,
 %}
 %%%%%%%%%%%%%%%%%%
-
+\definecolor{codegray}{gray}{0.9}
+\newcommand{\code}[1]{\colorbox{codegray}{\texttt{#1}}}
 
 \begin{document}
 
@@ -123,26 +124,88 @@
 \begin{abstract}
   %What is the broad context of the work? What is the importance of the general research area?
   \emph{Context}
+  In his presentation "Inventing on Principles", Bret Victor demonstrates a live code editor: by specifying input values for a function, we can observe in real time the values taken by the variables during execution, as the code is written. 
+  This information is often obtained using a language designed for live programming or by instrumentation of a specific runtime.
   % What problem or question does the paper address? How has this problem or question been addressed by others (if at all)?
   \emph{Inquiry}
+  \dots
   % What was done that unveiled new knowledge?
   \emph{Approach}
+  In this paper we propose to exploit the capabilities of debuggers to obtain the data needed to design a live code editor.
   % What new facts were uncovered? If the research was not results oriented, what new capabilities are enabled by the work?
   \emph{Knowledge}
+  \dots
   % What argument, feasibility proof, artifacts, or results and evaluation support this work?
   \emph{Grounding}
+  \dots
   % Why does this work matter?
   \emph{Importance}
+  \dots
  
 \end{abstract}
 \section{Introduction}
 \label{sec:introduction}
+
 \section{Problem Overview}
 \label{sec:problem-overview}
-\section{Stack Recording}
+
+\section{Using the Debugger ?}
 \label{sec:stack-recording}
+
+\subsection{Stack Recording}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.8\linewidth]{img/stackrecord.png}
+  \caption{Stack Recording example}
+  \label{fig:stack-recording}
+\end{figure}
+
+In order to generate the data needed to probe a variable, we need to be able to retrieve the state of the variable during execution. 
+This information is contained in the stackframe at the time of execution. 
+However, we need to add spatial and temporal information to this: we need to associate each stackframe with the location in the code at which it was retrieved, and we also need to know the order in which these stackframes were retrieved.
+
+In this paper, we introduce a structure for representing this data: a \textit{stack recording} \ref*{fig:stack-recording}. 
+A stack trace represents the different stackframes in the form of a chain, where each stackframe has a reference to the corresponding line of source code. 
+This representation allows us to maintain a link between the spatial location (the reference to the source code) and the temporal location (the order of these stackframes) of the execution.
+This representation has several advantages: it is easy to construct from debugger information, and it applies to most programming languages.
+
+\subsection{Keep Alive Agent}
+
+\begin{figure}[h]
+  \centering
+  %\includegraphics[width=0.8\linewidth]{img/keepalive-agent.png}
+  \caption{Keep Alive Agent}
+  \label{fig:keepalive-agent}
+\end{figure}
+
+A live environment must be able to react to two different events: a change in the code or a change in the test/input data. 
+If the code changes, we need to re-execute the code, and in the case of a compiled language, we need to compile the new code first. 
+If the data changes, we need to be able to re-execute the programme with the new data. 
+In addition, it is necessary to keep compilation and execution times low enough to maintain an interactive experience with the user.
+
+To meet these constraints, we propose to use the debugger on an intermediate program, a \textit{keep-alive agent}. 
+This program keeps the debugger alive between executions and code changes to reduce initialisation times. 
+The general operation of a keep-alive agent is shown in Figure \ref*{fig:keepalive-agent} :
+\begin{itemize}
+  \item At the start of the session, the debugger is started on the agent. Once initialised, the agent is paused.
+  \item The target code is loaded into the agent and a breakpoint is set at the input of the target method.
+  \item Execution of the target method triggers the breakpoint at the input of the method, and execution continues step by step to build the \textit{stack recording}.
+\end{itemize}
+
 \section{Live Probes in Java with JDI}
 \label{sec:live-probes-java}
+
+We initially developed a Java backend using JDI, a debugging interface for Java, to implement the concepts discussed in the previous section. The keep-alive agent includes a method for loading classes into the JVM.
+
+When executing the target method, the arguments are created in the client JVM and then passed to the debugger JVM using the \code{mirrorOf} and \code{newInstance} methods from the reflection API. The target method is invoked using \code{invokeMethod}. 
+To handle events from the JDI when breakpoints are set, a dedicated thread is used to prevent deadlocks.
+
+If modifications are needed in the code of the target method, we employ the \code{redefineClasses} method. 
+This method allows changing the content of a class loaded in the JVM using an array of byte codes. 
+However, it has a limitation: it only works if the class signature remains unchanged. 
+If the class structure is modified, restarting the debugger is necessary.
+
 \section{Generalizing Live Probes with Debugger Adapter Protocol}
 \label{sec:generalizing-live-probes}
 \section{Evaluation}
