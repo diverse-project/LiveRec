@@ -59,6 +59,9 @@ LiveFromDAP/src/livefromdap/bin/*
 
 .vscode/
 
+LiveFromDAP/src/livefromdap/target/**/*.so 
+LiveFromDAP/src/livefromdap/target/**/*.class
+
 ## paper ##
 # exclude evrery latex auxilary files
 paper/*.aux

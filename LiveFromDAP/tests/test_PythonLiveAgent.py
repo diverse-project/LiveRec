@@ -8,7 +8,7 @@ agent.start_server()
 t3 = time.time()
 agent.initialize()
 t4 = time.time()
-agent.load_code("/home/jbdod/CWI/LiveProbes/LiveFromDAP/src/livefromdap/target/binary_search.py")
+agent.load_code("/home/jbdod/CWI/LiveProbes/LiveFromDAP/src/livefromdap/target/python/binary_search.py")
 t5 = time.time()
 result, _ = agent.execute("binary_search", ["[1, 2, 3, 4, 5]", "3"])
 assert int(result) == 2
