@@ -15,17 +15,9 @@ previous_exec_request = ""
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
-agent = None
-is_agent_initializing = False
-
-#Decorator to check if agent is not None
-def agent_required(func):
-    def wrapper(*args, **kwargs):
-        if agent is None:
-            send_status("Agent not initialized")
-            return
-        return func(*args, **kwargs)
-    return wrapper
+agent = CLiveAgent(debug=False)
+source_path = os.path.abspath("src/webdemo/tmp/tmp.c")
+compiled_path = os.path.abspath("src/webdemo/tmp/libtmp.so")
 
 @app.route('/')
 def index():
@@ -41,17 +33,14 @@ def handle_json(json_msg):
         if not is_parsable:
             send_status("Syntax error : " + reason)
             return
-        if agent is None:
-            send_status("Agent not initialized")
-            return
         if changed:
-            with open("src/webdemo/tmp/tmp.c", "w") as f:
+            with open(source_path, "w") as f:
                 f.write(code)
             if compile_c() != 0:
                 send_status("Compilation error")
                 return
             send_status("Code changed, loading...")
-            agent.load_code()
+            agent.load_code(compiled_path)
         # We need to find if there is line that start with //@
         for line in code.split("\n"):
             if line.startswith("//@"):
@@ -61,22 +50,13 @@ def handle_json(json_msg):
                     if "(" in exec_request and exec_request.endswith(")"):
                         method = exec_request.split("(")[0]
                         args = exec_request.split("(")[1][:-1].split(",")
-                        if not "" in args:
+                        if not "" in map(lambda x: x.strip(), args):
                             response = execute_method(method, args)
                             send(response, json=True)
-
-
-    elif json_dict["event"] == "execute":
-        method = json_dict["method"]
-        args = json_dict["args"]
-        response = execute_method(method, args)
-        send(response, json=True)
-
-    elif json_dict["event"] == "init":
+    if json_dict["event"] == "init":
         init()
 
 class ThreadWithReturnValue(Thread):
-    
     def __init__(self, group=None, target=None, name=None,
                  args=(), kwargs={}, Verbose=None):
         Thread.__init__(self, group, target, name, args, kwargs)
@@ -111,20 +91,16 @@ def check_if_parsable(code):
         changed = True
     return parsable, changed, ""
 
-
-@agent_required
 def execute_method(method, args):
-    if not agent.loaded_coder:
-        agent.load_code()
-    if method != agent.target_method:
-        agent.set_target_method(method)
     #Create a thread to execute the method
-    thread = ThreadWithReturnValue(target=agent.execute, args=(args,))
+    thread = ThreadWithReturnValue(target=agent.execute, args=(source_path, method, args,))
     thread.start()
     # Wait for the thread to finish, with a timeout of 3 seconds
     output = thread.join(3)
     # If thread is still alive, it means it has timed out
     if thread.is_alive():
+        print("Timeout")
+        agent.stop_server()
         init(keep_old=True)
         return {
             "event": "executeTimeout"
@@ -142,10 +118,10 @@ def execute_method(method, args):
 
 def construct_result_json(method, output):
     return_value, stacktrace = output
-    printer = CPrettyPrinter("src/webdemo/tmp/tmp.c",method)
+    printer = CPrettyPrinter(source_path,method)
     output = printer.pretty_print(stacktrace, return_value=return_value['value'])
     if printer.changed_source:
-        with open("src/webdemo/tmp/tmp.c", "r") as f:
+        with open(source_path, "r") as f:
             code = f.read()
         req = {
             "event": "codeChange",
@@ -170,22 +146,12 @@ def send_status(status, **kwargs):
     send(req, json=True)
 
 def init(keep_old=False):
-    global agent, is_agent_initializing
-    if is_agent_initializing:
-        return
     send_status("Initializing Agent...")
-    is_agent_initializing = True
     if not keep_old:
-        with open("src/webdemo/tmp/tmp.c", "w") as f:
+        with open(source_path, "w") as f:
             f.write("")
-    agent = CLiveAgent(
-        runner_path="src/livefromdap/runner/runner.c",
-        target_path="src/webdemo/tmp/tmp.c",
-        target_method="",
-        runner_path_exec="src/livefromdap/runner/runner",
-        target_path_exec="src/webdemo/tmp/libtmp.so",
-        debug=False)
-    is_agent_initializing = False
+    agent.start_server()
+    agent.initialize()
     send_status("Agent initialized")
 
 if __name__ == '__main__':

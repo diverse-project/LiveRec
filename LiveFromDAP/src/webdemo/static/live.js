@@ -52,16 +52,7 @@ function sendCode() {
     socket.emit('json', json);
 }
 
-// create a function to send a exec request to the server
-function execCode(method, args) {
-    // create the json object to send to the server
-    var json = {
-        event: 'execute',
-        method: method,
-        args: args
-    };
-    socket.emit('json', json);
-}
+
 
 CodeMirror.commands.save = function(insance) { 
     sendCode();
