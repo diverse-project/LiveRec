@@ -9,4 +9,5 @@ void bubblesort(int arr[], int size){
             }
         }
     }
+    return; // To fix the bug, we need to add a return statement
 }

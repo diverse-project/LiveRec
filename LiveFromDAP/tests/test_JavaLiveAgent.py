@@ -1,24 +1,49 @@
 from livefromdap.agent.JavaLiveAgent import JavaLiveAgent
-import time
 
-t1 = time.time()
-agent = JavaLiveAgent(
-    debug=False) # Turn this to True to see the debug messages
-t2 = time.time()
-agent.start_server()
-t3 = time.time()
-agent.initialize()
-t4 = time.time()
-agent.load_code("/home/jbdod/CWI/LiveProbes/LiveFromDAP/src/livefromdap/target/java", "BinarySearch")
-t5 = time.time()
-agent.execute("BinarySearch", "binarySearch", ["new char[]{'a', 'b'}", "'a'"])
-t6 = time.time()
-agent.execute("BinarySearch", "binarySearch", ["new char[]{'a','b','c','d'}", "'e'"])
-t7 = time.time()
-agent.stop_server()
-print("Time to create the agent: " + str(t2-t1))
-print("Time to start the server: " + str(t3-t2))
-print("Time to initialize the server: " + str(t4-t3))
-print("Time to load the code: " + str(t5-t4))
-print("Time to execute the first time: " + str(t6-t5))
-print("Time to execute the second time: " + str(t7-t6))
+def test_java_binary_search():
+    agent = JavaLiveAgent(debug=False) # Turn this to True to see the debug messages
+
+    agent.start_server()
+    agent.initialize()
+    agent.load_code("/home/jbdod/CWI/LiveProbes/LiveFromDAP/src/livefromdap/target/java", "BinarySearch")
+
+    agent.execute("BinarySearch", "binarySearch", ["new char[]{'a', 'b'}", "'a'"])
+    agent.execute("BinarySearch", "binarySearch", ["new char[]{'a','b','c','d'}", "'e'"])
+
+    agent.stop_server()
+
+def test_java_bubblesort():
+    agent = JavaLiveAgent(debug=False) # Turn this to True to see the debug messages
+
+    agent.start_server()
+    agent.initialize()
+    agent.load_code("/home/jbdod/CWI/LiveProbes/LiveFromDAP/src/livefromdap/target/java", "BubbleSort")
+
+    agent.execute("BubbleSort", "bubbleSort", ["new int[]{1,2,3,4,5,6}"])
+    agent.execute("BubbleSort", "bubbleSort", ["new int[]{6,5,4,3,2,1}"])
+
+    agent.stop_server()
+
+def test_java_fibonnaci():
+    agent = JavaLiveAgent(debug=False) # Turn this to True to see the debug messages
+
+    agent.start_server()
+    agent.initialize()
+    agent.load_code("/home/jbdod/CWI/LiveProbes/LiveFromDAP/src/livefromdap/target/java", "Fibonnaci")
+
+    agent.execute("Fibonnaci", "fibonnaci", ["5"])
+    agent.execute("Fibonnaci", "fibonnaci", ["8"])
+
+    agent.stop_server()
+
+def test_java_prime():
+    agent = JavaLiveAgent(debug=False) # Turn this to True to see the debug messages
+
+    agent.start_server()
+    agent.initialize()
+    agent.load_code("/home/jbdod/CWI/LiveProbes/LiveFromDAP/src/livefromdap/target/java", "Prime")
+
+    agent.execute("Prime", "primeInInterval", ["2", "5"])
+    agent.execute("Prime", "primeInInterval", ["6", "9"])
+
+    agent.stop_server()

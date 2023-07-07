@@ -19,8 +19,8 @@ def prime_in_interval(x,y):
     """
     Returns a list of prime numbers in the interval [x,y].
     """
-    primes = []
+    count = 0
     for i in range(x,y+1):
         if is_prime(i):
-            primes.append(i)
-    return primes
+            count += 1
+    return count

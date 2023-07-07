@@ -178,7 +178,10 @@ class CLiveAgent(BaseLiveAgent):
                 stackframes = self.get_stackframes(thread_id=self.main_thread_id)
                 scope = self.get_scopes(stackframes[0]["id"])[0]
                 variables = self.get_variables(scope["variablesReference"])
-                return_value = variables[0]
+                if len(variables) == 0:
+                    return_value = None
+                else:
+                    return_value = variables[0]
                 break
             self.step(thread_id=self.main_thread_id)
             self.wait("event", event="stopped")
