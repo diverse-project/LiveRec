@@ -743,7 +743,7 @@ class JavaLiveAgent(BaseLiveAgent):
                 "name": "Launch Current File",
                 "request": "launch",
                 "cwd": self.runner_path,
-                "console": "internalConsole",
+                "console": "integratedTerminal",
                 "stopOnEntry": False,
                 "mainClass": "Runner",
                 "args": "",
@@ -767,10 +767,12 @@ class JavaLiveAgent(BaseLiveAgent):
     def stop_server(self):
         """Stop the target program"""
         self.ls_server.kill()
+        if getattr(self, "server", None) is not None:
+            self.debugee.kill()
         self.server.close()
     
     def setup_runner_breakpoint(self):
-        self.set_breakpoint(os.path.join(self.runner_path, self.runner_file), [51])
+        self.set_breakpoint(os.path.join(self.runner_path, self.runner_file), [52])
         self.configuration_done()
 
     def add_classpath(self, classpath):
@@ -783,7 +785,29 @@ class JavaLiveAgent(BaseLiveAgent):
         if class_path not in self.loaded_class_paths:
             self.add_classpath(class_path)
         if class_name in self.loaded_classes.keys():
-            pass # TODO: hot reload procedure
+            # send a did save event to the ls server
+            with open(self.loaded_classes[class_name], "r") as f:
+                code = f.read()
+            self.ls_io.write_json({
+                "jsonrpc": "2.0",
+                "method": "textDocument/didSave",
+                "params": {
+                    "textDocument": {
+                        "uri": f"file://{self.loaded_classes[class_name]}"
+                    },
+                    "text": code
+                }
+            })
+            
+            reload_request = {
+                "seq": self.new_seq(),
+                "type": "request",
+                "command": "redefineClasses",
+                "arguments": {}
+            }
+            self.io.write_json(reload_request)
+            redefinned = self.wait(type="response", command="redefineClasses")["body"]["changedClasses"]
+            print(redefinned, class_name in redefinned)
         frame_id = self.get_stackframes(self.thread_id)[0]["id"]
         self.evaluate(f"runner.loadClass(\"{class_name}\")", frame_id)
         self.loaded_classes[class_name] = os.path.abspath(os.path.join(class_path, class_name + ".java"))
@@ -794,7 +818,6 @@ class JavaLiveAgent(BaseLiveAgent):
         frame_id = self.get_stackframes(self.thread_id)[0]["id"]
         self.evaluate(f"runner.loadMethod(\"{method_name}\")", frame_id)
         self.method_loaded = method_name
-
 
     def get_threads(self):
         request= {
@@ -841,7 +864,7 @@ class JavaLiveAgent(BaseLiveAgent):
         variables = self.get_variables(scope["variablesReference"])
         return (not self.method_loaded in scope_name), line_number, variables
 
-    
+
     def execute(self, clazz, method, args):
         """Execute a method with the given arguments"""
         if not clazz in self.loaded_classes.keys(): # error, class not loaded
@@ -872,7 +895,10 @@ class JavaLiveAgent(BaseLiveAgent):
             if stop:
                 self.next_breakpoint()
                 self.wait("event", event="stopped")
-                return_value = None # TODO: get return value
+                if variables[0]["name"].startswith(f"->{method}"):
+                    return_value = variables[0]["value"]
+                else:
+                    return_value = None
                 break
             self.step(thread_id=self.thread_id)
             self.wait("event", event="stopped")

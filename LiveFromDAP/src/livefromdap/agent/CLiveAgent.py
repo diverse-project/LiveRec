@@ -171,11 +171,9 @@ class CLiveAgent(BaseLiveAgent):
         while True:
             stackframes = self.get_stackframes(thread_id=self.main_thread_id)
             frame_id = stackframes[0]["id"]
-            self.add_variable(frame_id, stackframes[0], stackrecording)
-            if stackframes[0]["line"] in end_lines:
-                self.step_out(thread_id=self.main_thread_id)
-                self.wait("event", event="stopped")
-                stackframes = self.get_stackframes(thread_id=self.main_thread_id)
+            
+            if stackframes[0]["name"] == "main()":
+                return_value = None
                 scope = self.get_scopes(stackframes[0]["id"])[0]
                 variables = self.get_variables(scope["variablesReference"])
                 if len(variables) == 0:
@@ -183,6 +181,12 @@ class CLiveAgent(BaseLiveAgent):
                 else:
                     return_value = variables[0]
                 break
-            self.step(thread_id=self.main_thread_id)
-            self.wait("event", event="stopped")
+
+            self.add_variable(frame_id, stackframes[0], stackrecording)
+            if stackframes[0]["line"] in end_lines:
+                self.evaluate("-exec fin", frame_id=frame_id)
+                self.wait("event", event="stopped")
+            else:
+                self.step(thread_id=self.main_thread_id)
+                self.wait("event", event="stopped")
         return return_value, stackrecording

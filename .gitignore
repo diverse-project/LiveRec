@@ -61,6 +61,8 @@ LiveFromDAP/src/livefromdap/bin/*
 
 LiveFromDAP/src/livefromdap/target/**/*.so 
 LiveFromDAP/src/livefromdap/target/**/*.class
+LiveFromDAP/src/livefromdap/runner/c_runner
+LiveFromDAP/src/livefromdap/runner/bin/*.class
 
 ## paper ##
 # exclude evrery latex auxilary files

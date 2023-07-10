@@ -29,7 +29,11 @@ class PythonLiveAgent(BaseLiveAgent):
 
     def stop_server(self):
         """Kill the subprocess"""
+        print("Killing server, in pid", self.server.pid)
         self.server.kill()
+        if getattr(self, "server", None) is not None:
+            print("Killing debuggee, in pid", self.debugee.pid)
+            self.debugee.kill()
     
     def initialize(self):
         """Send data to the agent"""

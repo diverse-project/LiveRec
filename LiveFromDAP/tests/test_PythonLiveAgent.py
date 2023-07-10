@@ -56,3 +56,7 @@ def test_python_prime():
     assert int(result) == 1
 
     agent.stop_server()
+
+print("Testing PythonLiveAgent")
+test_python_binary_search()
+

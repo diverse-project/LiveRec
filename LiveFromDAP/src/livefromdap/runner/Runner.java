@@ -1,16 +1,17 @@
 import java.lang.reflect.Method;
 import java.net.URL;
-import static java.lang.Class.forName;
+import java.util.ArrayList;
+
 import java.io.File;
 
 public class Runner {
-    private final DynamicClassLoader classLoader;
+    private final DynamicClassLoaderFactory classLoader;
     Class clazz;
     Method method;
     Object[] args;
 
     public Runner() {
-        classLoader = new DynamicClassLoader(new URL[0], this.getClass().getClassLoader());
+        classLoader = new DynamicClassLoaderFactory(new ArrayList<>(), this.getClass().getClassLoader());
     }
 
     public void addPath(String path) {
@@ -27,7 +28,7 @@ public class Runner {
 
     public void loadClass(String className) {
         try {
-            clazz = forName(className, true, classLoader);
+            clazz = classLoader.loadClass(className);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -47,10 +48,11 @@ public class Runner {
     }
     public static void main(String[] args) {
         Runner runner = new Runner();
+        Object result;
         while (true) {
             if (runner.method != null && runner.args != null) {
                 try {
-                    runner.method.invoke(null, runner.args);
+                    result = runner.method.invoke(null, runner.args);
                     runner.args = null;
                 } catch (Exception e) {
                     e.printStackTrace();
