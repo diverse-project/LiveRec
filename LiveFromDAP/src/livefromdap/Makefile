@@ -27,8 +27,15 @@ target/java/%.class: target/java/%.java
 runner/%: runner/%.c
 	gcc -g -o $@ $<
 
-runner/bin/%.class: runner/%.java
-	javac -g -d runner/bin -cp runner $<
+runner/bin/Runner.class: runner/Runner.java runner/bin/DynamicClassLoader.class runner/bin/DynamicClassLoaderFactory.class
+	javac -g -d runner/bin -cp runner/bin runner/Runner.java
+
+runner/bin/DynamicClassLoader.class: runner/DynamicClassLoader.java
+	javac -g -d runner/bin -cp runner/bin runner/DynamicClassLoader.java
+
+runner/bin/DynamicClassLoaderFactory.class: runner/DynamicClassLoaderFactory.java runner/bin/DynamicClassLoader.class
+	javac -g -d runner/bin -cp runner/bin runner/DynamicClassLoaderFactory.java
+
 
 clean:
 	rm -f $(EXAMPLES_C_TARGETS) $(EXAMPLES_JAVA_TARGETS) runner/c_runner runner/bin/*.class

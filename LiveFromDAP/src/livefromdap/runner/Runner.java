@@ -5,13 +5,13 @@ import java.util.ArrayList;
 import java.io.File;
 
 public class Runner {
-    private final DynamicClassLoaderFactory classLoader;
+    private final DynamicClassLoaderFactory classLoaderFactory;
     Class clazz;
     Method method;
     Object[] args;
 
     public Runner() {
-        classLoader = new DynamicClassLoaderFactory(new ArrayList<>(), this.getClass().getClassLoader());
+        classLoaderFactory = new DynamicClassLoaderFactory(new ArrayList<>(), this.getClass().getClassLoader());
     }
 
     public void addPath(String path) {
@@ -19,7 +19,7 @@ public class Runner {
             File file = new File(path);
             if(file.exists()) {
                 URL url = file.toURI().toURL();
-                classLoader.addURL(url);
+                classLoaderFactory.addURL(url);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -28,7 +28,7 @@ public class Runner {
 
     public void loadClass(String className) {
         try {
-            clazz = classLoader.loadClass(className);
+            clazz = classLoaderFactory.loadClass(className);
         } catch (Exception e) {
             e.printStackTrace();
         }

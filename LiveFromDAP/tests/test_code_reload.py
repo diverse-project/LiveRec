@@ -1,7 +1,13 @@
+import subprocess
 from livefromdap.agent.CLiveAgent import CLiveAgent
 from livefromdap.agent.JavaLiveAgent import JavaLiveAgent
 from livefromdap.agent.PythonLiveAgent import PythonLiveAgent
 import os
+
+def execute_command(command):
+    process = subprocess.Popen(command, shell=True)
+    process.wait()
+    return process.returncode
 
 def test_c_binary_search_reload():
     initial_code = """
@@ -42,7 +48,7 @@ int binary_search(int arr[], int length, int target) {
 
     with open("tmp/binary_search.c", "w") as f:
         f.write(initial_code)
-    os.system("gcc -g -shared -fPIC -o tmp/binary_search.so tmp/binary_search.c")
+    execute_command("gcc -g -shared -fPIC -o tmp/binary_search.so tmp/binary_search.c")
 
     agent = CLiveAgent(debug=False)
     agent.start_server()
@@ -58,7 +64,7 @@ int binary_search(int arr[], int length, int target) {
 
     with open("tmp/binary_search.c", "w") as f:
         f.write(modified_code)
-    os.system("gcc -g -shared -fPIC -o tmp/binary_search.so tmp/binary_search.c")
+    execute_command("gcc -g -shared -fPIC -o tmp/binary_search.so tmp/binary_search.c")
 
     agent.load_code(compiled_path)
 
@@ -112,24 +118,34 @@ public class BinarySearch {
 
     with open("tmp/BinarySearch.java", "w") as f:
         f.write(initial_code)
-    os.system("javac -g -d tmp tmp/BinarySearch.java")
+    #compile the file
+    execute_command("javac -g -d tmp tmp/BinarySearch.java")
+    old_bytecode = None
+    with open("tmp/BinarySearch.class", "rb") as f:
+        old_bytecode = f.read()
 
+    code_path = os.path.abspath("tmp")
     agent = JavaLiveAgent(debug=False) # Turn this to True to see the debug messages
 
     agent.start_server()
     agent.initialize()
-    agent.load_code(os.path.abspath("tmp"), "BinarySearch")
+    agent.load_code(code_path, "BinarySearch")
 
     result, _ = agent.execute("BinarySearch", "binarySearch", ["new char[]{'a', 'b', 'c', 'd', 'e'}", "'f'"])
     assert result == "-1"
 
     with open("tmp/BinarySearch.java", "w") as f:
         f.write(modified_code)
-    os.system("javac -g -d tmp tmp/BinarySearch.java")
+    execute_command("javac -g -d tmp tmp/BinarySearch.java")
+    new_bytecode = None
+    with open("tmp/BinarySearch.class", "rb") as f:
+        new_bytecode = f.read()
+    # wait for the file to be compiled
+    # Check if the bytecode has changed
+    assert old_bytecode != new_bytecode
 
-    agent.load_code(os.path.abspath("tmp"), "BinarySearch")
+    agent.load_code(code_path, "BinarySearch")
 
     result, _ = agent.execute("BinarySearch", "binarySearch", ["new char[]{'a', 'b', 'c', 'd', 'e'}", "'f'"])
     assert result == "-2"
-
     agent.stop_server()

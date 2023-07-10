@@ -14,13 +14,11 @@ public class DynamicClassLoaderFactory {
         urls.add(url);
     }
 
-    public DynamicClassLoader create() {
-        return new DynamicClassLoader(urls.toArray(new URL[0]), parent);
-    }
-
     public Class loadClass(String className) {
         try {
-            return create().loadClass(className);
+            DynamicClassLoader tempClassLoader = new DynamicClassLoader(urls.toArray(new URL[0]), parent);
+            Class loadedClass = tempClassLoader.loadClass(className);
+            return loadedClass;
         } catch (Exception e) {
             e.printStackTrace();
         }
