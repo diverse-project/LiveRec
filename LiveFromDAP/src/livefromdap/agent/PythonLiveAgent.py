@@ -19,7 +19,7 @@ class PythonLiveAgent(BaseLiveAgent):
             ["python", self.debugpy_adapter_path],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
         )
         self.io = JsonIOStream.from_process(self.server)
     
@@ -29,10 +29,8 @@ class PythonLiveAgent(BaseLiveAgent):
 
     def stop_server(self):
         """Kill the subprocess"""
-        print("Killing server, in pid", self.server.pid)
         self.server.kill()
         if getattr(self, "server", None) is not None:
-            print("Killing debuggee, in pid", self.debugee.pid)
             self.debugee.kill()
     
     def initialize(self):

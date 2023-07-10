@@ -4,4 +4,4 @@ def fibonnaci(n):
     elif n == 1:
         return 1
     else:
-        fibonnaci(n-1) + fibonnaci(n-2)
+        return fibonnaci(n-1) + fibonnaci(n-2)

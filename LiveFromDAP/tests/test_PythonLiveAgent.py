@@ -33,13 +33,12 @@ def test_python_fibonnaci():
     agent.start_server()
     agent.initialize()
     agent.load_code("/home/jbdod/CWI/LiveProbes/LiveFromDAP/src/livefromdap/target/python/fibonnaci.py")
-
+    print("Loaded code")
     result, _ = agent.execute("fibonnaci", ["5"])
-    print(result, type(result))
-    assert int(result) == "5"
+    assert int(result) == 5
 
     result, _ = agent.execute("fibonnaci", ["8"])
-    assert int(result) == "21"
+    assert int(result) == 21
 
     agent.stop_server()
 
@@ -58,5 +57,5 @@ def test_python_prime():
     agent.stop_server()
 
 print("Testing PythonLiveAgent")
-test_python_binary_search()
+test_python_fibonnaci()
 

@@ -1,3 +1,4 @@
+import os
 from livefromdap.agent.JavaLiveAgent import JavaLiveAgent
 
 def test_java_binary_search():
@@ -5,7 +6,16 @@ def test_java_binary_search():
 
     agent.start_server()
     agent.initialize()
-    agent.load_code("/home/jbdod/CWI/LiveProbes/LiveFromDAP/src/livefromdap/target/java", "BinarySearch")
+
+    class_path = os.path.abspath("src/livefromdap/target/java")
+    class_name = "BinarySearch"
+    source_path = os.join(class_path, f"{class_name}.java")
+    compiled_path = os.join(class_path, f"{class_name}.class")
+    assert os.path.exists(source_path), "Source file does not exist"
+    assert os.path.exists(compiled_path), "Compiled file does not exist, please compile it first with the Makefile"
+
+    agent.load_code(class_path, class_name)
+    
 
     return_value, _ = agent.execute("BinarySearch", "binarySearch", ["new char[]{'a', 'b'}", "'a'"])
     assert int(return_value) == 0
@@ -20,7 +30,15 @@ def test_java_bubblesort():
 
     agent.start_server()
     agent.initialize()
-    agent.load_code("/home/jbdod/CWI/LiveProbes/LiveFromDAP/src/livefromdap/target/java", "BubbleSort")
+
+    class_path = os.path.abspath("src/livefromdap/target/java")
+    class_name = "BubbleSort"
+    source_path = os.join(class_path, f"{class_name}.java")
+    compiled_path = os.join(class_path, f"{class_name}.class")
+    assert os.path.exists(source_path), "Source file does not exist"
+    assert os.path.exists(compiled_path), "Compiled file does not exist, please compile it first with the Makefile"
+
+    agent.load_code(class_path, class_name)
 
     return_value, _ = agent.execute("BubbleSort", "bubbleSort", ["new int[]{1,2,3,4,5,6}"])
     assert return_value is None
@@ -35,7 +53,14 @@ def test_java_fibonnaci():
 
     agent.start_server()
     agent.initialize()
-    agent.load_code("/home/jbdod/CWI/LiveProbes/LiveFromDAP/src/livefromdap/target/java", "Fibonnaci")
+    class_path = os.path.abspath("src/livefromdap/target/java")
+    class_name = "Fibonnaci"
+    source_path = os.join(class_path, f"{class_name}.java")
+    compiled_path = os.join(class_path, f"{class_name}.class")
+    assert os.path.exists(source_path), "Source file does not exist"
+    assert os.path.exists(compiled_path), "Compiled file does not exist, please compile it first with the Makefile"
+
+    agent.load_code(class_path, class_name)
 
     return_value, _ = agent.execute("Fibonnaci", "fibonnaci", ["5"])
     assert return_value == "5"
@@ -49,7 +74,14 @@ def test_java_prime():
 
     agent.start_server()
     agent.initialize()
-    agent.load_code("/home/jbdod/CWI/LiveProbes/LiveFromDAP/src/livefromdap/target/java", "Prime")
+    class_path = os.path.abspath("src/livefromdap/target/java")
+    class_name = "Prime"
+    source_path = os.join(class_path, f"{class_name}.java")
+    compiled_path = os.join(class_path, f"{class_name}.class")
+    assert os.path.exists(source_path), "Source file does not exist"
+    assert os.path.exists(compiled_path), "Compiled file does not exist, please compile it first with the Makefile"
+
+    agent.load_code(class_path, class_name)
 
     return_value, _ = agent.execute("Prime", "primeInInterval", ["2", "5"])
     assert return_value == "3"

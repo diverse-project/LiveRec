@@ -9,6 +9,9 @@ def test_c_binary_search():
 
     source_path = os.path.abspath("src/livefromdap/target/c/binary_search.c")
     compiled_path = os.path.abspath("src/livefromdap/target/c/binary_search.so")
+    #Assert that the file exists
+    assert os.path.exists(source_path), "Source file does not exist"
+    assert os.path.exists(compiled_path), "Compiled file does not exist, please compile it first with the Makefile"
 
     agent.load_code(compiled_path)
 
@@ -27,6 +30,8 @@ def test_c_bubblesort():
 
     source_path = os.path.abspath("src/livefromdap/target/c/bubblesort.c")
     compiled_path = os.path.abspath("src/livefromdap/target/c/bubblesort.so")
+    assert os.path.exists(source_path), "Source file does not exist"
+    assert os.path.exists(compiled_path), "Compiled file does not exist, please compile it first with the Makefile"
 
     agent.load_code(compiled_path)
 
@@ -43,6 +48,8 @@ def test_c_fibonnaci():
 
     source_path = os.path.abspath("src/livefromdap/target/c/fibonnaci.c")
     compiled_path = os.path.abspath("src/livefromdap/target/c/fibonnaci.so")
+    assert os.path.exists(source_path), "Source file does not exist"
+    assert os.path.exists(compiled_path), "Compiled file does not exist, please compile it first with the Makefile"
 
     agent.load_code(compiled_path)
 
@@ -61,6 +68,8 @@ def test_c_prime():
 
     source_path = os.path.abspath("src/livefromdap/target/c/prime.c")
     compiled_path = os.path.abspath("src/livefromdap/target/c/prime.so")
+    assert os.path.exists(source_path), "Source file does not exist"
+    assert os.path.exists(compiled_path), "Compiled file does not exist, please compile it first with the Makefile"
 
     agent.load_code(compiled_path)
 

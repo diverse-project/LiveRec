@@ -8,6 +8,8 @@ authors = [
 ]
 dependencies = [
     "debugpy",
+    "pycparser",
+    "flask_socketio",
 ]
 
 [build-system]
