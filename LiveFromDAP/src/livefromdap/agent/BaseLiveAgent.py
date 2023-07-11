@@ -134,7 +134,7 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         }
         self.io.write_json(complete_request)
     
-    def get_stackframes(self, thread_id : int = 1):
+    def get_stackframes(self, thread_id : int = 1, levels : int = 100):
         stackframe_request = {
             "seq": self.new_seq(),
             "type": "request",
@@ -142,7 +142,7 @@ class BaseLiveAgent(BaseLiveAgentInterface):
             "arguments": {
                 "threadId": thread_id,
                 "startFrame": 0,
-                "levels": 100
+                "levels": levels
             }
         }
         self.io.write_json(stackframe_request)

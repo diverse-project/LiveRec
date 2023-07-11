@@ -145,4 +145,23 @@ class DebuggerTest {
         debuggerInstance.stop();
     }
 
+    @Test
+    void testPerformance() throws Exception {
+        Debugger debuggerInstance = new Debugger("target/classes", "samples.UselessClass", "uselessMethod", 200);
+        debuggerInstance.start();
+        int i = 0;
+        StringBuilder sb = new StringBuilder();
+        sb.append(",step, time\n");
+        for(int key = 10; key < 200; key++) {
+            //time the function below
+            long t1 = System.nanoTime();
+            Value v = debuggerInstance.callFunctionUntilValue(key);
+            long t2 = System.nanoTime();
+            sb.append(i).append(",").append(key).append(",").append((t2 - t1) / 1000000000.0).append("\n");
+        }
+        // save to csv
+        System.out.println(sb);
+        debuggerInstance.stop();
+    }
+
 }
