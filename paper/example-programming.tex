@@ -222,8 +222,23 @@ Finally, execution for Java and Python is similar. Unlike the backend, which use
 
 \section{Evaluation}
 \label{sec:evaluation}
+\subsection{Demo : A Small C Live Programming Environment}
+\label{sec:demo-small-c}
+\subsection{Performance}
+\label{sec:performance}
 \section{Related Work}
 \label{sec:related-work}
+
+Example-Based Live Programming for Everyone\cite{10.1145/3426428.3426919} : Use GraalVM/Truffle to get live information from the code of multiple languages.
+
+Example Centric Programming\cite{10.1145/1052883.1052894} : Use BeanShell(custom JVM) to get live information. Prototype for Java in Eclipse.
+
+Usable Live Programming\cite{10.1145/2509578.2509585} : New language for live programming(Ying Yang) with incremental compilation. Live programming environment for this language.
+Use source location to relate execution and code(=> almost like stack recording that link stackframe and code location)
+
+Scalable Omniscient Debugging\cite{10.1145/1297105.1297067} : Omniscient debugging with a lot of data. Use a lot of memory to store all the data.
+In this paper they record almost everything, we only record the stackframe.
+
 \section{Conclusion}
 \label{sec:conclusion}
 

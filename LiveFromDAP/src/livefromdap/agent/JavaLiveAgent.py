@@ -767,7 +767,7 @@ class JavaLiveAgent(BaseLiveAgent):
     def stop_server(self):
         """Stop the target program"""
         self.ls_server.kill()
-        if getattr(self, "server", None) is not None:
+        if getattr(self, "debugee", None) is not None:
             self.debugee.kill()
         self.server.close()
     
