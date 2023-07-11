@@ -1,10 +1,12 @@
-package debugger;
+package prettyprinter;
+
+import debugger.StackRecording;
+import debugger.VariableMap;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.*;
 
 public class PrettyPrinter {
 
@@ -20,7 +22,7 @@ public class PrettyPrinter {
         this.debugFunction = debugFunction;
         this.sourceCode = readSourceCode();
     }
-    public String getResult(VariableMap variableMap) {
+    public String getResult(StackRecording variableMap) {
         SourceCodeAnnotator annotator = new SourceCodeAnnotator(variableMap, sourceCode, debugClass, debugFunction);
         return annotator.getSourceCode();
     }

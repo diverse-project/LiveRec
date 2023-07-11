@@ -36,7 +36,7 @@ public class Debugger {
 
     private final AtomicReference<VirtualMachine> vm;
 
-    private final AtomicReference<VariableMap> currentVariableMap;
+    private final AtomicReference<StackRecording> currentStackRecording = new AtomicReference<>();
 
     private Thread eventHandler;
 
@@ -60,15 +60,15 @@ public class Debugger {
         }
     }
 
-    public VariableMap getCurrentVariableMap() {
-        return currentVariableMap.get();
+    public StackRecording getCurrentStackRecording() {
+        return currentStackRecording.get();
     }
 
     public void addVariableMap(int lineNumber, HashMap<String, String> variableMap) {
-        if (currentVariableMap.get() == null) {
-            currentVariableMap.set(new VariableMap());
+        if (currentStackRecording.get() == null) {
+            currentStackRecording.set(new StackRecording());
         }
-        currentVariableMap.get().addStackFrame(lineNumber, variableMap);
+        currentStackRecording.get().addStackFrame(new StackFrame(lineNumber, variableMap));
     }
 
     Debugger(String classPath, String debugClass, String debugMethod, long autoRestart) {
@@ -76,7 +76,6 @@ public class Debugger {
         this.debugMethod = debugMethod;
         this.classPath = classPath;
         this.autoRestart = autoRestart;
-        this.currentVariableMap = new AtomicReference<>();
         this.vm = new AtomicReference<>();
         this.state = new AtomicReference<>(State.BOOTING);
         this.agentObjectReference = new AtomicReference<>();
@@ -130,7 +129,7 @@ public class Debugger {
     public Optional<Value> callFunction(Object... arguments) throws InterruptedException, IllegalConnectorArgumentsException, VMStartException, IOException, ClassNotLoadedException, InvalidTypeException, IncompatibleThreadStateException, InvocationException {
         assertVMReady();
         // New StackFrame saver
-        currentVariableMap.set(new VariableMap());
+        currentStackRecording.set(new StackRecording());
 
         // Initialize contexts
         initializeContexts();
@@ -210,7 +209,7 @@ public class Debugger {
     }
 
     public void probeVariables(LocatableEvent event)  throws AbsentInformationException {
-        StackFrame stackFrame;
+        com.sun.jdi.StackFrame stackFrame;
         try {
             stackFrame = event.thread().frame(0);
         }
@@ -233,7 +232,7 @@ public class Debugger {
     }
 
     public void addMethodCallStackFrame(LocatableEvent event) throws IncompatibleThreadStateException, AbsentInformationException {
-        StackFrame stackFrame = event.thread().frame(0);
+        com.sun.jdi.StackFrame stackFrame = event.thread().frame(0);
         List<Value> argsValues = stackFrame.getArgumentValues();
         Method method = stackFrame.location().method();
         HashMap<String, String> args = new HashMap<>();
@@ -312,7 +311,7 @@ public class Debugger {
 
     public void restart() throws IllegalConnectorArgumentsException, VMStartException, IOException, InterruptedException {
         stop();
-        currentVariableMap.set(null);
+        currentStackRecording.set(null);
         vm.set(null);
         agentObjectReference.set(null);
         debugObjectReference.set(null);

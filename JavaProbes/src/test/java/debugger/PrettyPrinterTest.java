@@ -2,6 +2,7 @@ package debugger;
 
 import com.sun.jdi.Value;
 import org.junit.jupiter.api.Test;
+import prettyprinter.PrettyPrinter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,10 +27,8 @@ public class PrettyPrinterTest {
         // Check that if key is in array, then the result is the index of key in array
 
         PrettyPrinter prettyPrinter = new PrettyPrinter("src/main/java/", "samples.BretVictorExample", "binarySearch");
-        System.out.println(debuggerInstance.getCurrentVariableMap().valueToJSON());
-        System.out.println(debuggerInstance.getCurrentVariableMap().diffToJSON());
 
-        String output = prettyPrinter.getResult(debuggerInstance.getCurrentVariableMap());
+        String output = prettyPrinter.getResult(debuggerInstance.getCurrentStackRecording());
         System.out.println(output);
         debuggerInstance.stop();
     }
