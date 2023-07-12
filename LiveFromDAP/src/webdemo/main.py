@@ -15,7 +15,7 @@ previous_exec_request = ""
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
-agent = CLiveAgent(debug=False)
+agent = None
 source_path = os.path.abspath("src/webdemo/tmp/tmp.c")
 compiled_path = os.path.abspath("src/webdemo/tmp/libtmp.so")
 
@@ -146,7 +146,12 @@ def send_status(status, **kwargs):
     send(req, json=True)
 
 def init(keep_old=False):
+    global agent
     send_status("Initializing Agent...")
+    if agent is not None:
+        agent.stop_server()
+    agent = CLiveAgent(debug=False)
+
     if not keep_old:
         with open(source_path, "w") as f:
             f.write("")

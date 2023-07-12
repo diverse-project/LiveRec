@@ -8,9 +8,10 @@ var editor = CodeMirror.fromTextArea(myTextarea, {
 // output not editable
 var output = CodeMirror.fromTextArea(myTextarea2, {
     lineNumbers: true,
-    mode: "text/x-csrc",
     readOnly: true
 });
+
+var oldText = output.getValue();
 
 
 var socket = io();
@@ -22,7 +23,35 @@ socket.on('json', function(msg) {
         return;
     }
     if (msg.event == 'executeOutput') {
-        output.setValue(msg.output);
+        let old = oldText;
+        let diffs = Diff.diffLines(old, msg.output);
+        let line = 0;
+        let lines_green =[];
+        let lines_red = [];
+        final_text = "";
+        diffs.forEach(function(part){
+            if (part.added) {
+                for (let i = 0; i < part.count; i++) {
+                    lines_green.push(line+i);
+                }
+                final_text += part.value;
+                line += part.count;
+            } else if (part.removed) {
+                lines_red.push(line);
+            } else{
+                final_text += part.value;
+                line += part.count;
+            }
+            
+        });
+        output.setValue(final_text);
+        lines_green.forEach(function(line){
+            output.markText({line: line, ch: 0}, {line: line, ch: 1000}, {className: "green-text"});
+        });
+        lines_red.forEach(function(line){
+            output.markText({line: line, ch: 0}, {line: line, ch: 1000}, {className: "red-text"});
+        });
+        oldText = msg.output;
         return;
     }
     if (msg.event == 'status') {
