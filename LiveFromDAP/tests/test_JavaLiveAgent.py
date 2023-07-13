@@ -9,8 +9,8 @@ def test_java_binary_search():
 
     class_path = os.path.abspath("src/livefromdap/target/java")
     class_name = "BinarySearch"
-    source_path = os.join(class_path, f"{class_name}.java")
-    compiled_path = os.join(class_path, f"{class_name}.class")
+    source_path = os.path.join(class_path, f"{class_name}.java")
+    compiled_path = os.path.join(class_path, f"{class_name}.class")
     assert os.path.exists(source_path), "Source file does not exist"
     assert os.path.exists(compiled_path), "Compiled file does not exist, please compile it first with the Makefile"
 
@@ -33,8 +33,8 @@ def test_java_bubblesort():
 
     class_path = os.path.abspath("src/livefromdap/target/java")
     class_name = "BubbleSort"
-    source_path = os.join(class_path, f"{class_name}.java")
-    compiled_path = os.join(class_path, f"{class_name}.class")
+    source_path = os.path.join(class_path, f"{class_name}.java")
+    compiled_path = os.path.join(class_path, f"{class_name}.class")
     assert os.path.exists(source_path), "Source file does not exist"
     assert os.path.exists(compiled_path), "Compiled file does not exist, please compile it first with the Makefile"
 
@@ -55,8 +55,8 @@ def test_java_fibonnaci():
     agent.initialize()
     class_path = os.path.abspath("src/livefromdap/target/java")
     class_name = "Fibonnaci"
-    source_path = os.join(class_path, f"{class_name}.java")
-    compiled_path = os.join(class_path, f"{class_name}.class")
+    source_path = os.path.join(class_path, f"{class_name}.java")
+    compiled_path = os.path.join(class_path, f"{class_name}.class")
     assert os.path.exists(source_path), "Source file does not exist"
     assert os.path.exists(compiled_path), "Compiled file does not exist, please compile it first with the Makefile"
 
@@ -76,8 +76,8 @@ def test_java_prime():
     agent.initialize()
     class_path = os.path.abspath("src/livefromdap/target/java")
     class_name = "Prime"
-    source_path = os.join(class_path, f"{class_name}.java")
-    compiled_path = os.join(class_path, f"{class_name}.class")
+    source_path = os.path.join(class_path, f"{class_name}.java")
+    compiled_path = os.path.join(class_path, f"{class_name}.class")
     assert os.path.exists(source_path), "Source file does not exist"
     assert os.path.exists(compiled_path), "Compiled file does not exist, please compile it first with the Makefile"
 

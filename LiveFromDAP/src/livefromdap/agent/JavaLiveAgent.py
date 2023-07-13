@@ -1,17 +1,18 @@
 import os
 import subprocess
-import time
 from debugpy.common.messaging import JsonIOStream
 from debugpy.common import sockets
 
 from livefromdap.utils.StackRecording import Stackframe, StackRecording
 from .BaseLiveAgent import BaseLiveAgent
+from .JavaParams import *
 
 class JavaLiveAgent(BaseLiveAgent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.ls_server = None
         self.ls_server_path = kwargs.get("ls_server_path", os.path.join(os.path.dirname(__file__), "..", "bin", "jdt-language-server", "bin", "jdtls"))
+        self.debug_jar_path = kwargs.get("debug_jar_path", os.path.join(os.path.dirname(__file__), "..", "bin", "com.microsoft.java.debug.plugin.jar"))
         self.runner_path = kwargs.get("runner_path", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "runner")))
         self.runner_file = kwargs.get("runner_file", "Runner.java")
         self.project_name = None
@@ -35,579 +36,15 @@ class JavaLiveAgent(BaseLiveAgent):
             "processId": self.ls_server.pid,
             "rootPath": self.runner_path,
             "rootUri": f"file://{self.runner_path}",
-            "capabilities": {
-                "workspace": {
-                    "applyEdit": True,
-                    "workspaceEdit": {
-                        "documentChanges": True,
-                        "resourceOperations": [
-                            "create",
-                            "rename",
-                            "delete"
-                        ],
-                        "failureHandling": "textOnlyTransactional",
-                        "normalizesLineEndings": True,
-                        "changeAnnotationSupport": {
-                            "groupsOnLabel": True
-                        }
-                    },
-                    "configuration": True,
-                    "didChangeWatchedFiles": {
-                        "dynamicRegistration": True,
-                        "relativePatternSupport": True
-                    },
-                    "symbol": {
-                        "dynamicRegistration": True,
-                        "symbolKind": {
-                            "valueSet": [
-                                1,
-                                2,
-                                3,
-                                4,
-                                5,
-                                6,
-                                7,
-                                8,
-                                9,
-                                10,
-                                11,
-                                12,
-                                13,
-                                14,
-                                15,
-                                16,
-                                17,
-                                18,
-                                19,
-                                20,
-                                21,
-                                22,
-                                23,
-                                24,
-                                25,
-                                26
-                            ]
-                        },
-                        "tagSupport": {
-                            "valueSet": [
-                                1
-                            ]
-                        },
-                        "resolveSupport": {
-                            "properties": [
-                                "location.range"
-                            ]
-                        }
-                    },
-                    "codeLens": {
-                        "refreshSupport": True
-                    },
-                    "executeCommand": {
-                        "dynamicRegistration": True
-                    },
-                    "didChangeConfiguration": {
-                        "dynamicRegistration": True
-                    },
-                    "workspaceFolders": True,
-                    "semanticTokens": {
-                        "refreshSupport": True
-                    },
-                    "fileOperations": {
-                        "dynamicRegistration": True,
-                        "didCreate": True,
-                        "didRename": True,
-                        "didDelete": True,
-                        "willCreate": True,
-                        "willRename": True,
-                        "willDelete": True
-                    },
-                    "inlineValue": {
-                        "refreshSupport": True
-                    },
-                    "inlayHint": {
-                        "refreshSupport": True
-                    },
-                    "diagnostics": {
-                        "refreshSupport": True
-                    }
-                },
-                "textDocument": {
-                    "publishDiagnostics": {
-                        "relatedInformation": True,
-                        "versionSupport": False,
-                        "tagSupport": {
-                            "valueSet": [
-                                1,
-                                2
-                            ]
-                        },
-                        "codeDescriptionSupport": True,
-                        "dataSupport": True
-                    },
-                    "synchronization": {
-                        "dynamicRegistration": True,
-                        "willSave": True,
-                        "willSaveWaitUntil": True,
-                        "didSave": True
-                    },
-                    "completion": {
-                        "dynamicRegistration": True,
-                        "contextSupport": True,
-                        "completionItem": {
-                            "snippetSupport": True,
-                            "commitCharactersSupport": True,
-                            "documentationFormat": [
-                                "markdown",
-                                "plaintext"
-                            ],
-                            "deprecatedSupport": True,
-                            "preselectSupport": True,
-                            "tagSupport": {
-                                "valueSet": [
-                                    1
-                                ]
-                            },
-                            "insertReplaceSupport": True,
-                            "resolveSupport": {
-                                "properties": [
-                                    "documentation",
-                                    "detail",
-                                    "additionalTextEdits"
-                                ]
-                            },
-                            "insertTextModeSupport": {
-                                "valueSet": [
-                                    1,
-                                    2
-                                ]
-                            },
-                            "labelDetailsSupport": True
-                        },
-                        "insertTextMode": 2,
-                        "completionItemKind": {
-                            "valueSet": [
-                                1,
-                                2,
-                                3,
-                                4,
-                                5,
-                                6,
-                                7,
-                                8,
-                                9,
-                                10,
-                                11,
-                                12,
-                                13,
-                                14,
-                                15,
-                                16,
-                                17,
-                                18,
-                                19,
-                                20,
-                                21,
-                                22,
-                                23,
-                                24,
-                                25
-                            ]
-                        },
-                        "completionList": {
-                            "itemDefaults": [
-                                "commitCharacters",
-                                "editRange",
-                                "insertTextFormat",
-                                "insertTextMode"
-                            ]
-                        }
-                    },
-                    "hover": {
-                        "dynamicRegistration": True,
-                        "contentFormat": [
-                            "markdown",
-                            "plaintext"
-                        ]
-                    },
-                    "signatureHelp": {
-                        "dynamicRegistration": True,
-                        "signatureInformation": {
-                            "documentationFormat": [
-                                "markdown",
-                                "plaintext"
-                            ],
-                            "parameterInformation": {
-                                "labelOffsetSupport": True
-                            },
-                            "activeParameterSupport": True
-                        },
-                        "contextSupport": True
-                    },
-                    "definition": {
-                        "dynamicRegistration": True,
-                        "linkSupport": True
-                    },
-                    "references": {
-                        "dynamicRegistration": True
-                    },
-                    "documentHighlight": {
-                        "dynamicRegistration": True
-                    },
-                    "documentSymbol": {
-                        "dynamicRegistration": True,
-                        "symbolKind": {
-                            "valueSet": [
-                                1,
-                                2,
-                                3,
-                                4,
-                                5,
-                                6,
-                                7,
-                                8,
-                                9,
-                                10,
-                                11,
-                                12,
-                                13,
-                                14,
-                                15,
-                                16,
-                                17,
-                                18,
-                                19,
-                                20,
-                                21,
-                                22,
-                                23,
-                                24,
-                                25,
-                                26
-                            ]
-                        },
-                        "hierarchicalDocumentSymbolSupport": True,
-                        "tagSupport": {
-                            "valueSet": [
-                                1
-                            ]
-                        },
-                        "labelSupport": True
-                    },
-                    "codeAction": {
-                        "dynamicRegistration": True,
-                        "isPreferredSupport": True,
-                        "disabledSupport": True,
-                        "dataSupport": True,
-                        "resolveSupport": {
-                            "properties": [
-                                "edit"
-                            ]
-                        },
-                        "codeActionLiteralSupport": {
-                            "codeActionKind": {
-                                "valueSet": [
-                                    "",
-                                    "quickfix",
-                                    "refactor",
-                                    "refactor.extract",
-                                    "refactor.inline",
-                                    "refactor.rewrite",
-                                    "source",
-                                    "source.organizeImports"
-                                ]
-                            }
-                        },
-                        "honorsChangeAnnotations": False
-                    },
-                    "codeLens": {
-                        "dynamicRegistration": True
-                    },
-                    "formatting": {
-                        "dynamicRegistration": True
-                    },
-                    "rangeFormatting": {
-                        "dynamicRegistration": True
-                    },
-                    "onTypeFormatting": {
-                        "dynamicRegistration": True
-                    },
-                    "rename": {
-                        "dynamicRegistration": True,
-                        "prepareSupport": True,
-                        "prepareSupportDefaultBehavior": 1,
-                        "honorsChangeAnnotations": True
-                    },
-                    "documentLink": {
-                        "dynamicRegistration": True,
-                        "tooltipSupport": True
-                    },
-                    "typeDefinition": {
-                        "dynamicRegistration": True,
-                        "linkSupport": True
-                    },
-                    "implementation": {
-                        "dynamicRegistration": True,
-                        "linkSupport": True
-                    },
-                    "colorProvider": {
-                        "dynamicRegistration": True
-                    },
-                    "foldingRange": {
-                        "dynamicRegistration": True,
-                        "rangeLimit": 5000,
-                        "lineFoldingOnly": True,
-                        "foldingRangeKind": {
-                            "valueSet": [
-                                "comment",
-                                "imports",
-                                "region"
-                            ]
-                        },
-                        "foldingRange": {
-                            "collapsedText": False
-                        }
-                    },
-                    "declaration": {
-                        "dynamicRegistration": True,
-                        "linkSupport": True
-                    },
-                    "selectionRange": {
-                        "dynamicRegistration": True
-                    },
-                    "callHierarchy": {
-                        "dynamicRegistration": True
-                    },
-                    "semanticTokens": {
-                        "dynamicRegistration": True,
-                        "tokenTypes": [
-                            "namespace",
-                            "type",
-                            "class",
-                            "enum",
-                            "interface",
-                            "struct",
-                            "typeParameter",
-                            "parameter",
-                            "variable",
-                            "property",
-                            "enumMember",
-                            "event",
-                            "function",
-                            "method",
-                            "macro",
-                            "keyword",
-                            "modifier",
-                            "comment",
-                            "string",
-                            "number",
-                            "regexp",
-                            "operator",
-                            "decorator"
-                        ],
-                        "tokenModifiers": [
-                            "declaration",
-                            "definition",
-                            "readonly",
-                            "static",
-                            "deprecated",
-                            "abstract",
-                            "async",
-                            "modification",
-                            "documentation",
-                            "defaultLibrary"
-                        ],
-                        "formats": [
-                            "relative"
-                        ],
-                        "requests": {
-                            "range": True,
-                            "full": {
-                                "delta": True
-                            }
-                        },
-                        "multilineTokenSupport": False,
-                        "overlappingTokenSupport": False,
-                        "serverCancelSupport": True,
-                        "augmentsSyntaxTokens": True
-                    },
-                    "linkedEditingRange": {
-                        "dynamicRegistration": True
-                    },
-                    "typeHierarchy": {
-                        "dynamicRegistration": True
-                    },
-                    "inlineValue": {
-                        "dynamicRegistration": True
-                    },
-                    "inlayHint": {
-                        "dynamicRegistration": True,
-                        "resolveSupport": {
-                            "properties": [
-                                "tooltip",
-                                "textEdits",
-                                "label.tooltip",
-                                "label.location",
-                                "label.command"
-                            ]
-                        }
-                    },
-                    "diagnostic": {
-                        "dynamicRegistration": True,
-                        "relatedDocumentSupport": False
-                    }
-                },
-                "window": {
-                    "showMessage": {
-                        "messageActionItem": {
-                            "additionalPropertiesSupport": True
-                        }
-                    },
-                    "showDocument": {
-                        "support": True
-                    },
-                    "workDoneProgress": True
-                },
-                "general": {
-                    "staleRequestSupport": {
-                        "cancel": True,
-                        "retryOnContentModified": [
-                            "textDocument/semanticTokens/full",
-                            "textDocument/semanticTokens/range",
-                            "textDocument/semanticTokens/full/delta"
-                        ]
-                    },
-                    "regularExpressions": {
-                        "engine": "ECMAScript",
-                        "version": "ES2020"
-                    },
-                    "markdown": {
-                        "parser": "marked",
-                        "version": "1.1.0"
-                    },
-                    "positionEncodings": [
-                        "utf-16"
-                    ]
-                },
-                "notebookDocument": {
-                    "synchronization": {
-                        "dynamicRegistration": True,
-                        "executionSummarySupport": True
-                    }
-                }
-            },
+            "capabilities": LS_INITIALIZE_CAPABILITIES,
             "initializationOptions": {
                 "bundles": [
-                    "/home/jbdod/.vscode-oss/extensions/vscjava.vscode-java-debug-0.52.0/server/com.microsoft.java.debug.plugin-0.47.0.jar",
+                    os.path.abspath(self.debug_jar_path),
                 ],
                 "workspaceFolders": [
                     f"file://{self.runner_path}"
                 ],
-                "settings": {
-                    "java": {
-                        "home": "/usr/lib/jvm/java-20-openjdk",
-                        "jdt": {
-                            "ls": {
-                                "java": {
-                                    "home": "/usr/lib/jvm/java-20-openjdk"
-                                },
-                                "vmargs": "",
-                                "lombokSupport": {
-                                    "enabled": True
-                                },
-                                "protobufSupport": {
-                                    "enabled": True
-                                },
-                                "androidSupport": {
-                                    "enabled": False
-                                }
-                            }
-                        },
-                        "errors": {
-                            "incompleteClasspath": {
-                                "severity": "warning"
-                            }
-                        },
-                        "configuration": {
-                            "updateBuildConfiguration": "interactive",
-                            "maven": {
-                                "userSettings": None
-                            }
-                        },
-                        "trace": {
-                            "server": "verbose"
-                        },
-                        "import": {
-                            "gradle": {
-                                "enabled": True
-                            },
-                            "maven": {
-                                "enabled": True
-                            },
-                            "exclusions": [
-                                "**/node_modules/**",
-                                "**/.metadata/**",
-                                "**/archetype-resources/**",
-                                "**/META-INF/maven/**",
-                                "/**/test/**"
-                            ]
-                        },
-                        "referencesCodeLens": {
-                            "enabled": False
-                        },
-                        "signatureHelp": {
-                            "enabled": False
-                        },
-                        "implementationsCodeLens": {
-                            "enabled": False
-                        },
-                        "format": {
-                            "enabled": True
-                        },
-                        "saveActions": {
-                            "organizeImports": False
-                        },
-                        "contentProvider": {
-                            "preferred": None
-                        },
-                        "autobuild": {
-                            "enabled": True
-                        },
-                        "project": {
-                            "referencedLibraries": [
-                                "lib/**/*.jar"
-                            ],
-                            "importOnFirstTimeStartup": "automatic",
-                            "importHint": True,
-                            "resourceFilters": [
-                                "node_modules",
-                                "\\.git"
-                            ],
-                            "encoding": "ignore",
-                            "exportJar": {
-                                "targetPath": "${workspaceFolder}/${workspaceFolderBasename}.jar"
-                            },
-                            "explorer": {
-                                "showNonJavaResources": True
-                            }
-                        },
-                        "completion": {
-                            "favoriteStaticMembers": [
-                                "org.junit.Assert.*",
-                                "org.junit.Assume.*",
-                                "org.junit.jupiter.api.Assertions.*",
-                                "org.junit.jupiter.api.Assumptions.*",
-                                "org.junit.jupiter.api.DynamicContainer.*",
-                                "org.junit.jupiter.api.DynamicTest.*"
-                            ],
-                            "importOrder": [
-                                "java",
-                                "javax",
-                                "com",
-                                "org"
-                            ]
-                        }
-                    }
-                }
+                "settings": LS_INITIALIZE_SETTINGS
             },
             "trace": "verbose",
             "workspaceFolders": [
@@ -654,7 +91,6 @@ class JavaLiveAgent(BaseLiveAgent):
                 break
         self.project_name = response["result"][0]["name"]
 
-
     def lsp_add_document(self, file_path):
         with open(file_path, "r") as f:
             file_code = f.read()
@@ -670,7 +106,6 @@ class JavaLiveAgent(BaseLiveAgent):
                 }
             }
         })
-
 
     def restart_ls_server(self):
         self.ls_server.kill()
@@ -795,17 +230,6 @@ class JavaLiveAgent(BaseLiveAgent):
         frame_id = self.get_stackframes(self.thread_id)[0]["id"]
         self.evaluate(f"runner.loadMethod(\"{method_name}\")", frame_id)
         self.method_loaded = method_name
-
-    def get_threads(self):
-        request= {
-            "seq": self.new_seq(),
-            "type": "request",
-            "command": "threads",
-            "arguments": {}
-        }
-        self.io.write_json(request)
-        response = self.wait("response", command="threads")
-        return response["body"]["threads"]
             
     def get_start_line(self, file_path, class_name, method_name):
         """Get the first line of the file"""
@@ -839,8 +263,19 @@ class JavaLiveAgent(BaseLiveAgent):
         scope_name,line_number = stacktrace[0]["name"], stacktrace[0]["line"]
         scope = self.get_scopes(frame_id)[0]
         variables = self.get_variables(scope["variablesReference"])
-        return (not self.method_loaded in scope_name), line_number, variables
+        for variable in variables:
+            if "[]" in variable["type"]:
+                value = "["
+                sub_variables = self.get_variables(variable["variablesReference"])
+                for sub_variable in sub_variables:
+                    value += sub_variable["value"] + ","
+                if len(value) > 1:
+                    value = value[:-1] + "]"
+                else:
+                    value += "]"
+                variable["value"] = value
 
+        return (not self.method_loaded in scope_name), line_number, variables
 
     def execute(self, clazz, method, args):
         """Execute a method with the given arguments"""
@@ -859,7 +294,7 @@ class JavaLiveAgent(BaseLiveAgent):
             if arg.startswith('{') and arg.endswith('}'):
                 raise NotImplementedError("Array need to be created, for example replace {'a', 'b'} with new char[]{'a', 'b'}")
             self.evaluate(f"runner.args[{i}] = {arg}", frame_id)
-        # we now continue
+
         self.next_breakpoint()
         self.wait("event", "stopped")
         # We can now start the stack recording

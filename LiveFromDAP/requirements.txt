@@ -1,3 +1,4 @@
 debugpy
 pycparser
 flask_socketio
+-e git+https://github.com/jbdoderlein/javalang#egg=javalang

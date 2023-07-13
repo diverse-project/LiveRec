@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <!-- Compiled and minified CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <!-- Compiled and minified JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 </head>
@@ -14,26 +15,23 @@
     <div id="page">
         <div id="editor-container">
             <textarea id="editor" name="editor">
-//@binary_search({1,2,3,4,5}, 5, 6)
-int binary_search(int arr[], int length, int target) {
-    int left = 0;
-    int right = length - 1;
-
-    while (left <= right) {
-
-        int mid = (left + right) / 2;
-
-        if (arr[mid] == target) {
-            return mid;
-        } else if (arr[mid] < target) {
-            left = mid + 1;
-        } else {
-            right = mid - 1;
-        }
+{% if language == 'python' %}
+!!!foo(1,2)
+def foo(a, b):
+    return a + b
+{% elif language == 'java' %}
+public class Live{
+    !!!foo(1,2)
+    public static int foo(int a, int b){
+        return a + b;
     }
-
-    return -1;
 }
+{% elif language == 'c' %}
+!!!foo(1,2)
+int foo(int a, int b){
+    return a + b;
+}
+{% endif %}
             </textarea>
             <div id="editor-resizer"></div>
         </div>
@@ -41,7 +39,27 @@ int binary_search(int arr[], int length, int target) {
             <textarea id="output" name="output"></textarea>
         </div>
     </div>
+    <div id="execution-status">
+        <div id="execution-spinner" class="preloader-wrapper small active" style="display: none;">
+            <div  class="spinner-layer spinner-black-only">
+              <div class="circle-clipper left">
+                <div class="circle"></div>
+              </div><div class="gap-patch">
+                <div class="circle"></div>
+              </div><div class="circle-clipper right">
+                <div class="circle"></div>
+              </div>
+            </div>
+        </div>
+        <i id="agent-ready" class="material-icons green" style="display: none;">check</i>
+        <i id="agent-not-ready" class="material-icons red">close</i>
+    </div>
+    
 </body>
+<script>
+    var language = "{{ language }}";
+    var session_id = "{{ session_id }}";
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js" integrity="sha512-sSWQXoxIkE0G4/xqLngx5C53oOZCgFRxWE79CvMX2X0IKx14W3j9Dpz/2MpRh58xb2W/h+Y4WAHJQA0qMMuxJg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/clike/clike.min.js" integrity="sha512-x8RaqBHf5czJURmaGWqoI3DULFVYrC/GNPfk2iqL5wTCdEX8rlfQw2aHpuZhaEVuMJu1X654forBDVuahLivtQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>

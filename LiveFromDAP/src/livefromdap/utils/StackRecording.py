@@ -16,13 +16,18 @@ class Stackframe():
     def set_successor(self, successor):
         self.successor = successor
 
-    def get_variable(self):
+    def get_variables(self):
         return [v["name"] for v in self.variables]
 
     def get_variable(self, name):
         for v in self.variables:
             if v["name"] == name:
                 return v["value"]
+
+    def get_type(self, name):
+        for v in self.variables:
+            if v["name"] == name:
+                return v["type"]
 
 class StackRecording():
     stackframes : list

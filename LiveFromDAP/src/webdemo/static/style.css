@@ -49,3 +49,12 @@ body{
 .CodeMirror{
     height: 100%;
 }
+
+#execution-status{
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    margin: 50px;
+    color: white;
+    font-size: 60px;
+}

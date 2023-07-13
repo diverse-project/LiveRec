@@ -28,13 +28,20 @@ class CPrettyPrinter(c_ast.NodeVisitor):
         self.output = ["" for _ in range(len(self.lines))]
         self.visit(ast)
 
+    def get_value_string(self,stackframe, variable_name):
+        vtype = stackframe.get_type(variable_name)
+        value = stackframe.get_variable(variable_name)
+        if "*" in vtype:
+            return f"{vtype}[...]"
+        return value
+
     
     def get_variable(self, line, variable_name):
         stackframes = self.stacktrace.get_stackframes_line(line)
         values = []
         for stackframe in stackframes:
-            if (value:=stackframe.get_variable(variable_name)) is not None:
-                    values.append(value)
+            if stackframe.get_variable(variable_name) is not None:
+                values.append(self.get_value_string(stackframe, variable_name))
         return values
                 
     def visit_FuncDecl(self, node):
@@ -60,14 +67,14 @@ class CPrettyPrinter(c_ast.NodeVisitor):
             return
         output_string = f"{node.name}= "
         for stackframe in self.stacktrace.get_stackframes_line(node.coord.line):
-            if (value:=stackframe.successor.get_variable(node.name)) is not None:
+            if (value:=self.get_value_string(stackframe.successor, node.name)) is not None:
                 output_string += f"{value} | "
         self.output[node.coord.line-1] = output_string[:-2]
 
     def visit_Assignment(self, node):
         output_string = f"{node.lvalue.name}= "
         for stackframe in self.stacktrace.get_stackframes_line(node.coord.line):
-            if (value:=stackframe.successor.get_variable(node.lvalue.name)) is not None:
+            if (value:=self.get_value_string(stackframe.successor, node.lvalue.name)) is not None:
                 output_string += f"{value} | "
         if output_string != f"{node.lvalue.name}= ":
             self.output[node.coord.line-1] = output_string[:-2]
