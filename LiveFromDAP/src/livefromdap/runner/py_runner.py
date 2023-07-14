@@ -20,7 +20,10 @@ if "__main__" in __name__:
             exec(code)
             import_file = None     
         if method_name is not None and method_args is not None:
-            method = eval(method_name)
-            res = method(*method_args)
+            try:
+                method = eval(method_name)
+                res = method(*method_args)
+            except Exception as e:
+                pass
             method_args = None
             method_name = None

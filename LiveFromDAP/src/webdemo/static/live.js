@@ -9,17 +9,21 @@ if (language=="java"){
     CodeMirror_mode = "text/x-java";
 }
 if (language=="python"){
-    CodeMirror_mode = "text/x-python";
+    CodeMirror_mode = {name: "python",
+        version: 3,
+        singleLineStringErrors: false};
 }
 
 // C program
 var editor = CodeMirror.fromTextArea(myTextarea, {
     lineNumbers: true,
+    indentUnit: 4,
     mode: CodeMirror_mode
 });
 // output not editable
 var output = CodeMirror.fromTextArea(myTextarea2, {
     lineNumbers: true,
+    indentUnit: 4,
     readOnly: true
 });
 
@@ -82,14 +86,13 @@ socket.on('json', function(msg) {
 });
 
 socket.on('connect', function() {
-    socket.emit('json', {event: 'initialize', session_id: session_id, language: language});
+    socket.emit('join', {session_id: session_id, language: language});
 });
 
 socket.on('disconnect', function() {
     document.getElementById("agent-ready").style.display = "none";
     document.getElementById("agent-not-ready").style.display = "block";
 });
-
 
 // create a function to send the message to the server
 function sendCode() {

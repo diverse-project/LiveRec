@@ -15,12 +15,16 @@ class PythonLiveAgent(BaseLiveAgent):
 
     def start_server(self):
         """Create a subprocess with the agent"""
+
         self.server = subprocess.Popen(
             ["python", self.debugpy_adapter_path],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            restore_signals=False,
+            start_new_session=True,
         )
+
         self.io = JsonIOStream.from_process(self.server)
     
     def restart_server(self):
@@ -30,7 +34,7 @@ class PythonLiveAgent(BaseLiveAgent):
     def stop_server(self):
         """Kill the subprocess"""
         self.server.kill()
-        if getattr(self, "server", None) is not None:
+        if getattr(self, "debugee", None) is not None:
             self.debugee.kill()
     
     def initialize(self):
@@ -67,7 +71,7 @@ class PythonLiveAgent(BaseLiveAgent):
                 "type": "python",
                 "request": "launch",
                 "program": self.runner_path,
-                "console": "integratedTerminal",
+                "console": "internalConsole",
                 "python": "/bin/python",
                 "debugAdapterPython": "/bin/python",
                 "debugLauncherPython": "/bin/python",
@@ -93,6 +97,7 @@ class PythonLiveAgent(BaseLiveAgent):
         self.wait("event", "initialized")
         self.setup_runner_breakpoint()
         self.wait("event", "stopped")
+        return 5
     
     def setup_runner_breakpoint(self):
         self.set_breakpoint(self.runner_path, [16])

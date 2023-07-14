@@ -61,7 +61,7 @@ class JavaPrettyPrinter(JavaVisitor):
 
     def visit_StatementExpression(self, node):
         if isinstance(node.expression, javalang.tree.Assignment):
-            value = self.get_variable(node.position.line, node.expression.expressionl.member)
+            value = self.get_variable_after(node.position.line, node.expression.expressionl.member)
             if len(value) != 0:
                 self.output[node.position.line-1] = f"{node.expression.expressionl.member} = {value}"
         self.generic_visit(node)
