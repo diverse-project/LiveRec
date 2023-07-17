@@ -59,6 +59,9 @@ class BaseLiveAgent(BaseLiveAgentInterface):
     def _handleRunInTerminal(self, output : dict):
         """Handle the runInTerminal request from DAP"""
         if output["type"] == "request" and output["command"] == "runInTerminal":
+            # if not exists, create the tmp folder
+            if not os.path.exists("tmp"):
+                os.makedirs("tmp")
 
             debuggee = subprocess.Popen(
                 output["arguments"]["args"],

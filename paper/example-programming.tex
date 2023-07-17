@@ -6,6 +6,8 @@
 
 \usepackage[backend=biber]{biblatex}
 \addbibresource{example.bib}
+\usepackage{tikz}
+\usepackage{listings}
 
 
 %
@@ -72,19 +74,12 @@
 %\subtitle{Preparing Articles for Programming}% optional
 %\titlerunning{Preparing Articles for Programming} %optional, in case that the title is too long; the running title should fit into the top page column
 
-\author[a]{Tobias Pape}
-\authorinfo{is the author of this {LaTeX} class. Contact him at
-  \email{tobias.pape@hpi.uni-potsdam.de}.}
-\affiliation[a]{Hasso Plattner Institute, University of Potsdam, Germany}
-\author{Cristina V. Lopes}
-\authorinfo{is associate editor for the first two issues of The Art, Science,
-  and Engineering of Programming. Contact her at \email{lopes@ics.uci.edu}.}
-\affiliation{University of California, Irvine, USA}
-\author[a]{Robert Hirschfeld}
-\authorinfo{is chair of the AOSA steering committee. The Art, Science,
-  and Engineering of Programming is published by AOSA. Contact Robert at \email{hirschfeld@hpi.uni-potsdam.de}.}
+\author[a]{Jean-Baptiste Döderlein}
+\affiliation[a]{ENS Rennes, Bruz, France}
+\author[b]{Tijs van der Storm}
+\affiliation[b]{CWI, Amsterdam, The Netherlands}
+\author[b]{Riemer van Rozen}
 
-% \authorrunning{T. Pape, C. Lopes, R. Hirschfeld} % Optional, for long author lists
 
 \keywords{programming journal, paper formatting, submission preparation} % please provide 1--5 keywords
 
@@ -156,20 +151,98 @@
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=0.8\linewidth]{img/stackrecord.png}
-  \caption{Stack Recording example}
+  \begin{minipage}{0.2\textwidth}
+    \begin{lstlisting}[language=C]
+//foo(3)
+int foo(int n) {
+  int i = 0;
+  while (i < n) {
+    i++;
+  }
+  return i;
+}
+    \end{lstlisting}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.7\textwidth}
+    \begin{tikzpicture}[x=0.75pt,y=0.75pt,yscale=-1.1,xscale=0.95]
+      
+%Shape: Rectangle [id:dp48530454252997635] 
+\draw   (11,13.3) -- (68.6,13.3) -- (68.6,34.5) -- (11,34.5) -- cycle ;
+%Shape: Rectangle [id:dp4741172814816692] 
+\draw   (11,34.5) -- (68.6,34.5) -- (68.6,89.7) -- (11,89.7) -- cycle ;
+%Shape: Rectangle [id:dp39333640528563685] 
+\draw   (83.8,13.3) -- (141.4,13.3) -- (141.4,34.5) -- (83.8,34.5) -- cycle ;
+%Shape: Rectangle [id:dp852338699133017] 
+\draw   (83.8,34.5) -- (141.4,34.5) -- (141.4,89.7) -- (83.8,89.7) -- cycle ;
+%Shape: Rectangle [id:dp7978026394194542] 
+\draw   (155.6,13.3) -- (213.2,13.3) -- (213.2,34.5) -- (155.6,34.5) -- cycle ;
+%Shape: Rectangle [id:dp7423976709217543] 
+\draw   (155.6,34.5) -- (213.2,34.5) -- (213.2,89.7) -- (155.6,89.7) -- cycle ;
+%Shape: Rectangle [id:dp7923849318907303] 
+\draw   (225.8,13.7) -- (283.4,13.7) -- (283.4,34.9) -- (225.8,34.9) -- cycle ;
+%Shape: Rectangle [id:dp8325747263531937] 
+\draw   (225.8,34.9) -- (283.4,34.9) -- (283.4,90.1) -- (225.8,90.1) -- cycle ;
+%Shape: Rectangle [id:dp3066063334990279] 
+\draw   (343,14.1) -- (400.6,14.1) -- (400.6,35.3) -- (343,35.3) -- cycle ;
+%Shape: Rectangle [id:dp9425547748588214] 
+\draw   (343,35.3) -- (400.6,35.3) -- (400.6,90.5) -- (343,90.5) -- cycle ;
+%Straight Lines [id:da5537198175803346] 
+\draw    (69.4,56.1) -- (80,56.1) ;
+\draw [shift={(83,56.1)}, rotate = 180] [fill={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.08]  [draw opacity=0] (7.14,-3.43) -- (0,0) -- (7.14,3.43) -- cycle    ;
+%Straight Lines [id:da9992180079914922] 
+\draw    (141.4,56.1) -- (152,56.1) ;
+\draw [shift={(155,56.1)}, rotate = 180] [fill={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.08]  [draw opacity=0] (7.14,-3.43) -- (0,0) -- (7.14,3.43) -- cycle    ;
+%Straight Lines [id:da24526356738515775] 
+\draw    (212.4,56.1) -- (223,56.1) ;
+\draw [shift={(226,56.1)}, rotate = 180] [fill={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.08]  [draw opacity=0] (7.14,-3.43) -- (0,0) -- (7.14,3.43) -- cycle    ;
+%Straight Lines [id:da7346663349503276] 
+\draw [line width=1.5]    (284.4,56.1) -- (337.6,56.47) ;
+\draw [shift={(341.6,56.5)}, rotate = 180.4] [fill={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.08]  [draw opacity=0] (9.29,-4.46) -- (0,0) -- (9.29,4.46) -- cycle    ;
+
+% Text Node
+\draw (15.2,17) node [anchor=north west][inner sep=0.75pt]   [align=left] {line : 2};
+% Text Node
+\draw (22.4,39) node [anchor=north west][inner sep=0.75pt]   [align=left] {n : 3};
+% Text Node
+\draw (88,17) node [anchor=north west][inner sep=0.75pt]   [align=left] {line : 3};
+% Text Node
+\draw (95.2,39) node [anchor=north west][inner sep=0.75pt]   [align=left] {n : 3};
+% Text Node
+\draw (94.8,53.2) node [anchor=north west][inner sep=0.75pt]   [align=left] {i \ : 0};
+% Text Node
+\draw (159.8,17) node [anchor=north west][inner sep=0.75pt]   [align=left] {line : 4};
+% Text Node
+\draw (167,39) node [anchor=north west][inner sep=0.75pt]   [align=left] {n : 3};
+% Text Node
+\draw (166.6,53.2) node [anchor=north west][inner sep=0.75pt]   [align=left] {i \ : 0};
+% Text Node
+\draw (230,17) node [anchor=north west][inner sep=0.75pt]   [align=left] {line : 3};
+% Text Node
+\draw (237.2,39) node [anchor=north west][inner sep=0.75pt]   [align=left] {n : 3};
+% Text Node
+\draw (236.8,53.6) node [anchor=north west][inner sep=0.75pt]   [align=left] {i \ : 1};
+% Text Node
+\draw (347.2,17) node [anchor=north west][inner sep=0.75pt]   [align=left] {line : 6};
+% Text Node
+\draw (354.4,39) node [anchor=north west][inner sep=0.75pt]   [align=left] {n : 3};
+% Text Node
+\draw (354,54) node [anchor=north west][inner sep=0.75pt]   [align=left] {i \ : 2};
+    \end{tikzpicture}
+  \end{minipage}
+  \caption{Stack Recording Example}
   \label{fig:stack-recording}
 \end{figure}
 
 In order to generate the data needed to probe a variable, we need to be able to retrieve the state of the variable during execution. 
 This information is contained in the stackframe at the time of execution. 
-However, we need to add spatial and temporal information to this: we need to associate each stackframe with the location in the code at which it was retrieved, and we also need to know the order in which these stackframes were retrieved.
+However, we need to add spatial and temporal information to this: we need to associate each stackframe state with the location in the code at which it was retrieved, and we also need to know the order in which these stackframes were retrieved.
 
-In this paper, we introduce a structure for representing this data: a \textit{stack recording} \ref*{fig:stack-recording}. 
-A stack trace represents the different stackframes in the form of a chain, where each stackframe has a reference to the corresponding line of source code. 
+In this paper, we introduce a structure for representing this data: a \textit{stack recording}. 
+A stack record represents the different states of the stack frame during the execution of a method. The stack record is presented as a chain of recorded stack frames, to which information has been added about the source code's location and height in the stack.
 This representation allows us to maintain a link between the spatial location (the reference to the source code) and the temporal location (the order of these stackframes) of the execution.
 This representation has several advantages: it is easy to construct from debugger information, and it applies to most programming languages.
-
+Figure \ref*{fig:stack-recording} shows an example of a stack recording.
 \subsection{Keep Alive Agent}
 
 \begin{figure}[h]
@@ -226,6 +299,47 @@ Finally, execution for Java and Python is similar. Unlike the backend, which use
 \label{sec:demo-small-c}
 \subsection{Performance}
 \label{sec:performance}
+
+In the context of a live programming environment, it is essential to have short response times after user interactions. 
+We therefore measured the performance of our approach in response to various questions:
+
+\begin{itemize}
+  \item What is the average performance during a live programming session?
+  \item What is the compilation time as a function of programme size?
+  \item How long does it take to load the code into the debugger, depending on the size of the programme?
+  \item How long does it need to run the program, depending on the number of steps to make the stack recording ?
+\end{itemize}
+
+\subsubsection{What is the average performance during a live programming session?}
+
+To measure the performance of our approach in the general context of a live programming session, we measured 4 points : 
+
+\begin{itemize}
+  \item Agent initialisation time, which occurs once at the start of the session.
+  \item The compilation time, if there is a compilation stage.
+  \item The time taken to load the code into the debugger.
+  \item  Program execution time.
+\end{itemize}
+
+%In the 3 languages, we have implemented time measurement for the binary_search method (see appendix) with the array \[1,2,3,4,5,6\] looking for 9.
+%The execution was repeated 100 times for each language.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{@{} r c c c c c c c c c @{}}
+  \toprule
+  & \multicolumn{1}{c}{One time} & \multicolumn{3}{c}{Each Iteration} \\
+  
+  Language & Initialization & Compile & Load Code & Execute \\ \midrule
+  C & 1.24 & 0.067 & 0.0098 & 0.193 \\
+  Java & 5.92 & 0.57 & 0.015 & 1.28 \\
+  Python & 0.639 & 0 & 0.144 & 3.26 \\
+  \bottomrule
+  \end{tabular}
+  \caption{Average time in seconds for each step of the live programming session.}
+  \label{table:average-time}
+\end{table}
+
 \section{Related Work}
 \label{sec:related-work}
 
