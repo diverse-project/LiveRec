@@ -81,17 +81,6 @@ class CPrettyPrinter(c_ast.NodeVisitor):
 
     def visit_While(self, node):
         cond = node.cond
-        # We need to add a empty line after the while in the source code if there is none
-        with open(self.target_path, "r") as f:
-            code = f.readlines()
-        if code[node.coord.line] != "\n":
-            code.insert(node.coord.line, "\n")
-            with open(self.target_path, "w") as f:
-                f.writelines(code)
-            self.changed_source = True
-            self.stacktrace.shift_line(node.coord.line, 1)
-            self._visit_ast(self.ast)
-            return
         # check if left is a variable
         if isinstance(cond.left, c_ast.ID):
             output_string = f"{cond.left.name}= "

@@ -110,7 +110,7 @@ class PythonLiveAgent(BaseLiveAgent):
         self.next_breakpoint()
         self.wait("event", "stopped")
             
-    def execute(self, method, args):
+    def execute(self, method, args, max_steps=50):
         self.set_function_breakpoint([method])
         stacktrace = self.get_stackframes()
         frameId = stacktrace[0]["id"]
@@ -125,16 +125,29 @@ class PythonLiveAgent(BaseLiveAgent):
             self.wait("event", "stopped")
         # We are now in the function, we need to get all information, step, and check if we are still in the function
         scope = None
+        initial_height = None
+        i = 0
         while True:
             stacktrace = self.get_stackframes()
+            if initial_height is None:
+                initial_height = len(stacktrace)
+                height = 0
+            else:
+                height = len(stacktrace) - initial_height
             if stacktrace[0]["name"] != method:
                 break
             # We need to get local variables
             if not scope:
                 scope = self.get_scopes(stacktrace[0]["id"])[0]
             variables = self.get_variables(scope["variablesReference"])
-            stackframe = Stackframe(stacktrace[0]["line"], variables)
+            stackframe = Stackframe(stacktrace[0]["line"], stacktrace[0]["column"], height, variables)
             stackrecording.add_stackframe(stackframe)
+            i += 1
+            if i > max_steps:
+                # we need to pop the current frame
+                self.restart_server()
+                self.initialize()
+                return "Interrupted", stackrecording
             self.step()
         # We are now out of the function, we need to get the return value
         scope = self.get_scopes(stacktrace[0]["id"])[0]

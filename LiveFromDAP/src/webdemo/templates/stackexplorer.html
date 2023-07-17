@@ -14,8 +14,7 @@
 <body>
     <div id="page">
         <div id="editor-container">
-            <textarea id="editor" name="editor">
-{% if language == 'python' %}
+            <textarea id="editor" name="editor">{% if language == 'python' %}
 #@foo(1,2)
 def foo(a, b):
     return a + b
@@ -36,7 +35,33 @@ int foo(int a, int b){
             <div id="editor-resizer"></div>
         </div>
         <div id="output-container">
-            <textarea id="output" name="output"></textarea>
+            <div id="stack">
+                <div class="row">
+                    <div class="col s12 m6">
+                      <div class="card blue-grey darken-1">
+                        <div class="card-content white-text">
+                          <span class="card-title" id="stack-title">StackFrame #? (line ?, height ?)</span>
+                            <p>
+                                <ul id="stack-var">
+                                    <li>var1 = 1</li>
+                                    <li>var2 = 2</li>
+                                </ul>
+                            </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+            </div>
+            <div id="control">
+                <!-- slider -->
+                <div class="row">
+                    <div class="col s12">
+                        <p class="range-field">
+                            <input type="range" id="stack-range" min="0" max="100" value="0" />
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     <div id="execution-status">
@@ -66,7 +91,7 @@ int foo(int a, int b){
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js" integrity="sha512-vco9RAxEuv4PQ+iTQyuKElwoUOcsVdp+WgU6Lgo82ASpDfF7vI66LlWz+CZc2lMdn52tjjLOuHvy8BQJFp8a1A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js" integrity="sha512-Vs2GKxnxnTQBRW7o2xXZ9A28njjmu5RToS42efiKNEWmikov0inZY522EtGVK5CcVo0M/FQwmXsTfl9skgRnvw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="{{ url_for('static', filename='live.js') }}"></script>
-<script src="{{ url_for('static', filename='bret.js') }}"></script>
+<script src="{{ url_for('static', filename='stack.js') }}"></script>
 <script src="{{ url_for('static', filename='resize.js') }}"></script>
 </html>
 

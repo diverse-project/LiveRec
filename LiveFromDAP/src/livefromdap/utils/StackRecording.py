@@ -1,11 +1,29 @@
-class Stackframe():
+class Position():
     line : int
+    column : int
+
+    def __init__(self, line, column):
+        self.line = line
+        self.column = column
+
+    def to_json(self):
+        return {
+            "line": self.line,
+            "column": self.column
+        }
+
+
+
+class Stackframe():
+    pos : Position
+    height : int
     variables : list
     predecessor : "Stackframe"
     successor : "Stackframe"
 
-    def __init__(self, line, variables):
-        self.line = line   
+    def __init__(self, line, column, height, variables):
+        self.pos = Position(line, column)
+        self.height = height
         self.variables = variables
         self.predecessor = None
         self.successor = None
@@ -28,6 +46,16 @@ class Stackframe():
         for v in self.variables:
             if v["name"] == name:
                 return v["type"]
+            
+    def to_json(self):
+        return {
+            "id": id(self),
+            "pos": self.pos.to_json(),
+            "height": self.height,
+            "variables": self.variables,
+            "predecessor": id(self.predecessor),
+            "successor": id(self.successor)
+        }
 
 class StackRecording():
     stackframes : list
@@ -45,11 +73,14 @@ class StackRecording():
         self.last_stackframe = stackframe
 
     def get_stackframes_line(self, line):
-        return [s for s in self.stackframes if s.line == line]
+        return [s for s in self.stackframes if s.pos.line == line]
     
     def shift_line(self, line, shift):
         for s in self.stackframes:
-            if s.line > line:
-                s.line += shift
+            if s.pos.line > line:
+                s.pos.line += shift
+
+    def to_json(self):
+        return [s.to_json() for s in self.stackframes]
     
 

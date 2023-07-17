@@ -58,3 +58,7 @@ body{
     color: white;
     font-size: 60px;
 }
+
+.highlight{
+    background-color: #ffff0072;
+}

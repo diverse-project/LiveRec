@@ -153,11 +153,14 @@ class CLiveAgent(BaseLiveAgent):
         self.current_loaded_shared_libraries = libname
             
 
-    def add_variable(self, frame_id, stackframe, stackrecording):
+    def add_variable(self, frame_id, stackframes, stackrecording):
+        stackframe = stackframes[0]
         line = stackframe["line"]
+        column = stackframe["column"]
         scope = self.get_scopes(frame_id)[0]
         variables = self.get_variables(scope["variablesReference"])
-        recorded_stackframe = Stackframe(line, variables)
+        height = len(stackframes) - self.initial_height
+        recorded_stackframe = Stackframe(line, column, height, variables)
         stackrecording.add_stackframe(recorded_stackframe)
     
     def execute(self, source_file, method, args):
@@ -168,8 +171,11 @@ class CLiveAgent(BaseLiveAgent):
         self.wait("event", event="stopped")
         end_lines = FunctionEndFinder(os.path.abspath(source_file),method).end_line
         stackrecording = StackRecording()
+        self.initial_height = None
         while True:
             stackframes = self.get_stackframes(thread_id=self.main_thread_id)
+            if self.initial_height is None:
+                self.initial_height = len(stackframes)
             frame_id = stackframes[0]["id"]
             
             if stackframes[0]["name"] == "main()":
@@ -182,7 +188,7 @@ class CLiveAgent(BaseLiveAgent):
                     return_value = variables[0]
                 break
 
-            self.add_variable(frame_id, stackframes[0], stackrecording)
+            self.add_variable(frame_id, stackframes, stackrecording)
             if stackframes[0]["line"] in end_lines:
                 self.evaluate("-exec fin", frame_id=frame_id)
                 self.wait("event", event="stopped")

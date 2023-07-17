@@ -259,8 +259,11 @@ class JavaLiveAgent(BaseLiveAgent):
     
     def get_local_variables(self):
         stacktrace = self.get_stackframes(thread_id=self.thread_id)
+        if self.initial_height is None:
+            self.initial_height = len(stacktrace)
+        height = len(stacktrace) - self.initial_height
         frame_id = stacktrace[0]["id"]
-        scope_name,line_number = stacktrace[0]["name"], stacktrace[0]["line"]
+        scope_name,line_number, column = stacktrace[0]["name"], stacktrace[0]["line"], stacktrace[0]["column"]
         scope = self.get_scopes(frame_id)[0]
         variables = self.get_variables(scope["variablesReference"])
         for variable in variables:
@@ -275,7 +278,7 @@ class JavaLiveAgent(BaseLiveAgent):
                     value += "]"
                 variable["value"] = value
 
-        return (not self.method_loaded in scope_name), line_number, variables
+        return (not self.method_loaded in scope_name), line_number, column, height, variables
 
     def execute(self, clazz, method, args):
         """Execute a method with the given arguments"""
@@ -299,9 +302,10 @@ class JavaLiveAgent(BaseLiveAgent):
         self.wait("event", "stopped")
         # We can now start the stack recording
         stacktrace = StackRecording()
+        self.initial_height = None
         while True:
-            stop, line, variables = self.get_local_variables()
-            stackframe = Stackframe(line, variables)
+            stop, line, column, height, variables = self.get_local_variables()
+            stackframe = Stackframe(line, column, height, variables)
             stacktrace.add_stackframe(stackframe)
             if stop:
                 self.next_breakpoint()

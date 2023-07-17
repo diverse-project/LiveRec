@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import json
 import os
 from threading import Thread
 
@@ -25,6 +26,7 @@ class ThreadWithReturnValue(Thread):
     def join(self, *args):
         Thread.join(self, *args)
         return self._return
+    
 
 
 class AutoLiveAgent(ABC):
@@ -60,8 +62,9 @@ def buzy(func):
 
 class AutoCLiveAgent(AutoLiveAgent):
     
-    def __init__(self):
-        self.agent = CLiveAgent(debug=True)
+    def __init__(self, raw=False):
+        self.raw = raw
+        self.agent = CLiveAgent(debug=False)
         self.agent.start_server()
         self.agent.initialize()
         print("Agent initialized")
@@ -119,9 +122,16 @@ class AutoCLiveAgent(AutoLiveAgent):
 
     def construct_result_json(self, method, output):
         return_value, stacktrace = output
-        printer = CPrettyPrinter(self.source_path,method)
-        output = printer.pretty_print(stacktrace, return_value=return_value['value'])
-        return output
+        if self.raw:
+            print("Sending raw output")
+            return json.dumps({
+                "return_value": return_value["value"],
+                "stacktrace": stacktrace.to_json()
+            })
+        else:
+            printer = CPrettyPrinter(self.source_path,method)
+            output = printer.pretty_print(stacktrace, return_value=return_value['value'])
+            return output
 
     def execute(self, method, args):
         thread = ThreadWithReturnValue(target=self.agent.execute, args=(self.source_path, method, args,))
@@ -140,8 +150,9 @@ class AutoCLiveAgent(AutoLiveAgent):
 
 class AutoJavaLiveAgent(AutoLiveAgent):
     
-    def __init__(self):
+    def __init__(self, raw=False):
         self.buzy = True
+        self.raw = raw
         self.agent = JavaLiveAgent(debug=False)
         self.agent.start_server()
         self.agent.initialize()
@@ -198,6 +209,11 @@ class AutoJavaLiveAgent(AutoLiveAgent):
 
     def construct_result_json(self, method, output):
         return_value, stacktrace = output
+        if self.raw:
+            return json.dumps({
+                "return_value": return_value,
+                "stacktrace": stacktrace.to_json()
+            })
         printer = JavaPrettyPrinter(self.source_path,"Live",method)
         output = printer.pretty_print(stacktrace, return_value=return_value)
         return output
@@ -219,8 +235,9 @@ class AutoJavaLiveAgent(AutoLiveAgent):
     
 class AutoPythonLiveAgent(AutoLiveAgent):
     
-    def __init__(self):
+    def __init__(self, raw=False):
         self.buzy = True
+        self.raw = raw
         self.agent = PythonLiveAgent(debug=False)
         self.agent.start_server()
         self.agent.initialize()
@@ -268,19 +285,20 @@ class AutoPythonLiveAgent(AutoLiveAgent):
 
     def construct_result_json(self, method, output):
         return_value, stacktrace = output
+        if self.raw:
+            return json.dumps({
+                "return_value": return_value,
+                "stacktrace": stacktrace.to_json()
+            })
         printer = PythonPrettyPrinter(self.source_path,method)
         output = printer.pretty_print(stacktrace, return_value=return_value)
         return output
 
     @buzy
     def execute(self, method, args):
-        thread = ThreadWithReturnValue(target=self.agent.execute, args=(method, args,))
-        thread.start()
-        # Wait for the thread to finish, with a timeout of 3 seconds
-        output = thread.join(10)
-        # If thread is still alive, it means it has timed out
-        if thread.is_alive():
-            raise TimeoutError
+        output = self.agent.execute(method, args)
+        if output[0] == "Interrupted":
+            self.agent.load_code(self.source_path)
         # Get the output of the thread
         # Save the json result in a file
         return self.construct_result_json(method, output)

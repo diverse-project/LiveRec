@@ -56,6 +56,3 @@ def test_python_prime():
 
     agent.stop_server()
 
-print("Testing PythonLiveAgent")
-test_python_fibonnaci()
-

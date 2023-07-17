@@ -1,5 +1,4 @@
-var myTextarea = document.getElementById('editor');
-var myTextarea2 = document.getElementById('output');
+var editorArea = document.getElementById('editor');
 
 var CodeMirror_mode = "";
 if (language=="c"){
@@ -14,72 +13,44 @@ if (language=="python"){
         singleLineStringErrors: false};
 }
 
-// C program
-var editor = CodeMirror.fromTextArea(myTextarea, {
+var editor = CodeMirror.fromTextArea(editorArea, {
     lineNumbers: true,
     indentUnit: 4,
     mode: CodeMirror_mode
 });
-// output not editable
-var output = CodeMirror.fromTextArea(myTextarea2, {
-    lineNumbers: true,
-    indentUnit: 4,
-    readOnly: true
-});
 
-var oldText = output.getValue();
 
 var socket = io();
 
+var send_code_sent = 0;
+
+
+
 socket.on('json', function(msg) {
-    console.log(msg.event);
     if (msg.event == 'codeChange') {
         editor.setValue(msg.code);
         return;
     }
     if (msg.event == 'executeOutput') {
-        console.log("receive new thing");
-        let old = oldText;
-        let diffs = Diff.diffLines(old, msg.output);
-        let line = 0;
-        let lines_green =[];
-        let lines_red = [];
-        final_text = "";
-        diffs.forEach(function(part){
-            if (part.added) {
-                for (let i = 0; i < part.count; i++) {
-                    lines_green.push(line+i);
-                }
-                final_text += part.value;
-                line += part.count;
-            } else if (part.removed) {
-                lines_red.push(line);
-            } else{
-                final_text += part.value;
-                line += part.count;
-            }
-            
-        });
-        output.setValue(final_text);
-        lines_green.forEach(function(line){
-            output.markText({line: line, ch: 0}, {line: line, ch: 1000}, {className: "green-text"});
-        });
-        lines_red.forEach(function(line){
-            output.markText({line: line, ch: 0}, {line: line, ch: 1000}, {className: "red-text"});
-        });
-        oldText = msg.output;
+        handle_executeOutput(msg);
         return;
     }
     if (msg.event == 'status') {
         //M.toast({html: msg.status, displayLength: 3000});
-        console.log(msg.status);
         if (msg.status == "agent_up") {
             document.getElementById("agent-ready").style.display = "block";
             document.getElementById("agent-not-ready").style.display = "none";
             sendCode();
         }
         if (msg.status == "ready") {
+            send_code_sent -= 1;
+            if (send_code_sent == 0) {
+                document.getElementById("execution-spinner").style.display = "none";
+            }
+        }
+        if (msg.status == "timeout") {
             document.getElementById("execution-spinner").style.display = "none";
+            M.toast({html: "Timeout, restarting...", displayLength: 3000});
         }
         return;
     }
@@ -96,6 +67,7 @@ socket.on('disconnect', function() {
 
 // create a function to send the message to the server
 function sendCode() {
+    send_code_sent += 1;
     document.getElementById("execution-spinner").style.display = "block";
     var code = editor.getValue();
     // create the json object to send to the server
@@ -107,8 +79,6 @@ function sendCode() {
     };
     socket.emit('json', json);
 }
-
-
 
 CodeMirror.commands.save = function(insance) { 
     sendCode();

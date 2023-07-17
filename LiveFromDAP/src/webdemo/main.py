@@ -13,25 +13,36 @@ sessions = {}
 
 sessions_to_sid = {}
 
-def create_agent(language):
+def create_agent(language, raw=False):
     if language == "c":
-        return AutoCLiveAgent()
+        return AutoCLiveAgent(raw=raw)
     elif language == "java":
-        return AutoJavaLiveAgent()
+        return AutoJavaLiveAgent(raw=raw)
     elif language == "python":
-        return AutoPythonLiveAgent()
+        return AutoPythonLiveAgent(raw=raw)
     else:
         raise NotImplementedError() # TODO implement other languages
 
+def get_language_prefix(language):
+    if language == "python":
+        return "#@"
+    elif language == "java":
+        return "//@"
+    elif language == "c":
+        return "//@"
+    else:
+        raise NotImplementedError()
 
-def clean_code(code):
-    return "\n".join(["" if line.strip().startswith("!!!") else line for line in code.split("\n") ])
+def clean_code(code, language="python"):
+    prefix = get_language_prefix(language)
+    return "\n".join(["" if line.strip().startswith(prefix) else line for line in code.split("\n") ])
 
-def extract_exec_request(code):
+def extract_exec_request(code, language="python"):
+    prefix = get_language_prefix(language)
     for line in code.split("\n"):
         line = line.strip()
-        if line.startswith("!!!"):
-            exec_request = line[3:].strip()
+        if line.startswith(prefix):
+            exec_request = line[len(prefix):].strip()
             if "(" in exec_request and exec_request.endswith(")"):
                 method = exec_request.split("(")[0]
                 args = exec_request.split("(")[1][:-1].split(",")
@@ -45,14 +56,19 @@ class Session():
     It has a queue of requests to execute and a thread that executes them
     """
 
-    def __init__(self, room, socketio, language):
+    def __init__(self, room, socketio, language, raw=False):
         self.room = room
         self.socketio = socketio
         self.language = language
-        self.agent = create_agent(language)
+        self.raw = raw
+        self.agent = create_agent(language, raw)
         self.code = ""
         self.queue = Queue()
         self.last_execution_line = None
+        self.thread = None
+        self.launch()
+
+    def launch(self):
         self.thread = Thread(target=self.event_loop, daemon=True)
         self.thread.start()
 
@@ -67,26 +83,30 @@ class Session():
             self.handle_request(request)
             # Notify the queue that the request is done
             self.queue.task_done()
+
     
     def handle_request(self, request):
         if request["event"] == "codeChange":
             session_id = request["session_id"]
-            code = clean_code(request["code"])
-            changed = self.agent.update_code(code)
+            code = clean_code(request["code"], self.language)
             
-            self.send_status("codeChange", session_id=session_id)
-
-            exec_req = extract_exec_request(request["code"])
+            exec_req = extract_exec_request(request["code"], self.language)
 
             if exec_req is not None:
-
+                changed = self.agent.update_code(code)
+                self.send_status("codeChange", session_id=session_id)
                 if changed or exec_req != self.last_execution_line:
-                    result = self.agent.execute(*exec_req)
-                    self.send({
-                        "event": "executeOutput",
-                        "output": result,
-                    }, json=True)
-                    self.last_execution_line = exec_req
+                    try:
+                        result = self.agent.execute(*exec_req)
+                        self.send({
+                            "event": "executeOutput",
+                            "output": result,
+                        }, json=True)
+                        self.last_execution_line = exec_req
+                    except TimeoutError:
+                        self.send_status("timeout", session_id=session_id)
+                        return
+
             self.send_status("ready", session_id=session_id)
         elif request["event"] == "initialize":
             session_id = request["session_id"]
@@ -103,15 +123,25 @@ class Session():
         }
         self.send(req, json=True)
         
-
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 # Start the agent with a language parameter
 @app.route('/dap/<language>')
 def dap(language):
     # create a unique session id
     session_id = str(uuid.uuid4())
-    sessions[session_id] = Session(session_id, socketio, language)
+    sessions[session_id] = Session(session_id, socketio, language, raw=False)
     return render_template('dap.html', language=language, session_id=session_id)
+
+# Start the agent with a language parameter
+@app.route('/stack/<language>')
+def stack(language):
+    # create a unique session id
+    session_id = str(uuid.uuid4())
+    sessions[session_id] = Session(session_id, socketio, language, raw=True)
+    return render_template('stackexplorer.html', language=language, session_id=session_id)
 
 @socketio.on('disconnect')
 def on_disconnect(*args, **kwargs):
@@ -129,7 +159,11 @@ def on_join(data):
     if session_id in sessions:
         sessions[session_id].send_status("agent_up", session_id=session_id)
     else:
-        sessions[session_id] = Session(session_id, socketio, language)
+        #check the url of the page to see if it is a stack explorer or a dap
+        if "stack" in request.url:
+            sessions[session_id] = Session(session_id, socketio, language, raw=True)
+        else:
+            sessions[session_id] = Session(session_id, socketio, language, raw=False)
 
 
 @socketio.on('json')
