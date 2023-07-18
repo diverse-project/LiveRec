@@ -305,7 +305,7 @@ We therefore measured the performance of our approach in response to various que
 
 \begin{itemize}
   \item What is the average performance during a live programming session?
-  \item What is the compilation time as a function of programme size?
+  \item What is the compilation time as a function of programme size ?
   \item How long does it take to load the code into the debugger, depending on the size of the programme?
   \item How long does it need to run the program, depending on the number of steps to make the stack recording ?
 \end{itemize}
@@ -318,7 +318,7 @@ To measure the performance of our approach in the general context of a live prog
   \item Agent initialisation time, which occurs once at the start of the session.
   \item The compilation time, if there is a compilation stage.
   \item The time taken to load the code into the debugger.
-  \item  Program execution time.
+  \item Program execution time.
 \end{itemize}
 
 %In the 3 languages, we have implemented time measurement for the binary_search method (see appendix) with the array \[1,2,3,4,5,6\] looking for 9.
@@ -339,6 +339,32 @@ To measure the performance of our approach in the general context of a live prog
   \caption{Average time in seconds for each step of the live programming session.}
   \label{table:average-time}
 \end{table}
+
+\subsubsection{What is the compilation time as a function of programme size ?}
+\subsubsection{How long does it take to load the code into the debugger, depending on the size of the programme?}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.8\linewidth]{img/load_code.png}
+  \caption{Load code time in seconds depending on the size of the program.}
+  \label{fig:load-code}
+\end{figure}
+
+\subsubsection{How long does it need to run the program, depending on the number of steps to make the stack recording ?}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.8\linewidth]{img/execute.png}
+  \caption{Execution time in seconds depending on the number of steps.}
+  \label{fig:execute}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.8\linewidth]{img/execute_ps.png}
+  \caption{Execution time in seconds per step.}
+  \label{fig:execute_tps}
+\end{figure}
 
 \section{Related Work}
 \label{sec:related-work}

@@ -143,6 +143,13 @@ def stack(language):
     sessions[session_id] = Session(session_id, socketio, language, raw=True)
     return render_template('stackexplorer.html', language=language, session_id=session_id)
 
+@app.route('/stack2/<language>')
+def stackt(language):
+    # create a unique session id
+    session_id = str(uuid.uuid4())
+    sessions[session_id] = Session(session_id, socketio, language, raw=True)
+    return render_template('stackexplorer2.html', language=language, session_id=session_id)
+
 @socketio.on('disconnect')
 def on_disconnect(*args, **kwargs):
     if request.sid in sessions_to_sid:
