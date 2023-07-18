@@ -269,9 +269,11 @@ The general operation of a keep-alive agent is shown in Figure \ref*{fig:keepali
 \section{Live Probes in Java with JDI}
 \label{sec:live-probes-java}
 
-We initially developed a Java backend using JDI, a debugging interface for Java, to implement the concepts discussed in the previous section. The keep-alive agent includes a method for loading classes into the JVM.
+We developed a Java backend using JDI, a debugging interface for Java, to implement the concepts discussed in the previous section. 
+The keep-alive agent includes a method for loading classes into the JVM.
 
-When executing the target method, the arguments are created in the client JVM and then passed to the debugger JVM using the \code{mirrorOf} and \code{newInstance} methods from the reflection API. The target method is invoked using \code{invokeMethod}. 
+When executing the target method, the arguments are created in the client JVM and then passed to the debugger JVM using the \code{mirrorOf} and \code{newInstance} methods from the reflection API. 
+The target method is invoked using \code{invokeMethod}. 
 To handle events from the JDI when breakpoints are set, a dedicated thread is used to prevent deadlocks.
 
 If modifications are needed in the code of the target method, we employ the \code{redefineClasses} method. 
@@ -283,20 +285,37 @@ If the class structure is modified, restarting the debugger is necessary.
 \label{sec:generalizing-live-probes}
 The Debug Adapter Protocol (DAP), developed by Microsoft, is a standard method of communicating with a programming language debugger. It is compatible with various editors, including VS Code, and provides a unified interface for all programming languages. 
 
-By exploiting this protocol, we have created a new language parametric backend, which we have implemented for the C, Python and Java programming languages. These languages are chosen to cover both compiled and interpreted languages. This backend offers an interface common to all three languages, which includes methods for starting and initialising the debugging server, loading and reloading code in the debugger, and executing a method while performing stack recording. 
+By exploiting this protocol, we have created a new language parametric backend, which we have implemented for the C, Python and Java programming languages. These languages are chosen to cover both compiled and interpreted languages. 
+This backend offers an interface common to all three languages, which includes methods for starting and initialising the debugging server, loading and reloading code in the debugger, and executing a method while performing stack recording. 
 
 These methods allow us to carry out stack recording independently of the chosen language and facilitate the future implementation of live programming interfaces. 
 
-However, it is essential to develop a keep-alive agent specific to each language and to adapt these different methods to the debugging server. These methods depend on both the implementation of the debugging server and the keep-alive agent. Initialization in the DAP protocol is left to the discretion of the debugging server developer, which means that the initialization parameters must be configured for each language.
+The implementation for each language includes a keep-alive agent and code to communicate with the debugger and keep-alive agent to provide the interface functionality.
+These methods depend on both the implementation of the debugging server and the keep-alive agent. 
+The debug server initialisation parameters are specific to each language.
 
-How the code is loaded also depends on the language. For interpreted languages such as Python, this presents no problem because the code can be interpreted while the agent is running. For Java, classpaths and classes can be added at runtime by redefining the JVM's ClassLoader in the keep-alive agent. For the C language, shared libraries are used to import new code and can be loaded from the agent.
+The way in which the code is loaded also depends on the language. 
+For interpreted languages such as Python, the code can be interpreted at runtime and then loaded into the debugger's memory. 
+For Java, we have extended the ClassLoader to add and modify classpaths and classes at runtime in the keep-alive agent. 
+For C, the code is loaded into shared libraries that can be added and reloaded during execution.
 
-Finally, execution for Java and Python is similar. Unlike the backend, which uses JDI, calling methods directly from the debugger does not trigger breakpoints. To remedy this, execution must be initiated from the agent and not by a debugger command. To this end, the Python and Java agents have fields for referencing a method and its arguments; when this information is entered, the agent launches execution.
-
+Method execution for Java and Python is different to that used in C. 
+For Java and Python, calling methods directly from the debugger does not trigger breakpoints for these languages. 
+To remedy this, execution must be initiated from the agent and not by a debugger command. 
+To do this, the Python and Java agents have fields for referencing a method and its arguments; when this information is entered, the agent starts execution.
+For C, as is the case in the backend using JDI, the method call is made from the debugger console.
 \section{Evaluation}
 \label{sec:evaluation}
 \subsection{Demo : A Small C Live Programming Environment}
 \label{sec:demo-small-c}
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{img/demo/c.png}
+  \caption{Demo of the live programming environment for C.}
+  \label{fig:demo}
+\end{figure}
+
+
 \subsection{Performance}
 \label{sec:performance}
 

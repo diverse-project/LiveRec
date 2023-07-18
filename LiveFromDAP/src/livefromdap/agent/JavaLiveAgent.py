@@ -221,10 +221,10 @@ class JavaLiveAgent(BaseLiveAgent):
             self.add_classpath(class_path)
         frame_id = self.get_stackframes(self.thread_id)[0]["id"]
         self.evaluate(f"runner.loadClass(\"{class_name}\")", frame_id)
+        target_file = os.path.join(class_path, class_name + ".java")
         if class_name not in self.loaded_classes:
-            target_file = os.path.join(class_path, class_name + ".java")
-            self.lsp_add_document(target_file)
             self.loaded_classes[class_name] = os.path.abspath(os.path.join(class_path, class_name + ".java"))
+        self.lsp_add_document(target_file)
 
     def load_method(self, method_name):
         frame_id = self.get_stackframes(self.thread_id)[0]["id"]
@@ -280,7 +280,7 @@ class JavaLiveAgent(BaseLiveAgent):
 
         return (not self.method_loaded in scope_name), line_number, column, height, variables
 
-    def execute(self, clazz, method, args):
+    def execute(self, clazz, method, args, max_steps=100):
         """Execute a method with the given arguments"""
         if not clazz in self.loaded_classes.keys(): # error, class not loaded
             raise Exception(f"Class {clazz} not loaded")
@@ -303,10 +303,17 @@ class JavaLiveAgent(BaseLiveAgent):
         # We can now start the stack recording
         stacktrace = StackRecording()
         self.initial_height = None
+        i = 0
         while True:
             stop, line, column, height, variables = self.get_local_variables()
             stackframe = Stackframe(line, column, height, variables)
             stacktrace.add_stackframe(stackframe)
+            i += 1
+            if i > max_steps:
+                # we need to pop the current frame
+                self.restart_server()
+                self.initialize()
+                return "Interrupted", stacktrace
             if stop:
                 self.next_breakpoint()
                 self.wait("event", event="stopped")

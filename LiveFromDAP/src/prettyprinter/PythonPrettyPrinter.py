@@ -77,9 +77,9 @@ class PythonPrettyPrinter(ast.NodeVisitor):
             if isinstance(var, ast.Name):
                 value = self.get_variable(var.lineno, var.id)
                 if len(value) != 0:
-                    while_output += f"{var.id} = {value}, "
+                    while_output += f"{var.id} = {value} | "
         if len(while_output) != 0:
-            while_output = while_output[:-2]
+            while_output = while_output[:-3]
             self.output[node.lineno-1] = while_output
         self.generic_visit(node)
                 

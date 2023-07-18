@@ -50,10 +50,12 @@ class CPrettyPrinter(c_ast.NodeVisitor):
             # We need to get the correct stackframe
             # we need to add at the decl position in out something like:
             # params1= ...; params2= ...; params3= ...; -> return_value= ...
-            string_output = ""
+            string_output = f"{node.type.declname}("
             for param in params_names:
-                string_output += f"{param}={self.get_variable(node.type.coord.line+1,param)[0]}; "
-            string_output += f"-> return_value={self.return_value}"
+                string_output += f"{param}={self.get_variable(node.type.coord.line+1,param)[0]}, "
+            string_output = string_output[:-2]
+            string_output += ")"
+            string_output += f"->{self.return_value}"
             self.output[node.type.coord.line-1] = string_output
     
     def visit_FuncDef(self, node):
@@ -68,46 +70,38 @@ class CPrettyPrinter(c_ast.NodeVisitor):
         output_string = f"{node.name}= "
         for stackframe in self.stacktrace.get_stackframes_line(node.coord.line):
             if (value:=self.get_value_string(stackframe.successor, node.name)) is not None:
-                output_string += f"{value} | "
+                output_string += f"{value}, "
         self.output[node.coord.line-1] = output_string[:-2]
 
     def visit_Assignment(self, node):
         output_string = f"{node.lvalue.name}= "
         for stackframe in self.stacktrace.get_stackframes_line(node.coord.line):
             if (value:=self.get_value_string(stackframe.successor, node.lvalue.name)) is not None:
-                output_string += f"{value} | "
+                output_string += f"{value}, "
         if output_string != f"{node.lvalue.name}= ":
             self.output[node.coord.line-1] = output_string[:-2]
 
     def visit_While(self, node):
         cond = node.cond
         # check if left is a variable
+        output_while = ""
         if isinstance(cond.left, c_ast.ID):
             output_string = f"{cond.left.name}= "
             for stackframe in self.stacktrace.get_stackframes_line(node.coord.line):
                 if (value:=stackframe.get_variable(cond.left.name)) is not None:
-                    output_string += f"{value} | "
+                    output_string += f"{value}, "
             if output_string != f"{cond.left.name}= ":
-                self.output[node.coord.line-1] = output_string[:-2]
+                output_while += output_string[:-2]
+                
         # check if right is a variable
         if isinstance(cond.right, c_ast.ID):
             output_string = f"{cond.right.name}= "
             for stackframe in self.stacktrace.get_stackframes_line(node.coord.line):
                 if (value:=stackframe.get_variable(cond.right.name)) is not None:
-                    output_string += f"{value} | "
+                    output_string += f"{value}, "
             if output_string != f"{cond.right.name}= ":
-                self.output[node.coord.line] = output_string[:-2]
+                output_while += " | " + output_string[:-2]
+        
+        self.output[node.coord.line-1] = output_while
 
-        # TODO extend this to all the content of while loop
-        if isinstance(cond.left, c_ast.ID) and isinstance(cond.right, c_ast.ID):
-            data = [self.output[node.coord.line-1], self.output[node.coord.line]]
-            max_length = max(len(item.split('=')[0]) for item in data)
-            # Print the formatted output
-            data_corrected = []
-            for item in data:
-                variable, value = item.split('=')
-                output = "{:<{width}} = {}".format(variable.strip(), value.strip(), width=max_length)
-                data_corrected.append(output)
-            self.output[node.coord.line-1] = data_corrected[0]
-            self.output[node.coord.line] = data_corrected[1]
         self.generic_visit(node)

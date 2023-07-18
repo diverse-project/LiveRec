@@ -4,7 +4,7 @@ var outputArea = document.getElementById('output');
 var output = CodeMirror.fromTextArea(outputArea, {
     lineNumbers: true,
     indentUnit: 4,
-    readOnly: true
+    readOnly: false
 });
 
 var oldText = output.getValue();

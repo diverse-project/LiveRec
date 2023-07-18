@@ -41,13 +41,14 @@ class JavaPrettyPrinter(JavaVisitor):
 
     def visit_MethodDeclaration(self, node):
         if self.method_name is None or node.name == self.method_name:
-            method_output = ""
+            method_output = f"{node.name}("
             first_stackframe = self.stacktrace.stackframes[0]
             for parameter in node.parameters:
                 value = first_stackframe.get_variable(parameter.name)
-                method_output += f"{parameter.name} = {value}, "
+                method_output += f"{parameter.name}={value}, "
             method_output = method_output[:-2]
-            method_output += " -> "
+            method_output += ")"
+            method_output += "->"
             if self.return_value is not None:
                 method_output += self.return_value
             self.output[node.position.line-1] = method_output

@@ -48,17 +48,6 @@ class AutoLiveAgent(ABC):
         """Restart the debuggee"""
         pass
 
-# @buzy decorator that check if the agent is buzy, and if not, execute the function in buzy mode
-def buzy(func):
-    def wrapper(self, *args, **kwargs):
-        if self.buzy:
-            return None
-        self.buzy = True
-        res = func(self, *args, **kwargs)
-        self.buzy = False
-        return res
-    return wrapper
-
 
 class AutoCLiveAgent(AutoLiveAgent):
     
@@ -76,7 +65,7 @@ class AutoCLiveAgent(AutoLiveAgent):
         self.source_path = os.path.abspath("src/webdemo/tmp/tmp.c")
         with open(self.source_path, "w") as f:
             f.write("")
-        self.compiled_path = os.path.abspath("src/webdemo/tmp/libtmp.so")
+        self.compiled_path = os.path.abspath("src/webdemo/tmp/tmp.so")
 
     def restart(self):
         self.agent.stop_server()
@@ -125,45 +114,35 @@ class AutoCLiveAgent(AutoLiveAgent):
         if self.raw:
             print("Sending raw output")
             return json.dumps({
-                "return_value": return_value["value"],
+                "return_value": return_value,
                 "stacktrace": stacktrace.to_json()
             })
         else:
             printer = CPrettyPrinter(self.source_path,method)
-            output = printer.pretty_print(stacktrace, return_value=return_value['value'])
+            output = printer.pretty_print(stacktrace, return_value=return_value)
             return output
 
     def execute(self, method, args):
-        thread = ThreadWithReturnValue(target=self.agent.execute, args=(self.source_path, method, args,))
-        thread.start()
-        # Wait for the thread to finish, with a timeout of 3 seconds
-        output = thread.join(10)
-        # If thread is still alive, it means it has timed out
-        if thread.is_alive():
-            raise TimeoutError
+        output = self.agent.execute(self.source_path, method, args)
+        if output[0] == "Interrupted":
+            self.agent.load_code(self.compiled_path)
         # Get the output of the thread
         # Save the json result in a file
-        return self.construct_result_json(method, output)
-    
-
-        
+        return self.construct_result_json(method, output)    
 
 class AutoJavaLiveAgent(AutoLiveAgent):
     
     def __init__(self, raw=False):
-        self.buzy = True
         self.raw = raw
         self.agent = JavaLiveAgent(debug=False)
         self.agent.start_server()
         self.agent.initialize()
-        self.buzy = False
         self.source_path = os.path.abspath("src/webdemo/tmp/Live.java")
         with open(self.source_path, "w") as f:
             f.write("")
         self.compiled_classpath = os.path.abspath("src/webdemo/tmp/")
         self.previous_ast = None
     
-    @buzy
     def restart(self):
         self.agent.stop_server()
         self.agent.start_server()
@@ -192,7 +171,6 @@ class AutoJavaLiveAgent(AutoLiveAgent):
         res = os.system(command)
         return res
     
-    @buzy
     def update_code(self, code):
         is_parsable, changed = self.check_if_parsable(code)
         if not is_parsable:
@@ -218,30 +196,22 @@ class AutoJavaLiveAgent(AutoLiveAgent):
         output = printer.pretty_print(stacktrace, return_value=return_value)
         return output
 
-    @buzy
     def execute(self, method, args):
         if "Live" not in self.agent.loaded_classes:
             self.agent.load_code(self.compiled_classpath, "Live")
-        thread = ThreadWithReturnValue(target=self.agent.execute, args=("Live", method, args,))
-        thread.start()
-        # Wait for the thread to finish, with a timeout of 3 seconds
-        output = thread.join(10)
-        # If thread is still alive, it means it has timed out
-        if thread.is_alive():
-            raise TimeoutError
-        # Get the output of the thread
-        # Save the json result in a file
+        output = self.agent.execute("Live", method, args)
+        if output[0] == "Interrupted":
+            self.agent.load_code(self.compiled_classpath, "Live")
         return self.construct_result_json(method, output)
+        
     
 class AutoPythonLiveAgent(AutoLiveAgent):
     
     def __init__(self, raw=False):
-        self.buzy = True
         self.raw = raw
         self.agent = PythonLiveAgent(debug=False)
         self.agent.start_server()
         self.agent.initialize()
-        self.buzy = False
         self.source_path = os.path.abspath("src/webdemo/tmp/tmp.py")
         with open(self.source_path, "w") as f:
             f.write("")
@@ -270,7 +240,6 @@ class AutoPythonLiveAgent(AutoLiveAgent):
             changed = True
         return parsable, changed
     
-    @buzy
     def update_code(self, code):
         is_parsable, changed = self.check_if_parsable(code)
         if not is_parsable:
@@ -294,7 +263,6 @@ class AutoPythonLiveAgent(AutoLiveAgent):
         output = printer.pretty_print(stacktrace, return_value=return_value)
         return output
 
-    @buzy
     def execute(self, method, args):
         output = self.agent.execute(method, args)
         if output[0] == "Interrupted":

@@ -1,4 +1,5 @@
 from queue import Queue
+import re
 from threading import Thread
 import time
 import uuid
@@ -45,9 +46,11 @@ def extract_exec_request(code, language="python"):
             exec_request = line[len(prefix):].strip()
             if "(" in exec_request and exec_request.endswith(")"):
                 method = exec_request.split("(")[0]
-                args = exec_request.split("(")[1][:-1].split(",")
+                args_str = exec_request.split("(")[1][:-1]
+                # magix regex to split the args
+                args = re.split(r',(?![^\[\]\(\)\{\}]*[\]\)\}])', args_str)
                 if not "" in map(lambda x: x.strip(), args):
-                    return method, args
+                    return method, list(map(lambda x: x.strip(), args))
     return None
 
 class Session():
@@ -79,8 +82,10 @@ class Session():
             # If the request is None, it means the session is closed
             if request is None:
                 break
-            # If the request is not None, execute it
-            self.handle_request(request)
+            try:
+                self.handle_request(request)
+            except Exception as e:
+                print(e)
             # Notify the queue that the request is done
             self.queue.task_done()
 

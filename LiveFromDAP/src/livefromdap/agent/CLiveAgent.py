@@ -163,7 +163,7 @@ class CLiveAgent(BaseLiveAgent):
         recorded_stackframe = Stackframe(line, column, height, variables)
         stackrecording.add_stackframe(recorded_stackframe)
     
-    def execute(self, source_file, method, args):
+    def execute(self, source_file, method, args, max_steps=300):
         self.set_function_breakpoint([method])
         command = f"-exec call {method}({','.join(args)})"
         frame_id = self.get_stackframes(thread_id=self.main_thread_id)[0]["id"]
@@ -172,6 +172,7 @@ class CLiveAgent(BaseLiveAgent):
         end_lines = FunctionEndFinder(os.path.abspath(source_file),method).end_line
         stackrecording = StackRecording()
         self.initial_height = None
+        i = 0
         while True:
             stackframes = self.get_stackframes(thread_id=self.main_thread_id)
             if self.initial_height is None:
@@ -185,10 +186,16 @@ class CLiveAgent(BaseLiveAgent):
                 if len(variables) == 0:
                     return_value = None
                 else:
-                    return_value = variables[0]
+                    return_value = variables[0]["value"]
                 break
 
             self.add_variable(frame_id, stackframes, stackrecording)
+            i += 1
+            if i > max_steps:
+                # we need to pop the current frame
+                self.restart_server()
+                self.initialize()
+                return "Interrupted", stackrecording
             if stackframes[0]["line"] in end_lines:
                 self.evaluate("-exec fin", frame_id=frame_id)
                 self.wait("event", event="stopped")
