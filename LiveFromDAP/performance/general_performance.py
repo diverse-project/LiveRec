@@ -8,28 +8,100 @@ def execute_command(command):
     process.wait()
     return process.returncode
 
-def compile_c():
-    execute_command("gcc -g -fPIC -shared -o src/livefromdap/target/c/binary_search.so src/livefromdap/target/c/binary_search.c")
 
 def compile_java():
     execute_command("javac -g -d src/livefromdap/target/java src/livefromdap/target/java/BinarySearch.java")
 
 # C
-c_source_path = os.path.abspath("src/livefromdap/target/c/binary_search.c")
-c_compiled_path = os.path.abspath("src/livefromdap/target/c/binary_search.so")
+c_code_template = """
+int binary_search(int arr[], int length, int target) {{
+    int left = 0;
+    int right = length - 1;
+    while (left <= right) {{
+
+        int mid = (left + right) / 2;
+        if (arr[mid] == target) {{
+            return mid;
+        }} else if (arr[mid] < target) {{
+            left = mid + 1;
+        }} else {{
+            right = mid - 1;
+        }}
+    }}
+    return {};
+}}
+"""
+def compile_c():
+    execute_command("gcc -g -fPIC -shared -o tmp/binary_search.so tmp/binary_search.c")
+def update_c_file(value):
+    with open(os.path.join("tmp", "binary_search.c"), "w") as f:
+        f.write(c_code_template.format(value))
+    compile_c()
+update_c_file(-1)
+c_source_path = os.path.abspath("tmp/binary_search.c")
+c_compiled_path = os.path.abspath("tmp/binary_search.so")
 c_method = "binary_search"
 c_args = ["{1,2,3,4,5,6}", "6", "9"]
 
 # Python
-python_source_path = os.path.abspath("src/livefromdap/target/python/binary_search.py")
+python_code_template = """
+def binary_search(arr, target):
+    left = 0
+    right = len(arr) - 1
+
+    while left <= right:
+        mid = (left + right) // 2
+
+        if arr[mid] == target:
+            return mid
+        elif arr[mid] < target:
+            left = mid + 1
+        else:
+            right = mid - 1
+
+    return {}
+"""
+def update_python_file(value):
+    with open(os.path.join("tmp", "binary_search.py"), "w") as f:
+        f.write(python_code_template.format(value))
+update_python_file(-1)
+python_source_path = os.path.abspath("tmp/binary_search.py")
 python_method = "binary_search"
 python_args = ["[1,2,3,4,5,6]", "9"]
 
 # Java
-java_class_path = os.path.abspath("src/livefromdap/target/java")
+java_code_template = """
+public class BinarySearch {{
+    public static int binarySearch(int[] array, int key) throws InterruptedException {{
+        int low = 0;
+        int high = array.length - 1;
+        while (low <= high) {{
+            int mid = (low + high) / 2;
+            int value = array[mid];
+            if (value < key) {{
+                low = mid + 1;
+            }} else if (value > key) {{
+                high = mid - 1;
+            }} else {{
+                return mid;
+            }}
+        }}
+        return {};
+    }}
+}}
+"""
+def compile_java():
+    execute_command("javac -g -d tmp tmp/BinarySearch.java")
+
+def update_java_file(value):
+    with open(os.path.join("tmp", "BinarySearch.java"), "w") as f:
+        f.write(java_code_template.format(value))
+    compile_java()
+update_java_file(-1)
+java_class_path = os.path.abspath("tmp")
 java_class_name = "BinarySearch"
 java_method = "binarySearch"
-java_args = ["new char[]{'a', 'b','c','d','e','f'}", "'i'"]
+java_args = ["new int[]{1,2,3,4,5,6}", "9"]
 
 times = {
     "c": {
@@ -63,7 +135,7 @@ times["c"]["initialize"] = t2 - t1
 for i in range(100):
     print("Iteration: ", i, end="\r")
     t1 = time.time()
-    compile_c()
+    update_c_file(i)
     t2 = time.time()
     times["c"]["compile"] += t2 - t1
     t1 = time.time()
@@ -91,6 +163,7 @@ times["python"]["initialize"] = t2 - t1
 for i in range(100):
     print("Iteration: ", i, end="\r")
     t1 = time.time()
+    update_python_file(i)
     agent.load_code(python_source_path)
     t2 = time.time()
     times["python"]["load_code"] += t2 - t1
@@ -115,7 +188,7 @@ times["java"]["initialize"] = t2 - t1
 for i in range(100):
     print("Iteration: ", i, end="\r")
     t1 = time.time()
-    compile_java()
+    update_java_file(i)
     t2 = time.time()
     times["java"]["compile"] += t2 - t1
     t1 = time.time()

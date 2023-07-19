@@ -3,7 +3,7 @@ import os
 import time
 
 def test_c_binary_search():
-    agent = CLiveAgent(debug=False)
+    agent = CLiveAgent(debug=True)
     agent.start_server()
     agent.initialize()
 
@@ -16,10 +16,10 @@ def test_c_binary_search():
     agent.load_code(compiled_path)
 
     return_value, _ = agent.execute(source_path, "binary_search", ["{1,2,3,4,5,6}", "6", "9"])
-    assert return_value['value'] == "-1"
+    assert return_value == "-1"
 
     return_value, _ = agent.execute(source_path, "binary_search", ["{1,2,3,4,5,6}", "6", "4"])
-    assert return_value['value'] == "3"
+    assert return_value == "3"
 
     agent.stop_server()
 
@@ -54,10 +54,10 @@ def test_c_fibonnaci():
     agent.load_code(compiled_path)
 
     return_value, _ = agent.execute(source_path, "fibonnaci", ["5"])
-    assert return_value['value'] == "5"
+    assert return_value == "5"
 
     return_value, _ = agent.execute(source_path, "fibonnaci", ["8"])
-    assert return_value['value'] == "21"
+    assert return_value == "21"
 
     agent.stop_server()
 
@@ -74,9 +74,9 @@ def test_c_prime():
     agent.load_code(compiled_path)
 
     return_value, _ = agent.execute(source_path, "prime_in_interval", ["2", "5"])
-    assert return_value['value'] == "3"
+    assert return_value == "3"
 
     return_value, _ = agent.execute(source_path, "prime_in_interval", ["6", "9"])
-    assert return_value['value'] == "1"
+    assert return_value == "1"
 
     agent.stop_server()
