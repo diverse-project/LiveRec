@@ -64,6 +64,9 @@ class StackRecording():
     def __init__(self):
         self.stackframes = []
         self.last_stackframe = None
+        
+    def __len__(self):
+        return len(self.stackframes)
 
     def add_stackframe(self, stackframe: Stackframe):
         if not self.last_stackframe is None:
