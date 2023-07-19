@@ -31,7 +31,7 @@ class CPrettyPrinter(c_ast.NodeVisitor):
     def get_value_string(self,stackframe, variable_name):
         vtype = stackframe.get_type(variable_name)
         value = stackframe.get_variable(variable_name)
-        if "*" in vtype:
+        if value is not None and vtype is not None and "*" in vtype:
             return f"{vtype}[...]"
         return value
 

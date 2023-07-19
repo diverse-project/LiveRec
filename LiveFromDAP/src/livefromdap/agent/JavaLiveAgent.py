@@ -306,8 +306,7 @@ class JavaLiveAgent(BaseLiveAgent):
         i = 0
         while True:
             stop, line, column, height, variables = self.get_local_variables()
-            stackframe = Stackframe(line, column, height, variables)
-            stacktrace.add_stackframe(stackframe)
+            
             i += 1
             if i > max_steps:
                 # we need to pop the current frame
@@ -315,13 +314,15 @@ class JavaLiveAgent(BaseLiveAgent):
                 self.initialize()
                 return "Interrupted", stacktrace
             if stop:
-                self.next_breakpoint()
-                self.wait("event", event="stopped")
                 if variables[0]["name"].startswith(f"->{method}"):
                     return_value = variables[0]["value"]
                 else:
                     return_value = None
+                self.next_breakpoint()
+                self.wait("event", event="stopped")
                 break
+            stackframe = Stackframe(line, column, height, variables)
+            stacktrace.add_stackframe(stackframe)
             self.step(thread_id=self.thread_id)
             self.wait("event", event="stopped")
         return return_value, stacktrace

@@ -1,4 +1,4 @@
-from _ast import FunctionDef
+from _ast import AugAssign, FunctionDef
 import ast
 from typing import Any
 
@@ -69,6 +69,17 @@ class PythonPrettyPrinter(ast.NodeVisitor):
             output_assign = output_assign[:-2]
             self.output[node.lineno-1] = output_assign
         self.generic_visit(node)
+        
+    def visit_AugAssign(self, node: AugAssign):
+        output_assign = ""
+        if isinstance(node.target, ast.Name):
+            value = self.get_variable_after(node.lineno, node.target.id)
+            if len(value) != 0:
+                output_assign += f"{node.target.id} = {value}"
+        if len(output_assign) != 0:
+            self.output[node.lineno-1] = output_assign
+        self.generic_visit(node)
+        
 
     def visit_While(self, node):
         vars = [node.test.left] + [n for n in node.test.comparators]
@@ -81,5 +92,18 @@ class PythonPrettyPrinter(ast.NodeVisitor):
         if len(while_output) != 0:
             while_output = while_output[:-3]
             self.output[node.lineno-1] = while_output
+        self.generic_visit(node)
+        
+    def visit_For(self, node):
+        vars = [node.target]
+        for_output = ""
+        for var in vars:
+            if isinstance(var, ast.Name):
+                value = self.get_variable(var.lineno, var.id)
+                if len(value) != 0:
+                    for_output += f"{var.id} = {value} | "
+        if len(for_output) != 0:
+            for_output = for_output[:-3]
+            self.output[node.lineno-1] = for_output
         self.generic_visit(node)
                 

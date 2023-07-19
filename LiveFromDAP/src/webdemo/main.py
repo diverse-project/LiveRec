@@ -4,7 +4,7 @@ from threading import Thread
 import time
 import uuid
 from flask import Flask, render_template, request
-from flask_socketio import SocketIO, join_room
+from flask_socketio import SocketIO, join_room, send
 from webdemo.AutoAgent import AutoCLiveAgent, AutoJavaLiveAgent, AutoPythonLiveAgent
 
 app = Flask(__name__)
@@ -58,6 +58,8 @@ class Session():
     It host the auto agent and the code of the user
     It has a queue of requests to execute and a thread that executes them
     """
+    
+    is_launched = False
 
     def __init__(self, room, socketio, language, raw=False):
         self.room = room
@@ -70,6 +72,7 @@ class Session():
         self.last_execution_line = None
         self.thread = None
         self.launch()
+        self.is_launched = True
 
     def launch(self):
         self.thread = Thread(target=self.event_loop, daemon=True)
@@ -85,7 +88,7 @@ class Session():
             try:
                 self.handle_request(request)
             except Exception as e:
-                print(e)
+                raise e
             # Notify the queue that the request is done
             self.queue.task_done()
 
@@ -156,32 +159,35 @@ def stackt(language):
     return render_template('stackexplorer2.html', language=language, session_id=session_id)
 
 @socketio.on('disconnect')
-def on_disconnect(*args, **kwargs):
-    if request.sid in sessions_to_sid:
-        session_id = sessions_to_sid[request.sid]
+def on_disconnect():
+    if request.sid in sessions_to_sid and (session_id:=sessions_to_sid[request.sid]) in sessions:
         sessions[session_id].agent.agent.stop_server()
         del sessions[session_id]
 
 @socketio.on('join')
 def on_join(data):
+    print("join")
     session_id = data.get("session_id")
     sessions_to_sid[request.sid] = session_id
     language = data.get("language")
     join_room(session_id)
-    if session_id in sessions:
-        sessions[session_id].send_status("agent_up", session_id=session_id)
-    else:
-        #check the url of the page to see if it is a stack explorer or a dap
-        if "stack" in request.url:
+    if not session_id in sessions:
+        if "stack" in request.referrer:
             sessions[session_id] = Session(session_id, socketio, language, raw=True)
         else:
             sessions[session_id] = Session(session_id, socketio, language, raw=False)
+    sessions[session_id].send_status("agent_up", session_id=session_id)
 
 
 @socketio.on('json')
 def handle_json(json_msg):
     session_id = json_msg.get("session_id")
-    if session_id is None:
+    if session_id is None or session_id not in sessions or (session_id in sessions and sessions[session_id].is_launched is False):
+        req = {
+            "event": "status",
+            "status": "launching"
+        }
+        send(req, json=True)
         return
     sessions[session_id].queue.put(json_msg)
     

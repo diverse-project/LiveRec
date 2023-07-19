@@ -36,10 +36,13 @@ socket.on('json', function(msg) {
         return;
     }
     if (msg.event == 'status') {
+        console.log(msg.status);
         //M.toast({html: msg.status, displayLength: 3000});
         if (msg.status == "agent_up") {
+            send_code_sent = 0;
             document.getElementById("agent-ready").style.display = "block";
             document.getElementById("agent-not-ready").style.display = "none";
+            document.getElementById("execution-spinner").style.display = "none";
             sendCode();
         }
         if (msg.status == "ready") {
@@ -51,6 +54,9 @@ socket.on('json', function(msg) {
         if (msg.status == "timeout") {
             document.getElementById("execution-spinner").style.display = "none";
             M.toast({html: "Timeout, restarting...", displayLength: 3000});
+        }
+        if (msg.status == "launching") {
+            document.getElementById("execution-spinner").style.display = "block";
         }
         return;
     }

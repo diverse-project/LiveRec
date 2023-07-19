@@ -29,8 +29,12 @@ function displayStack(id) {
 
 function handle_executeOutput(msg) {
     //parse the output into a json
-    msg.output = JSON.parse(msg.output);
-    console.log(msg.output);
+    try {
+        msg.output = JSON.parse(msg.output);
+    } catch (e) {
+        console.log(msg.output);
+        return;
+    }
     // check if the output is a stacktrace
     if (msg.output["stacktrace"] == undefined) {
         return;
