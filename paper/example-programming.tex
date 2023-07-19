@@ -197,33 +197,33 @@ int foo(int n) {
 \draw    (212.4,56.1) -- (223,56.1) ;
 \draw [shift={(226,56.1)}, rotate = 180] [fill={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.08]  [draw opacity=0] (7.14,-3.43) -- (0,0) -- (7.14,3.43) -- cycle    ;
 %Straight Lines [id:da7346663349503276] 
-\draw [line width=1.5]    (284.4,56.1) -- (337.6,56.47) ;
+\draw [line width=1.25, dashed]    (284.4,56.1) -- (337.6,56.47) ;
 \draw [shift={(341.6,56.5)}, rotate = 180.4] [fill={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.08]  [draw opacity=0] (9.29,-4.46) -- (0,0) -- (9.29,4.46) -- cycle    ;
 
 % Text Node
-\draw (15.2,17) node [anchor=north west][inner sep=0.75pt]   [align=left] {line : 2};
+\draw (15.2,17) node [anchor=north west][inner sep=0.75pt]   [align=left] {line : 3};
 % Text Node
 \draw (22.4,39) node [anchor=north west][inner sep=0.75pt]   [align=left] {n : 3};
 % Text Node
-\draw (88,17) node [anchor=north west][inner sep=0.75pt]   [align=left] {line : 3};
+\draw (88,17) node [anchor=north west][inner sep=0.75pt]   [align=left] {line : 4};
 % Text Node
 \draw (95.2,39) node [anchor=north west][inner sep=0.75pt]   [align=left] {n : 3};
 % Text Node
 \draw (94.8,53.2) node [anchor=north west][inner sep=0.75pt]   [align=left] {i \ : 0};
 % Text Node
-\draw (159.8,17) node [anchor=north west][inner sep=0.75pt]   [align=left] {line : 4};
+\draw (159.8,17) node [anchor=north west][inner sep=0.75pt]   [align=left] {line : 5};
 % Text Node
 \draw (167,39) node [anchor=north west][inner sep=0.75pt]   [align=left] {n : 3};
 % Text Node
 \draw (166.6,53.2) node [anchor=north west][inner sep=0.75pt]   [align=left] {i \ : 0};
 % Text Node
-\draw (230,17) node [anchor=north west][inner sep=0.75pt]   [align=left] {line : 3};
+\draw (230,17) node [anchor=north west][inner sep=0.75pt]   [align=left] {line : 4};
 % Text Node
 \draw (237.2,39) node [anchor=north west][inner sep=0.75pt]   [align=left] {n : 3};
 % Text Node
 \draw (236.8,53.6) node [anchor=north west][inner sep=0.75pt]   [align=left] {i \ : 1};
 % Text Node
-\draw (347.2,17) node [anchor=north west][inner sep=0.75pt]   [align=left] {line : 6};
+\draw (347.2,17) node [anchor=north west][inner sep=0.75pt]   [align=left] {line : 7};
 % Text Node
 \draw (354.4,39) node [anchor=north west][inner sep=0.75pt]   [align=left] {n : 3};
 % Text Node
@@ -324,24 +324,11 @@ We therefore measured the performance of our approach in response to various que
 
 \begin{itemize}
   \item What is the average performance during a live programming session?
-  \item What is the compilation time as a function of programme size ?
   \item How long does it take to load the code into the debugger, depending on the size of the programme?
-  \item How long does it need to run the program, depending on the number of steps to make the stack recording ?
+  \item How long does it take to run the program, depending on the number of stack frames needed to make the stack recording?
 \end{itemize}
 
 \subsubsection{What is the average performance during a live programming session?}
-
-To measure the performance of our approach in the general context of a live programming session, we measured 4 points : 
-
-\begin{itemize}
-  \item Agent initialisation time, which occurs once at the start of the session.
-  \item The compilation time, if there is a compilation stage.
-  \item The time taken to load the code into the debugger.
-  \item Program execution time.
-\end{itemize}
-
-%In the 3 languages, we have implemented time measurement for the binary_search method (see appendix) with the array \[1,2,3,4,5,6\] looking for 9.
-%The execution was repeated 100 times for each language.
 
 \begin{table}[h]
   \centering
@@ -359,7 +346,20 @@ To measure the performance of our approach in the general context of a live prog
   \label{table:average-time}
 \end{table}
 
-\subsubsection{What is the compilation time as a function of programme size ?}
+To evaluate the performance of our approach in the general context of a live programming session, we measured the times taken by the different stages of the interaction loop:
+
+\begin{itemize}
+  \item Agent initialisation time, which occurs once at the start of the session.
+  \item The compilation time, if there is a compilation stage.
+  \item The time taken to load the code into the debugger.
+  \item Program execution time.
+\end{itemize}
+
+For the 3 languages we have implemented, we have performed the measurements for the execution of a binary search function\ref*{fig:binary-search}.
+For each language, the agent was initialized, then the code was compiled, loaded into the debugger and executed (with the array [1,2,3,4,5,6] and target 9) 100 times.
+Each execution generate a stack recording of approximately 20 stack frames.
+The results are shown in table \ref*{table:average-time}.
+
 \subsubsection{How long does it take to load the code into the debugger, depending on the size of the programme?}
 
 \begin{figure}[h]
@@ -402,6 +402,75 @@ In this paper they record almost everything, we only record the stackframe.
 \label{sec:conclusion}
 
 \printbibliography
+
+\newpage
+\section*{Appendix}
+\label{sec:appendix}
+
+\begin{figure}[h]
+  \centering
+    \begin{lstlisting}[language=C]
+int binary_search(int arr[], int length, int target) {
+  int left = 0;
+  int right = length - 1;
+  while (left <= right) {
+
+      int mid = (left + right) / 2;
+      if (arr[mid] == target) {
+          return mid;
+      } else if (arr[mid] < target) {
+          left = mid + 1;
+      } else {
+          right = mid - 1;
+      }
+  }
+  return 0;
+}
+    \end{lstlisting}
+  
+    \begin{lstlisting}[language=Python]
+def binary_search(arr, target):
+    left = 0
+    right = len(arr) - 1
+
+    while left <= right:
+        mid = (left + right) // 2
+
+        if arr[mid] == target:
+            return mid
+        elif arr[mid] < target:
+            left = mid + 1
+        else:
+            right = mid - 1
+
+    return 0 
+    \end{lstlisting}
+ 
+    \begin{lstlisting}[language=Java]
+public class BinarySearch {
+    public static int binarySearch(int[] array, int key){
+        int low = 0;
+        int high = array.length - 1;
+        while (low <= high) {
+            int mid = (low + high) / 2;
+            int value = array[mid];
+            if (value < key) {
+                low = mid + 1;
+            } else if (value > key) {
+                high = mid - 1;
+            } else {
+                return mid;
+            }
+        }
+        return 0;
+    }
+}
+      \end{lstlisting}
+  \caption{Binary Search in C, Python and Java}
+  \label{fig:binary-search}
+\end{figure}
+
+
 
 \end{document}
 

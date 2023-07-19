@@ -8,9 +8,8 @@ def execute_command(command):
     process.wait()
     return process.returncode
 
-
-def compile_java():
-    execute_command("javac -g -d src/livefromdap/target/java src/livefromdap/target/java/BinarySearch.java")
+if not os.path.exists("tmp"):
+    os.makedirs("tmp")
 
 # C
 c_code_template = """
