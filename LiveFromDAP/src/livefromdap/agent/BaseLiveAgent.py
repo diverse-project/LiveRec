@@ -1,7 +1,5 @@
 import subprocess
-from debugpy.common.messaging import JsonIOStream
 import os
-import shutil
 from abc import ABC, abstractmethod
 
 from livefromdap.utils.StackRecording import StackRecording
@@ -87,7 +85,12 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         return False
     
     def set_breakpoint(self, path : str, lines : list):
-        """Set a breakpoint in the debuggee"""
+        """Set breakpoints in the debuggee for the given path and lines
+
+        Args:
+            path (str): path of the source file
+            lines (list): list of lines to set breakpoints
+        """
         breakpoint_request = {
             "seq": self.new_seq(),
             "type": "request",
@@ -109,7 +112,11 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         self.io.write_json(breakpoint_request)
 
     def set_function_breakpoint(self, names : list):
-        """Set a breakpoint in the debuggee"""
+        """Set breakpoints in the debuggee for the given function names
+
+        Args:
+            names (list): list of function names to set breakpoints
+        """
         breakpoint_request = {
             "seq": self.new_seq(),
             "type": "request",
@@ -125,6 +132,8 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         self.io.write_json(breakpoint_request)
 
     def configuration_done(self):
+        """Send the configurationDone request to the debuggee
+        """
         complete_request = {
             "seq": self.new_seq(),
             "type": "request",
@@ -132,7 +141,16 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         }
         self.io.write_json(complete_request)
     
-    def get_stackframes(self, thread_id : int = 1, levels : int = 100):
+    def get_stackframes(self, thread_id : int = 1, levels : int = 100) -> list:
+        """Get the stackframes from the debuggee
+
+        Args:
+            thread_id (int, optional): Defaults to 1.
+            levels (int, optional): Number of stackframes to get. Defaults to 100.
+
+        Returns:
+            list: list of stackframes
+        """
         stackframe_request = {
             "seq": self.new_seq(),
             "type": "request",
@@ -148,6 +166,11 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         return output["body"]["stackFrames"]
             
     def next_breakpoint(self, thread_id : int = 1):
+        """Send the next request to the debuggee
+
+        Args:
+            thread_id (int, optional): Defaults to 1.
+        """
         continue_request = {
             "seq": self.new_seq(),
             "type": "request",
@@ -156,10 +179,14 @@ class BaseLiveAgent(BaseLiveAgentInterface):
                 "threadId": thread_id
             }
         }
-        if self.debug: print("Continue req", continue_request)
         self.io.write_json(continue_request)
     
     def step(self, thread_id : int = 1):
+        """Send the step request to the debuggee
+
+        Args:
+            thread_id (int, optional): Defaults to 1.
+        """
         step_request = {
             "seq": self.new_seq(),
             "type": "request",
@@ -171,6 +198,11 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         self.io.write_json(step_request)
 
     def step_out(self, thread_id : int = 1):
+        """Send the stepOut request to the debuggee
+
+        Args:
+            thread_id (int, optional): Defaults to 1.
+        """
         step_request = {
             "seq": self.new_seq(),
             "type": "request",
@@ -181,7 +213,15 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         }
         self.io.write_json(step_request)
 
-    def get_scopes(self, frame_id):
+    def get_scopes(self, frame_id : int) -> list:
+        """Get the scopes from the debuggee for the given frame
+
+        Args:
+            frame_id (int): frame id
+
+        Returns:
+            list: list of scopes
+        """
         scopes_request = {
             "seq": self.new_seq(),
             "type": "request",
@@ -194,7 +234,15 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         output = self.wait("response", command="scopes")
         return output["body"]["scopes"]
             
-    def get_variables(self, scope_id):
+    def get_variables(self, scope_id: int) -> list:
+        """Get the variables from the debuggee for the given scope
+
+        Args:
+            scope_id (int): scope id
+
+        Returns:
+            list: list of variables
+        """
         variables_request = {
             "seq": self.new_seq(),
             "type": "request",
@@ -207,23 +255,44 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         output = self.wait("response", command="variables")
         return output["body"]["variables"]
 
-    def evaluate(self, expression : str, frame_id : int = None, context : str = "repl"):
+    def evaluate(self, expression : str, frame_id : int, context : str = "repl") -> dict:
+        """Evaluate the given expression in the debuggee
+
+        Args:
+            expression (str): expression to evaluate
+            frame_id (int): frame id context
+            context (str, optional): Defaults to "repl".
+
+        Returns:
+            dict: result of the evaluation
+        """
         evaluate_request = {
             "seq": self.new_seq(),
             "type": "request",
             "command": "evaluate",
             "arguments": {
                 "expression": expression,
+                "frameId": frame_id,
+                "context": context
             }
         }
-        if frame_id:
-            evaluate_request["arguments"]["frameId"] = frame_id
-        if context:
-            evaluate_request["arguments"]["context"] = context
         self.io.write_json(evaluate_request)
         return self.wait("response", command="evaluate")
 
-    def wait(self, type, event=None, command=None):
+    def wait(self, type: str, event : str= None, command : str = None) -> dict:
+        """Wait for a specific message from the debuggee
+
+        Args:
+            type (str): type of the message to wait for
+            event (str, optional): If type is event, the event to wait for. Defaults to None.
+            command (str, optional): If type is response, the command to wait for. Defaults to None.
+
+        Raises:
+            Exception: If the debuggee is terminated
+
+        Returns:
+            dict: the message received
+        """
         while True:
             output = self.io.read_json()
             if self.debug: print(output)

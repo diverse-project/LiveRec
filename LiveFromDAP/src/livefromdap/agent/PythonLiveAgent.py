@@ -1,10 +1,12 @@
 import os
 import subprocess
 
-from livefromdap.utils.StackRecording import StackRecording, Stackframe
-from .BaseLiveAgent import BaseLiveAgent
 import debugpy
 from debugpy.common.messaging import JsonIOStream
+from livefromdap.utils.StackRecording import Stackframe, StackRecording
+
+from .BaseLiveAgent import BaseLiveAgent
+
 
 class PythonLiveAgent(BaseLiveAgent):
     """Communicate with the debugpy adapter to get stackframes of the execution of a method"""
@@ -106,7 +108,7 @@ class PythonLiveAgent(BaseLiveAgent):
     def load_code(self, path: str):
         stacktrace = self.get_stackframes()
         frameId = stacktrace[0]["id"]
-        self.evaluate(f"set_import('{os.path.abspath(path)}')", frame_id=frameId)
+        self.evaluate(f"set_import('{os.path.abspath(path)}')", frameId)
         self.next_breakpoint()
         self.wait("event", "stopped")
             
@@ -114,7 +116,7 @@ class PythonLiveAgent(BaseLiveAgent):
         self.set_function_breakpoint([method])
         stacktrace = self.get_stackframes()
         frameId = stacktrace[0]["id"]
-        self.evaluate(f"set_method('{method}',[{','.join(args)}])", frame_id=frameId)
+        self.evaluate(f"set_method('{method}',[{','.join(args)}])", frameId)
         # We need to run the debug agent loop until we are on a breakpoint in the target method
         stackrecording = StackRecording()
         while True:

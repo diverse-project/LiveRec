@@ -148,8 +148,8 @@ class CLiveAgent(BaseLiveAgent):
         frame_id = self.get_stackframes(thread_id=self.main_thread_id)[0]["id"]
         libname = os.path.basename(path)
         if self.current_loaded_shared_libraries is not None:
-            self.evaluate(f"-exec call close_lib()", frame_id=frame_id)
-        self.evaluate(f"-exec call load_lib(\"{path}\")", frame_id=frame_id)
+            self.evaluate(f"-exec call close_lib()", frame_id)
+        self.evaluate(f"-exec call load_lib(\"{path}\")", frame_id)
         self.current_loaded_shared_libraries = libname
             
 
@@ -167,7 +167,7 @@ class CLiveAgent(BaseLiveAgent):
         self.set_function_breakpoint([method])
         command = f"-exec call {method}({','.join(args)})"
         frame_id = self.get_stackframes(thread_id=self.main_thread_id)[0]["id"]
-        self.evaluate(command, frame_id=frame_id)
+        self.evaluate(command, frame_id)
         self.wait("event", event="stopped")
         end_lines = FunctionEndFinder(os.path.abspath(source_file),method).end_line
         stackrecording = StackRecording()
@@ -197,7 +197,7 @@ class CLiveAgent(BaseLiveAgent):
                 self.initialize()
                 return "Interrupted", stackrecording
             if stackframes[0]["line"] in end_lines:
-                self.evaluate("-exec fin", frame_id=frame_id)
+                self.evaluate("-exec fin", frame_id)
                 self.wait("event", event="stopped")
             else:
                 self.step(thread_id=self.main_thread_id)
