@@ -12,16 +12,30 @@ class FunctionEndFinder(pycparser.c_ast.NodeVisitor):
 
     def __init__(self, path, function_name):
         self.function_name = function_name
-        self.ast = pycparser.parse_file(path, use_cpp=True)
+        with open(path, 'r') as file:
+            self.code = file.read()
+        self.ast = pycparser.parse_file(os.path.abspath(path), use_cpp=True)
         self.end_line = []
         self.visit(self.ast)
         
-
+    def matching_curly_bracket(self, code, start):
+        stack = []
+        brackets = []
+        lines = code.split("\n")
+        for i, line in enumerate(lines[start:]):
+            for c in line:
+                if c == '{':
+                    stack.append(i)
+                elif c == '}':
+                    j = stack.pop()
+                    brackets.append((start+j+1, start+i+1))
+        return brackets
+        
     def visit_FuncDef(self, node):
         if node.decl.name == self.function_name:
-            self.generic_visit(node)
+            last_line = self.matching_curly_bracket(self.code, node.coord.line-1)[-1][1]
+            self.end_line.append(last_line)
             
-
     def visit_Return(self, node):
         self.end_line.append(node.coord.line)
         self.generic_visit(node)
@@ -178,7 +192,6 @@ class CLiveAgent(BaseLiveAgent):
             if self.initial_height is None:
                 self.initial_height = len(stackframes)
             frame_id = stackframes[0]["id"]
-            
             if stackframes[0]["name"] == "main()":
                 return_value = None
                 scope = self.get_scopes(stackframes[0]["id"])[0]
@@ -192,9 +205,9 @@ class CLiveAgent(BaseLiveAgent):
             self.add_variable(frame_id, stackframes, stackrecording)
             i += 1
             if i > max_steps:
-                # we need to pop the current frame
                 self.restart_server()
                 self.initialize()
+                self.current_loaded_shared_libraries = None
                 return "Interrupted", stackrecording
             if stackframes[0]["line"] in end_lines:
                 self.evaluate("-exec fin", frame_id)

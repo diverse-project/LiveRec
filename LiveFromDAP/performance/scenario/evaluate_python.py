@@ -37,7 +37,7 @@ for i, (args_str, ret, _) in enumerate(scenario):
     times['scenario'][i]['load'] = t2-t1
     
     t1 = time.time()
-    res, st = agent.execute(method, args)
+    res, st = agent.execute(method, args,max_steps=80)
     t2 = time.time()
     times['scenario'][i]['exec'] = t2-t1
     times['scenario'][i]['step'] = len(st)

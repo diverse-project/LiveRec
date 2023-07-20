@@ -54,6 +54,7 @@ public class Runner {
                 try {
                     result = runner.method.invoke(null, runner.args);
                     runner.args = null;
+                    runner.method = null;
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

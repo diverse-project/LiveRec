@@ -141,7 +141,7 @@ class JavaLiveAgent(BaseLiveAgent):
         self.io = JsonIOStream.from_socket(self.server)
     
     def restart_server(self):
-        self.server.close()
+        self.stop_debugee()
         self.start_server()
          
     def initialize(self):
@@ -201,9 +201,20 @@ class JavaLiveAgent(BaseLiveAgent):
 
     def stop_server(self):
         """Stop the target program"""
+        self.stop_debugee()
         self.ls_server.kill()
-        if getattr(self, "debugee", None) is not None:
-            self.debugee.kill()
+    
+    def stop_debugee(self):
+        terminate_request = {
+            "seq": self.new_seq(),
+            "type": "request",
+            "command": "disconnect",
+            "arguments": {
+                "restart": False,
+                "terminateDebuggee": True
+            }
+        }
+        self.io.write_json(terminate_request)
         self.server.close()
     
     def setup_runner_breakpoint(self):
@@ -312,6 +323,8 @@ class JavaLiveAgent(BaseLiveAgent):
                 # we need to pop the current frame
                 self.restart_server()
                 self.initialize()
+                self.loaded_classes = {}
+                self.loaded_class_paths = []
                 return "Interrupted", stacktrace
             if stop:
                 if variables[0]["name"].startswith(f"->{method}"):
