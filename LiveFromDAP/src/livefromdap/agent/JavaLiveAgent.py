@@ -27,6 +27,7 @@ class JavaLiveAgent(BaseLiveAgent):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
+        self.ls_capabilities = []
         self.ls_io = JsonIOStream.from_process(self.ls_server)
         self.ls_io.write_json({
             "jsonrpc": "2.0",
@@ -58,6 +59,8 @@ class JavaLiveAgent(BaseLiveAgent):
         while True:
             response = self.ls_io.read_json()
             if self.debug: print("[LanguageServer]", response)
+            if "method" in response and response["method"] == "client/registerCapability" and response["params"]["registrations"][0]["method"] == "workspace/executeCommand":
+                self.ls_capabilities += response["params"]["registrations"][0]["registerOptions"]["commands"]
             if "id" in response and response["id"] == 1:
                 break
         # Send the initialized notification
@@ -71,25 +74,73 @@ class JavaLiveAgent(BaseLiveAgent):
         while True:
             response = self.ls_io.read_json()
             if self.debug: print("[LanguageServer]", response)
+            if "method" in response and response["method"] == "client/registerCapability" and response["params"]["registrations"][0]["method"] == "workspace/executeCommand":
+                self.ls_capabilities += response["params"]["registrations"][0]["registerOptions"]["commands"]
             if "method" in response and response["method"] == "workspace/executeClientCommand" and response["params"]["command"] == "_java.reloadBundles.command":
                 break
-        self.ls_io.write_json({
-            "jsonrpc": "2.0",
-            "id": 30,
-            "method": "workspace/executeCommand",
-            "params": {
-                "command": "java.resolvePath",
-                "arguments": [
-                    f"file://{runner_file_path}",
-                ]
-            }
-        })
-        while True:
-            response = self.ls_io.read_json()
-            if self.debug: print("[LanguageServer]",response)
-            if "id" in response and response["id"] == 30:
-                break
-        self.project_name = response["result"][0]["name"]
+        
+        if "java.resolvePath" in self.ls_capabilities:
+            self.ls_io.write_json({
+                "jsonrpc": "2.0",
+                "id": 30,
+                "method": "workspace/executeCommand",
+                "params": {
+                    "command": "java.resolvePath",
+                    "arguments": [
+                        f"file://{runner_file_path}",
+                    ]
+                }
+            })
+            while True:
+                response = self.ls_io.read_json()
+                if self.debug: print("[LanguageServer]",response)
+                if "id" in response and response["id"] == 30:
+                    break
+            self.project_name = response["result"][0]["name"]
+        elif "java.project.getAll" in self.ls_capabilities and "java.project.getSettings" in self.ls_capabilities:
+            self.ls_io.write_json({
+                "jsonrpc": "2.0",
+                "id": 30,
+                "method": "workspace/executeCommand",
+                "params": {
+                    "command": "java.project.getAll",
+                    "arguments": [
+                        f"file://{runner_file_path}",
+                    ]
+                }
+            })
+        
+            while True:
+                response = self.ls_io.read_json()
+                if self.debug: print("[LanguageServer]",response)
+                if "id" in response and response["id"] == 30:
+                    break
+            self.ls_io.write_json({
+                "jsonrpc": "2.0",
+                "id": 32,
+                "method": "workspace/executeCommand",
+                "params": {
+                    "command": "java.project.getSettings",
+                    "arguments": [
+                        response['result'][-1],
+                        [
+                            "org.eclipse.jdt.ls.core.vm.location",
+                            "org.eclipse.jdt.ls.core.outputPath",
+                        ]
+                    ]
+                }
+            })
+            while True:
+                response = self.ls_io.read_json()
+                if self.debug: print("[LanguageServer]",response)
+                if "id" in response and response["id"] == 32:
+                    break
+            self.jvm_path = response["result"]["org.eclipse.jdt.ls.core.vm.location"]
+            outputPath = response["result"]["org.eclipse.jdt.ls.core.outputPath"]
+            self.project_name = outputPath.split("/")[-2]
+        
+        
+        
 
     def lsp_add_document(self, file_path):
         with open(file_path, "r") as f:
