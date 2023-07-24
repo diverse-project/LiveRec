@@ -8,6 +8,8 @@
 \addbibresource{reference.bib}
 \usepackage{tikz}
 \usepackage{listings}
+\usepackage{graphicx}
+\usepackage{subcaption} % For subfigures
 
 
 %
@@ -242,7 +244,7 @@ In this paper, we introduce a structure for representing this data: a \textit{st
 A stack record represents the different states of the stack frame during the execution of a method. The stack record is presented as a chain of recorded stack frames, to which information has been added about the source code's location and height in the stack.
 This representation allows us to maintain a link between the spatial location (the reference to the source code) and the temporal location (the order of these stackframes) of the execution.
 This representation has several advantages: it is easy to construct from debugger information, and it applies to most programming languages.
-Figure \ref*{fig:stack-recording} shows an example of a stack recording.
+Figure \ref{fig:stack-recording} shows an example of a stack recording. On the left is a C function and on the right is the stack recording of the execution of \code{foo(3)}. Each rectangle represents the state of the stackframe during execution, with the source code location (here simplified to the line number).
 \subsection{Keep Alive Agent}
 
 \begin{figure}[h]
@@ -259,7 +261,8 @@ In addition, it is necessary to keep compilation and execution times low enough 
 
 To meet these constraints, we propose to use the debugger on an intermediate program, a \textit{keep-alive agent}. 
 This program keeps the debugger alive between executions and code changes to reduce initialisation times. 
-The general operation of a keep-alive agent is shown in Figure \ref*{fig:keepalive-agent} :
+The general operation of a keep-alive agent is shown in Figure \ref{fig:keepalive-agent} :
+% TODO : make figure clean and add better description here
 \begin{itemize}
   \item At the start of the session, the debugger is started on the agent. Once initialised, the agent is paused.
   \item The target code is loaded into the agent and a breakpoint is set at the input of the target method.
@@ -304,18 +307,33 @@ For Java and Python, calling methods directly from the debugger does not trigger
 To remedy this, execution must be initiated from the agent and not by a debugger command. 
 To do this, the Python and Java agents have fields for referencing a method and its arguments; when this information is entered, the agent starts execution.
 For C, as is the case in the backend using JDI, the method call is made from the debugger console.
+
 \section{Evaluation}
 \label{sec:evaluation}
-\subsection{Demo : A Small C Live Programming Environment}
+\subsection{Demo : A Minimal Live Programming Environment}
 \label{sec:demo-small-c}
-\begin{figure}[h]
+\begin{figure}[htbp]
   \centering
   \includegraphics[width=\linewidth]{img/demo/c.png}
   \caption{Demo of the live programming environment for C.}
   \label{fig:demo}
 \end{figure}
 
+We have developed a dynamic programming environment that incorporates live probes through Java, C, and Python debug servers. 
+The user interface consists of a web page that interacts with a local server. 
+In Figure \ref{fig:demo}, we present a screenshot depicting a session with a binary\_search function in C. 
+On the left-hand side, there is a code editor (based on CodeMirror 5), while on the right, a panel showcases live probes.
 
+Whenever changes are made in the code editor, the code is sent to the server, which then checks for parseability and syntax errors. 
+Additionally, if the code contains a comment starting with "@", followed by a function call, the server attempts to create a stack recording of that function, along with the provided parameters. 
+This stack recording is subsequently processed through a parser to generate live probes, offering the following functionalities:
+
+\begin{itemize}
+  \item Displaying input arguments and return values for each function call.
+  \item Showing the value of each variable definition or assignment. In cases where the assignment is within a loop or called multiple times, all the different values are displayed.
+  \item Presenting the comparison values for each loop (for and while).
+\end{itemize}
+    
 \subsection{Performance}
 \label{sec:performance}
 
@@ -323,10 +341,68 @@ In the context of a live programming environment, it is essential to have short 
 We therefore measured the performance of our approach in response to various questions:
 
 \begin{itemize}
-  \item What is the average performance during a live programming session?
-  \item How long does it take to load the code into the debugger, depending on the size of the programme?
+  \item How long does it take to compile and to load the code into the debugger, depending on the size of the programme?
   \item How long does it take to run the program, depending on the number of stack frames needed to make the stack recording?
+  \item What is the average performance during a live programming session?
 \end{itemize}
+
+\subsubsection{How long does it take to compile and to load the code into the debugger, depending on the size of the programme?}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.48\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{img/compile_code.png}
+      \caption{\centering Compile code time}
+      \label{subfig:compile}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{img/load_code.png}
+      \caption{\centering Load code time}
+      \label{subfig:load}
+  \end{subfigure}
+  \caption{Compile and load code time depending on the number of lines of code.}
+  \label{fig:compileload}
+\end{figure}
+
+In our evaluation, we assessed the time required to compile and load code into the debugger memory for Python, C, and Java. 
+To accomplish this, we compiled and loaded programs ranging from 5 to 100 lines of code. 
+The summarized results can be found in Figure \ref{fig:compileload}.
+
+In Sub-figure \ref{subfig:compile}, we present the compilation time for C and Java based on the number of lines of code. 
+The compilation process was executed from the command line using javac and gcc. 
+The compilation times remain nearly constant, regardless of the number of lines of code, with an average of 34.6 ms for Java and 8.5 ms for C.
+
+Moving to Sub-figure \ref{subfig:load}, we depict the loading time in the debugger for C, Java, and Python as a function of the number of lines of code. 
+The data shows that the loading time remains constant concerning the number of lines of code. 
+On average, Python takes 3 ms, Java takes 2.8 ms, and C takes 1 ms for loading.
+
+\subsubsection{How long does it need to run the program, depending on the number of steps to make the stack recording ?}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{img/execute.png}
+      \caption{\centering Total execution time}
+      \label{subfig:execute-time-total}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{img/execute_ps.png}
+      \caption{\centering Execution time per step}
+      \label{subfig:execute-time-ps}
+  \end{subfigure}
+  \caption{Execution time in seconds depending on the number of steps.}
+  \label{fig:execute-time}
+\end{figure}
+
+Subsequently, we proceeded to evaluate the execution time concerning the number of steps in the debugger. 
+Figure \ref{subfig:execute-time-total} presents the total time taken based on the number of steps during stack recording, while Figure \ref{subfig:execute-time-ps} demonstrates the time per step as a function of the number of steps. 
+Notably, the execution time exhibits a linear relationship with the number of steps in the method.
 
 \subsubsection{What is the average performance during a live programming session?}
 
@@ -346,6 +422,33 @@ We therefore measured the performance of our approach in response to various que
   \label{table:average-time}
 \end{table}
 
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{img/scenario_bs_c.png}
+      \caption{\centering C}
+      \label{subfig:scenario-bs-c}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{img/scenario_bs_java.png}
+      \caption{\centering Java}
+      \label{subfig:scenario-bs-java}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{img/scenario_bs_python.png}
+    \caption{\centering Python}
+    \label{subfig:scenario-bs-py}
+  \end{subfigure}
+
+  \caption{Execution time and Stackrecording size for binary search scenario.}
+  \label{fig:scenario-bs}
+\end{figure}
+
 To evaluate the performance of our approach in the general context of a live programming session, we measured the times taken by the different stages of the interaction loop:
 
 \begin{itemize}
@@ -355,35 +458,14 @@ To evaluate the performance of our approach in the general context of a live pro
   \item Program execution time.
 \end{itemize}
 
-For the 3 languages we have implemented, we have performed the measurements for the execution of a binary search function\ref*{fig:binary-search}.
+For the 3 languages we have implemented, we have performed the measurements for the execution of a binary search function \ref{fig:binary-search}.
 For each language, the agent was initialized, then the code was compiled, loaded into the debugger and executed (with the array [1,2,3,4,5,6] and target 9) 100 times.
 Each execution generate a stack recording of approximately 20 stack frames.
-The results are shown in table \ref*{table:average-time}.
+The results are shown in table \ref{table:average-time}.
 
-\subsubsection{How long does it take to load the code into the debugger, depending on the size of the programme?}
 
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=0.8\linewidth]{img/load_code.png}
-  \caption{Load code time in seconds depending on the size of the program.}
-  \label{fig:load-code}
-\end{figure}
 
-\subsubsection{How long does it need to run the program, depending on the number of steps to make the stack recording ?}
 
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=0.8\linewidth]{img/execute.png}
-  \caption{Execution time in seconds depending on the number of steps.}
-  \label{fig:execute}
-\end{figure}
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=0.8\linewidth]{img/execute_ps.png}
-  \caption{Execution time in seconds per step.}
-  \label{fig:execute_tps}
-\end{figure}
 
 \section{Related Work}
 \label{sec:related-work}

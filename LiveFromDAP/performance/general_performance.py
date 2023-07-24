@@ -142,7 +142,7 @@ for i in range(100):
     t2 = time.time()
     times["c"]["load_code"] += t2 - t1
     t1 = time.time()
-    agent.execute(c_source_path, c_method, c_args)
+    agent.execute(c_source_path, c_method, c_args, max_steps=1000000)
     t2 = time.time()
     times["c"]["execute"] += t2 - t1
 agent.stop_server()
@@ -167,7 +167,7 @@ for i in range(100):
     t2 = time.time()
     times["python"]["load_code"] += t2 - t1
     t1 = time.time()
-    agent.execute(python_method, python_args)
+    agent.execute(python_method, python_args, max_steps=1000000)
     t2 = time.time()
     times["python"]["execute"] += t2 - t1
 agent.stop_server()
@@ -195,7 +195,7 @@ for i in range(100):
     t2 = time.time()
     times["java"]["load_code"] += t2 - t1
     t1 = time.time()
-    agent.execute(java_class_name, java_method, java_args)
+    agent.execute(java_class_name, java_method, java_args, max_steps=1000000)
     t2 = time.time()
     times["java"]["execute"] += t2 - t1
 agent.stop_server()
@@ -208,6 +208,6 @@ times["java"]["execute"] /= 100
 # convert to dataframe
 import pandas as pd
 df = pd.DataFrame(times)
-df.to_csv("performance/general_performance.csv")
+df.to_csv("general_performance.csv")
 print(df)
 

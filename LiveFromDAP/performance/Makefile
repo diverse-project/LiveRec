@@ -12,7 +12,7 @@ general_performance.csv : general_performance.py
 load_code_performance.csv : load_code_performance.py
 	python load_code_performance.py
 
-scenario : scenario/*_times.json
+scenario : scenario/binary_search_c_times.json scenario/binary_search_java_times.json scenario/binary_search_python_times.json
 
 scenario/binary_search_c_times.json : scenario/evaluate_c.py
 	cd scenario && python evaluate_c.py

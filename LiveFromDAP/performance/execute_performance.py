@@ -52,8 +52,8 @@ python_method = "useless_method"
 
 # Java
 java_code_template = """
-public class UselessClass {{
-    public static int uselessMethod(int x) {{
+public class ExecutePerformance {{
+    public static int executePerformanceMethod(int x) {{
         int d = 0;
         for (int i = 0; i < x; i++) {{
             d += i;
@@ -63,14 +63,14 @@ public class UselessClass {{
 }}
 """
 def compile_java():
-    execute_command("javac -g -d tmp tmp/UselessClass.java")
+    execute_command("javac -g -d tmp tmp/ExecutePerformance.java")
 
-with open(os.path.join("tmp", "UselessClass.java"), "w") as f:
+with open(os.path.join("tmp", "ExecutePerformance.java"), "w") as f:
     f.write(java_code_template.format())
 compile_java()
 java_class_path = os.path.abspath("tmp")
-java_class_name = "UselessClass"
-java_method = "uselessMethod"
+java_class_name = "ExecutePerformance"
+java_method = "executePerformanceMethod"
 
 
 
@@ -86,11 +86,15 @@ agent = CLiveAgent(debug=False)
 agent.start_server()
 agent.initialize()
 agent.load_code(c_compiled_path)
-agent.execute(c_source_path, c_method, ["3"]) # warm up
+
+# warm up
+for _ in range(5):
+    agent.execute(c_source_path, c_method, ["3"], max_steps=1000000)
+
 for i in range(50):
     print("Iteration: ", i, end="\r")
     t1 = time.time()
-    _, st = agent.execute(c_source_path, c_method, [str(i+1)])
+    _, st = agent.execute(c_source_path, c_method, [str(i+1)], max_steps=1000000)
     t2 = time.time()
     times["c"][len(st.stackframes)] = t2 - t1
 agent.stop_server()
@@ -102,7 +106,11 @@ agent = PythonLiveAgent(debug=False)
 agent.start_server()
 agent.initialize()
 agent.load_code(python_source_path)
-agent.execute(python_method, ["3"], max_steps=1000000) # warm up
+
+# warm up
+for _ in range(5):
+    agent.execute(python_method, ["3"], max_steps=1000000)
+    
 for i in range(50):
     print("Iteration: ", i, end="\r")
     t1 = time.time()
@@ -120,11 +128,15 @@ agent = JavaLiveAgent(debug=False)
 agent.start_server()
 agent.initialize()
 agent.load_code(java_class_path, java_class_name)
-agent.execute(java_class_name, java_method, ["3"]) # warm up
+
+#warm up
+for _ in range(5):
+    agent.execute(java_class_name, java_method, ["3"], max_steps=1000000)
+    
 for i in range(50):
     print("Iteration: ", i, end="\r")
     t1 = time.time()
-    _, st = agent.execute(java_class_name, java_method, [str(i+1)])
+    _, st = agent.execute(java_class_name, java_method, [str(i+1)], max_steps=1000000)
     t2 = time.time()
     times["java"][len(st.stackframes)] = t2 - t1
 
@@ -134,6 +146,6 @@ print("")
 # convert to dataframe
 import pandas as pd
 df = pd.DataFrame(times)
-df.to_csv("performance/execute_performance.csv")
+df.to_csv("execute_performance.csv")
 print(df)
 
