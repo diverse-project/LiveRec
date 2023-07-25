@@ -499,16 +499,38 @@ The results are shown in table \ref{table:average-time}.
 
 
 To test the performance of our approach under real conditions, we recreated the live programming scenario presented in the video by bret victor. 
-The scenario describes the programming of a function performing a binary search on an array of characters. It consists of 18 steps, including 10 steps where the source code is modified and 8 steps where the parameters are changed. 
-The scenario also includes the case where the tested method does not finish. As the code in Bret Victor's presentation is in Javascript, it has been adapted to the 3 languages studied in this paper.
+The scenario describes the programming of a function performing a binary search on an array of characters. It consists of 19 steps, including 10 steps where the source code is modified and 9 steps where the parameters are changed. 
+
+\begin{enumerate}
+  \item The function is defined and the parameters are defined to be an array of characters(\code{['a','b','c','d','e',f']}) and a target character(\code{'d'}).
+  \item A new variable \code{low} is defined.
+  \item A new variable \code{high} is defined.
+  \item A new variable \code{mid} is defined.
+  \item The variable \code{mid} is changed to be a integer.
+  \item A new variable \code{value} is defined.
+  \item A if and else snippets is added.
+  \item The target is changed to \code{'b'}.
+  \item The target is changed to \code{'c'}.
+  \item The target is changed to \code{'d'} and the code from the \code{mid} is refactored to be in a \code{while(true)} loop.
+  \item The target is changed to \code{'a'}.
+  \item The target is changed to \code{'b'}.
+  \item The target is changed to \code{'c'}.
+  \item The target is changed to \code{'d'}.
+  \item The target is changed to \code{'e'}.
+  \item The target is changed to \code{'f'}.
+  \item The target is changed to \code{'g'}.
+  \item The condition of the while loop is changed to \code{low <= high}.
+  \item A return \code{-1} is added at the end of the function.
+\end{enumerate}
+
+
+The scenario also includes the case where the tested method does not finish at step 17. As the code in Bret Victor's presentation is in Javascript, it has been adapted to the 3 languages studied in this paper.
 
 For this test we set the maximum size of the stack recording at 80 stackframes. When the recording exceeds this limit, the debugger is stopped and restarted.
 
 The figure \ref{fig:scenario-bs} shows the time and number of stackframes recorded for each stage of the scenario in Python, C and Java. 
 When the initialisation is executed for Java and C, the time taken at each stage follows the same trend as the number of stack frames registered. 
 At step 16, we also observe the case of an infinite loop in the scenario.
-
-
 
 
 \section{Related Work}
