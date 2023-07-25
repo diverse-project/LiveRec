@@ -45,11 +45,11 @@
 \paperdetails{
   %% perspective options are: art, sciencetheoretical, scienceempirical, engineering.
   %% Choose exactly the one that best describes this work. (see 2.1)
-  perspective=art,
+  perspective=engineering,
   %% State one or more areas, separated by a comma. (see 2.2)
   %% Please see list of areas in http://programming-journal.org/cfp/
   %% The list is open-ended, so use other areas if yours is/are not listed.
-  area={Social Coding, General-purpose programming},
+  area={Live programming, language engineering},
   %% You may choose the license for your paper (see 3.)
   %% License options include: cc-by (default), cc-by-nc
   % license=cc-by,
@@ -121,36 +121,38 @@
 % being returned to the authors.
 \begin{abstract}
   %What is the broad context of the work? What is the importance of the general research area?
-  \paragraph{Context}
-  In the first part of his 2012 presentation ``Inventing on Principle''~\cite{InventingOnPrinciple}, Bret Victor gives a demo of live code editor for Javascript which shows the dynamic history of values of variables in real time. This form of live programming has become known as ``live probes''~\cite{GiladBlogMethodsLive,SeanMcDirmid,ExampleBasedProg}. Using live probes the programmer has a permanent and continuous insight into the dynamic evolution of function or method variables, thus improving feedback and developer experience. 
+  \textit{Context.}
+  In the first part of his 2012 presentation ``Inventing on Principle''~\cite{InventingOnPrinciple}, Bret Victor gives a demo of live code editor for Javascript which shows the dynamic history of values of variables in real time. This form of live programming has become known as ``live probes''~\cite{MakingMethodsLive,UsableLiveProgramming,ExampleBasedGraalVM}. Using live probes the programmer has a permanent and continuous insight into the dynamic evolution of function or method variables, thus improving feedback and developer experience. 
+  
   % What problem or question does the paper address? How has this problem or question been addressed by others (if at all)?
-  \paragraph{Inquiry} Although Bret Victor shows a working prototype of live probes in the context of Javascript, he does not discuss strategies for implementing them. Later work~\cite{ExampleBasedProg} provides an implementation approach, but this requires a programming language to be implemented on top of the GraalVM runtime~\cite{GraalVM}. In this paper we investigate generic engineering strategies that can be applied in the context of many programming languages, without requiring dedicated compiler or runtime support. 
+  \textit{Inquiry.} Although Bret Victor shows a working prototype of live probes in the context of Javascript, he does not discuss strategies for implementing them. Later work~\cite{ExampleBasedGraalVM} provides an implementation approach, but this requires a programming language to be implemented on top of the GraalVM runtime~\cite{GraalVM}. In this paper we investigate generic engineering strategies that can be applied in the context of many programming languages, without requiring dedicated compiler or runtime support. 
   
   % What was done that unveiled new knowledge?
-  \paragraph{Approach}
+  \textit{Approach.}
   In this paper we explore how debugger protocols can be exploited to implement live probes. Methods or functions are compiled after every code change and executed inside the debugger. During execution the evolution of all local variables in the current stack frame are recorded and communicated back to the IDE for display to the user. 
+
   % What new facts were uncovered? If the research was not results oriented, what new capabilities are enabled by the work?
-  \paragraph{Knowledge}
+  \textit{Knowledge.}
   It turns out that debugger protocols are rich enough for implementing live probes. Step-wise execution, hot code swapping and stack frame inspection provide the right granularity and sufficient information to realize live probes, without modifying compilers or language runtimes. Furthermore, it turns out that the recently proposed Debugger Adapter Protocol (DAP)~\cite{DAP} provides an even more generic approach of implementing live probes, but, in some cases, at the cost of a significant performance penalty. 
 
   % What argument, feasibility proof, artifacts, or results and evaluation support this work?
-  \paragraph{Grounding}
-  We have implemented live probes using stack recording natively for Java through the Java Debugger Interface (JDI), and through the DAP for Java, Python, and C, all with minimum glue code.  We evaluate the run-time performance of all four live probes prototypes, decomposed into: compile-after-change, hotswap, single step overhead, and stack recording overhead. Our results show that live probes on top of native debugger APIs are performant enough for interactive use. In the case of DAP, it depends on characteristics of the programming language. 
+  \textit{Grounding.}
+  We have implemented live probes using stack recording natively for Java through the Java Debug Interface (JDI)~\cite{JDI}, and through the DAP for Java, Python, C, and Javascript, all with minimum glue code.  We evaluate the run-time performance of all four live probes prototypes, decomposed into: compile-after-change, hotswap, single step overhead, and stack recording overhead. Our results show that live probes on top of native debugger APIs are performant enough for interactive use. In the case of DAP, it depends on characteristics of the programming language. 
 
   % Why does this work matter?
-  \paragraph{Importance} Live programming improves the programmer experience by providing immediate feedback about a program's execution and eliminating disruptive edit-compile-restart sequences. Live probes are one way to shorten the programmer feedback loop at the level of functions and methods. Although live probes are not new, and have been implemented in (prototype) systems, our approach of building live probes on top of existing and generic debugger protocols opens up live probes for a host of mainstream programming language, with minimum effort.
+  \textit{Importance.} Live programming improves the programmer experience by providing immediate feedback about a program's execution and eliminating disruptive edit-compile-restart sequences. Live probes are one way to shorten the programmer feedback loop at the level of functions and methods. Although live probes are not new, and have been implemented in (prototype) systems, our approach of building live probes on top of existing and generic debugger protocols opens up live probes for a host of mainstream programming language, with minimum effort.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:introduction}
 
-Live programming~\cite{Tanimoto,UsableLive,JonathanEdwards,VanRozenEtal} promises a better programming experience by bringing the execution of a program closer to the abstractions of the source code. By erasing the distinction between a program on the one hand, and its execution on the other, programmers may enjoy a more fluid experience, with immediate dynamic feedback after every code change. 
+Live programming~\cite{TanimotoLevels,UsableLiveProgramming,ExampleCentric,Hancock03} promises a better programming experience by bringing the execution of a program closer to the abstractions of the source code. By erasing the distinction between a program on the one hand, and its execution on the other, programmers may enjoy a more fluid experience, with immediate dynamic feedback after every code change. 
 
-Live programming has a rich history, both in academia and industrial research~\cite{???}, originating in the original Lisp systems and Smalltak which allowed dynamic replacement of code units (hot swapping) and inspection of program structures at run-time (sometimes referred to as ``programming in the debugger''). However, live programming became center stage after Bret Victor's influential talk ``Inventing on Principle'', which went viral in 2012. 
+Live programming has a rich history, both in academia and industrial research\footnote{For brief and incomplete overview of some of the history of live programming, see~\cite{LiveProgHist13}}, originating in the original Lisp systems (e.g.,~\cite{Sandewall78,Masinter81}) and Smalltalk~\cite{Goldberg80} which allowed dynamic replacement of code units (hot swapping) and inspection of program structures at run-time (sometimes referred to as ``programming in the debugger''). However, live programming became center stage after Bret Victor's influential talk ``Inventing on Principle'', which went viral in 2012. 
 
-In that presentation Victor makes a compelling case that (paraphrasing) ``creators need to see what they are creating''. In the case of programming, this entails continuous inspection of the run-time behavior of a program, and immediate and seamless adaptation after a code change. While all the prototypes demonstrated by Victor are impressive, for the purpose of this paper we zoom in on one of them: a live editor for Javascript with a side pane showing the history of values of local function variables during an execution (see Figure~\ref{FIG:bret} below). Although not mentioned by Victor himself, this live programming features has become known as ``live probes''~\cite{SeanMcDirmid,ExampleBasedGraal}.
+In that presentation Victor makes a compelling case that (paraphrasing) ``creators need to see what they are creating''. In the case of programming, this entails continuous inspection of the run-time behavior of a program, and immediate and seamless adaptation after a code change. While all the prototypes demonstrated by Victor are impressive, for the purpose of this paper we zoom in on one of them: a live editor for Javascript with a side pane showing the history of values of local function variables during an execution (see Figure~\ref{FIG:bret} below). Although not mentioned by Victor himself, this live programming features has become known as ``live probes''~\cite{UsableLiveProgramming,ExampleBasedGraalVM}.
 
-The question left unanswered in Victor's presentation is: how to build such live probes? While there has been recent research showcasing an implementation approach~\cite{ExampleBasedGraal}, it depends on specific a runtime system (GraalVM), and cannot be easily transferred to other languages. So a more specific question is: how to  engineer live probes without dedicated compiler or runtime support?
+The question left unanswered in Victor's presentation is: how to build such live probes? While there has been research showcasing implementation approaches~\cite{ExampleBasedGraalVM}, they depend on a specific runtime system (e.g., GraalVM), or employ language specific ``hacks''~\cite{LiveLiterals}, and hence cannot be easily transferred to other languages. So a more specific question is: how to  engineer live probes \textit{generically}, without dedicated compiler or runtime support?
 
 In this paper we present an approach to implementing live probes reusing standard debugger protocols and APIs. Most language support an API to facilitate the implementation of debuggers and other run-time tools (e.g., profilers, tracers, etc.). It turns out that such facilities are sufficiently powerful for implementing live probes. The key to the approach is to (re)execute a function or method inside the debugger, step by step, and at each step record a snapshot of the current stack-frame. After the method has finished executing, the resulting stack recording is communicated back to the IDE and visualized alongside the code, matching stack recording entries to the source code using source location information.
 
@@ -169,15 +171,37 @@ The contributions of this paper can be summarized as follows:
    \item We evaluate the feasibility of the approach by implementing live probes for Java, Python, C and Javascript on top the DAP, investigate the performance overhead of the individual steps, and reproduce an editing scenario to assess practicality (Section~\ref{sec:evaluation})
 \end{itemize}
 
-\section{Problem Overview}
+\section{Background and Overview}
 \label{sec:problem-overview}
 
-\begin{figure}
+
+The basic concept of live probes is illustrated in Figure~\ref{FIG:bret}, showing two panes. 
+The left pane shows an editor containing the source code of a possible implementation of binary search in Javascript. 
+The right pane shows the values of variables matched up to the source line they were last updated.
+The top two rows specify example input data that the function is executed on. The consecutive values of variables that are updated in a loop (e.g. \lstinline{low}, \lstinline{high}, \lstinline{mid} and \lstinline{value}) are displayed adjacently. So for \lstinline{low}, the history of values is 0, 3, and 5. Note that the update of \lstinline{high} in the else-if branch (apparently) never executed, so there is no (redundant) value display in the right pane. Finally, the last line shows the final return value of the function: apparently the \lstinline{key} was not found in the \lstinline[language=c]{array}. 
+
+What makes this \textit{live} is that while the programmer is editing the program on the left (or the input arguments to the function), the value display on the right continuously updates so that it is apparent what is going on at run time. 
+
+
+Dissecting this example leads to the following technical requirements for implementing live probes:
+\begin{itemize}
+  \item there should a way to specify the inputs to a method
+  \item after every change to the code, it needs to be recompiled and reexecuted
+  \item during execution the values of variables needs to be recorded and linked to source lines
+  \item the resulting history list of values needs to be communicated to the IDE
+\end{itemize}
+
+
+The basic intuition of our approach to meet these requirements is as follows: a separate process, called the \textit{Keep Alive Agent} (KAA) starts the debugger in the background and monitors the editor for changes to the source code. Whenever the programmer edits the code, the KAA attempts to recompile the code, and, if successful, hotswaps the current method into the debugger. It then queries the source code for annotations (either explicit annotations as in Java, or special comments) specifying the input arguments to the method. The KAA then sets a breakpoint on the first statement of the method, and invokes it. Since there is a breakpoint, the debugger halts. Using the common step-over facility of a typical debugger, the KAA then steps through the whole method until its execution completes. During this process however, the KAA takes snapshots of the current stack frame to record the values of local variables. These snapshots are stored in a data structure, called \textit{stack recording}, which supports displaying the values in the IDE, for instance, like in Figure~\ref{FIG:bret}, inline~\cite{LiveLit,ExampleBasedGraal}, or using some other UI affordance. 
+
+
+\begin{figure}[t]
   \centering
   \includegraphics[width=\textwidth]{img/bret}
   \caption{Screenshot of Bret Victor's 2012 talk ``Inventing on Principle'' (23rd minute)}
   \label{FIG:bret}
 \end{figure}
+
 
 \section{Using the Debugger ?}
 \label{sec:stack-recording}
@@ -268,6 +292,9 @@ int foo(int n) {
   \caption{Stack Recording Example}
   \label{fig:stack-recording}
 \end{figure}
+
+
+
 
 In order to generate the data needed to probe a variable, we need to be able to retrieve the state of the variable during execution. 
 This information is contained in the stackframe at the time of execution. 
@@ -536,15 +563,17 @@ At step 16, we also observe the case of an infinite loop in the scenario.
 \section{Related Work}
 \label{sec:related-work}
 
-Example-Based Live Programming for Everyone\cite{10.1145/3426428.3426919} : Use GraalVM/Truffle to get live information from the code of multiple languages.
+Example-Based Live Programming for Everyone\cite{ExampleBasedGraalVM} : Use GraalVM/Truffle to get live information from the code of multiple languages.
 
-Example Centric Programming\cite{10.1145/1052883.1052894} : Use BeanShell(custom JVM) to get live information. Prototype for Java in Eclipse.
+Example Centric Programming\cite{ExampleCentric} : Use BeanShell(custom JVM) to get live information. Prototype for Java in Eclipse.
 
-Usable Live Programming\cite{10.1145/2509578.2509585} : New language for live programming(Ying Yang) with incremental compilation. Live programming environment for this language.
+Usable Live Programming\cite{UsableLiveProgramming} : New language for live programming(Ying Yang) with incremental compilation. Live programming environment for this language.
 Use source location to relate execution and code(=> almost like stack recording that link stackframe and code location)
 
-Scalable Omniscient Debugging\cite{10.1145/1297105.1297067} : Omniscient debugging with a lot of data. Use a lot of memory to store all the data.
+Scalable Omniscient Debugging\cite{ScalableOmniscient} : Omniscient debugging with a lot of data. Use a lot of memory to store all the data.
 In this paper they record almost everything, we only record the stackframe.
+
+LiveLiterals~\cite{LiveLiterals}
 
 \section{Conclusion}
 \label{sec:conclusion}
