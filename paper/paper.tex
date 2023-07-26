@@ -205,6 +205,28 @@ The basic intuition of our approach to meet these requirements is as follows: a 
 
 
 \section{Using the Debugger ?}
+
+\subsection{Architecture}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.8\linewidth]{img/architecture.png}
+  \caption{General architecture (placeholder)}
+  \label{fig:architecture}
+\end{figure}
+
+A live environment must be able to react to two different events: a change in the code or a change in the test/input data. 
+If the code changes, we need to re-execute the code, and in the case of a compiled language, we need to compile the new code first. 
+If the data changes, we need to be able to re-execute the programme with the new data. 
+In addition, it is necessary to keep compilation and execution times low enough to maintain an interactive experience with the user.
+
+To meet these constraints, we propose the architecture shown in Figure \ref{fig:architecture} :
+\begin{itemize}
+  \item The IDE or editor communicates with a server. The IDE sends changes to the code and function parameters, and the server sends back the stack trace of the method.
+  \item The server initialises and communicates with the debugger to apply the changes received from the IDE, and generates a stack recording when the method is executed.
+  \item The debugger runs an intermediate program, a keep alive agent. This keeps the debugger alive to reduce initialisation times.
+\end{itemize}
+
 \label{sec:stack-recording}
 
 \subsection{Stack Recording}
@@ -294,9 +316,6 @@ int foo(int n) {
   \label{fig:stack-recording}
 \end{figure}
 
-
-
-
 In order to generate the data needed to probe a variable, we need to be able to retrieve the state of the variable during execution. 
 This information is contained in the stackframe at the time of execution. 
 However, we need to add spatial and temporal information to this: we need to associate each stackframe state with the location in the code at which it was retrieved, and we also need to know the order in which these stackframes were retrieved.
@@ -306,44 +325,90 @@ A stack record represents the different states of the stack frame during the exe
 This representation allows us to maintain a link between the spatial location (the reference to the source code) and the temporal location (the order of these stackframes) of the execution.
 This representation has several advantages: it is easy to construct from debugger information, and it applies to most programming languages.
 Figure \ref{fig:stack-recording} shows an example of a stack recording. On the left is a C function and on the right is the stack recording of the execution of \code{foo(3)}. Each rectangle represents the state of the stackframe during execution, with the source code location (here simplified to the line number).
-\subsection{Keep Alive Agent}
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=0.8\linewidth]{img/keepalive_agent.png}
-  \caption{Keep Alive Agent}
-  \label{fig:keepalive-agent}
+  \includegraphics[width=0.6\linewidth]{img/stackrecording_impl.png}
+  \caption{Record Stackrecording (placeholder)}
+  \label{fig:stack-recording-impl}
 \end{figure}
 
-A live environment must be able to react to two different events: a change in the code or a change in the test/input data. 
-If the code changes, we need to re-execute the code, and in the case of a compiled language, we need to compile the new code first. 
-If the data changes, we need to be able to re-execute the programme with the new data. 
-In addition, it is necessary to keep compilation and execution times low enough to maintain an interactive experience with the user.
+Figure \ref{fig:stack-recording-impl} shows how a stack recording is recorded.
+To obtain the different states of the stackframe during the execution of a method, we place a breakpoint at the start of the function. 
+Once this has been reached, the method is executed step by step, using the debugger's step instruction. 
+Between each step, the state of the stackframe is recorded along with the source code's location information.
 
-To meet these constraints, we propose to use the debugger on an intermediate program, a \textit{keep-alive agent}. 
-This program keeps the debugger alive between executions and code changes to reduce initialisation times. 
-The general operation of a keep-alive agent is shown in Figure \ref{fig:keepalive-agent} :
-% TODO : make figure clean and add better description here
-\begin{itemize}
-  \item At the start of the session, the debugger is started on the agent. Once initialised, the agent is paused.
-  \item The target code is loaded into the agent and a breakpoint is set at the input of the target method.
-  \item Execution of the target method triggers the breakpoint at the input of the method, and execution continues step by step to build the \textit{stack recording}.
-\end{itemize}
 
 \section{Live Probes in Java with JDI}
 \label{sec:live-probes-java}
+% listing of a java class
+\begin{figure}[htbp]
+  \centering
+  \begin{lstlisting}[language=Java]
+public class Debugger{
+  Debugger(){
+    setBreakpointOnWhileTrue();
+    launchVM(KeepeAliveAgent);
+  }
+  public void loadClass(classPath, className){
+    addClassPathToDynamicClassLoader(classPath);
+    loadClass(className);
+  }
 
-We developed a Java backend using JDI, a debugging interface for Java, to implement the concepts discussed in the previous section. 
-The keep-alive agent includes a method for loading classes into the JVM.
+  public StackRecording execute(method, arguments){
+    createMirrorArguments(arguments);
+    setBreakpointAtMethod(method);
+    invokeMethod(method, arguments);
+    stackRecording = new StackRecording();
+    while(!isMethodFinished()){
+      stackRecording.add(getStackFrame());
+      stepDebuggee();
+    }
+    return stackRecording;
+  }
+}
+  \end{lstlisting}
+  \caption{JDI Debugger classes}
+  \label{fig:debugger-class}
+\end{figure}
 
-When executing the target method, the arguments are created in the client JVM and then passed to the debugger JVM using the \code{mirrorOf} and \code{newInstance} methods from the reflection API. 
+\begin{figure}[htbp]
+  \centering
+  \begin{lstlisting}[language=Java]
+public class KeepAliveAgent {
+  DynamicClassLoader dynamicClassLoader;
+
+  public void loadClass(String className){
+    dynamicClassLoader.loadClass(className);
+  }
+
+  public static void main(String[] args){
+    while (true) {}
+  }
+}
+  \end{lstlisting}
+  \caption{JDI Keep Alive Agent}
+  \label{fig:java-keep-alive-agent}
+\end{figure}
+
+We have developed a debugger capable of stack recording using JDI, a debugging interface for Java. 
+A simplified pseudo code of this class is presented in Figure \ref{fig:debugger-class}.
+The class includes a method to initialise the JVM (line 2), a method to search or reload a class in the VM (line 5) and a method to generate a stack recording of a method (line 10). 
+
+For initialisation, a JVM containing the instrumentation provided by JDI is launched on the KeepAliveAgent class \ref{fig:java-keep-alive-agent} and a breakpoint is set on the infinite loop in the \code{main} function (line 9). 
+This breakpoint is used to keep the debugger alive in a wait state, which is necessary to use the JDI primitives \code{mirrorOf}, \code{newInstance} and \code{invokeMethod}.
+
+To load a class, we use a dynamic ClassLoader which allows us to add class paths and load a class during execution. 
+When the code changes, the class is reloaded into the KeepAliveAgent. 
+This method has one limitation: it only works if the class signature has not changed, and only the contents of the methods have changed. 
+If the structure has changed, the KeepAliveAgent must be restarted. 
+This limitation can be overcome with certain JVM implementations\cite{KABANOV201151}.
+
+To execute the target method (line 10 in Debugger\ref{fig:debugger-class}), the arguments are created in the client JVM, then passed to the debugger JVM using the \code{mirrorOf} and \code{newInstance} methods of the reflection API (line 11). 
+A breakpoint is then placed at the input of the target method (line 12).
 The target method is invoked using \code{invokeMethod}. 
-To handle events from the JDI when breakpoints are set, a dedicated thread is used to prevent deadlocks.
-
-If modifications are needed in the code of the target method, we employ the \code{redefineClasses} method. 
-This method allows changing the content of a class loaded in the JVM using an array of byte codes. 
-However, it has a limitation: it only works if the class signature remains unchanged. 
-If the class structure is modified, restarting the debugger is necessary.
+Stack recording is then performed using the algorithm described in the previous paragraph. 
+As long as the method is not finished, the debugger registers the stackframe and takes a step in the debuggee.
 
 \section{Generalizing Live Probes with Debugger Adapter Protocol}
 \label{sec:generalizing-live-probes}
