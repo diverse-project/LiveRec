@@ -22,3 +22,12 @@ scenario/binary_search_java_times.json : scenario/evaluate_java.py
 
 scenario/binary_search_python_times.json : scenario/evaluate_python.py
 	cd scenario && python evaluate_python.py
+
+scenario/binary_search_javascript_times.json : scenario/evaluate_javascript.py
+	cd scenario && python evaluate_javascript.py
+
+.PHONY : clean
+
+clean :
+	rm -f *.csv
+	rm -f scenario/*.json

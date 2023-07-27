@@ -2,6 +2,7 @@ import os
 import subprocess
 import time
 from livefromdap import CLiveAgent,PythonLiveAgent,JavaLiveAgent
+from livefromdap.agent.JavascriptLiveAgent import JavascriptLiveAgent
 
 def execute_command(command):
     process = subprocess.Popen(command, shell=True)
@@ -72,12 +73,29 @@ java_class_path = os.path.abspath("tmp")
 java_class_name = "ExecutePerformance"
 java_method = "executePerformanceMethod"
 
+# JS
 
+js_code_template = """
+function useless_method(x) {{
+    let d = 0;
+    for (let index = 0; index < x; index++) {{
+        d += index;
+    }}
+    return d;
+}}
+"""
+
+with open(os.path.join("tmp", "useless.js"), "w") as f:
+    f.write(js_code_template.format())
+
+js_source_path = os.path.abspath("tmp/useless.js")
+js_method = "useless_method"
 
 times = {
     "c": {},
     "python": {},
-    "java": {}
+    "java": {},
+    "js": {}
 }
 
 # C
@@ -139,6 +157,28 @@ for i in range(50):
     _, st = agent.execute(java_class_name, java_method, [str(i+1)], max_steps=1000000)
     t2 = time.time()
     times["java"][len(st.stackframes)] = t2 - t1
+
+agent.stop_server()
+print("")
+
+
+# JS
+print(" == Javascript == ")
+agent = JavascriptLiveAgent(debug=False)
+agent.start_server()
+agent.initialize()
+agent.load_code(js_source_path)
+
+# warm up
+for _ in range(3):
+    agent.execute(js_source_path, js_method, [1], max_steps=1000000)
+    
+for i in range(33):
+    print("Iteration: ", i, end="\r")
+    t1 = time.time()
+    _, st = agent.execute(js_source_path, js_method, [i+1], max_steps=1000000)
+    t2 = time.time()
+    times["js"][len(st.stackframes)] = t2 - t1
 
 agent.stop_server()
 print("")

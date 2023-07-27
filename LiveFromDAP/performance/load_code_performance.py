@@ -2,6 +2,7 @@ import os
 import subprocess
 import time
 from livefromdap import CLiveAgent,PythonLiveAgent,JavaLiveAgent
+from livefromdap.agent.JavascriptLiveAgent import JavascriptLiveAgent
 
 def execute_command(command):
     process = subprocess.Popen(command, shell=True)
@@ -63,12 +64,30 @@ java_class_path = os.path.abspath("tmp")
 java_class_name = "UselessClass"
 java_method = "uselessMethod"
 
+# JS
+
+# Python
+js_code_template = """
+function useless_method(x){{
+    let res = x;{}
+    return res;
+}}
+"""
+def update_js_file(line):
+    with open(os.path.join("tmp", "useless.js"), "w") as f:
+        f.write(python_code_template.format("\n    res = res + 1;"*line))
+
+update_js_file(0)
+js_source_path = os.path.abspath("tmp/useless.js")
+js_method = "useless_method"
+
 
 
 times = {
     "c": [],
     "python": [],
-    "java": []
+    "java": [],
+    "js": []
 }
 
 compile_times = {
@@ -153,6 +172,28 @@ for i in range(100):
     agent.load_code(java_class_path, java_class_name)
     t2 = time.time()
     times["java"].append(t2 - t1)
+agent.stop_server()
+print("")
+
+
+# JS
+print(" == Javascript == ")
+agent = JavascriptLiveAgent(debug=False)
+agent.start_server()
+agent.initialize()
+# Warm up
+for _ in range(5):
+    update_js_file(0)
+    agent.load_code(js_source_path)
+
+for i in range(100):
+    print("Iteration: ", i, end="\r")
+    update_js_file(i)
+    t1 = time.time()
+    agent.load_code(js_source_path)
+    t2 = time.time()
+    times["js"].append(t2 - t1)
+    
 agent.stop_server()
 print("")
 
