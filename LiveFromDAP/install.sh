@@ -77,4 +77,61 @@ else
     exit 1
 fi
 
+# Node Debug
+echo "[Node Debug] Checking for Node"
+# check if node is installed
+# if node -v exit with 0 then it is installed
+if ! node -v &> /dev/null; then
+    echo "You need to install Node.js"
+    exit 1
+fi
+
+# Js DAP
+echo "[Js DAP] Checking for Js DAP..."
+# check if src/livefromdap/bin/js-dap directory exists
+if [ ! -d "src/livefromdap/bin/js-dap" ]; then
+    echo "Downloading Js DAP..."
+    mkdir -p src/livefromdap/bin/js-dap
+    cd src/livefromdap/bin/js-dap
+    git clone https://github.com/microsoft/vscode-js-debug
+    cd vscode-js-debug
+    npm install
+    # check if gulp is installed
+    # if gulp -v exit with 0 then it is installed
+    if ! gulp -v &> /dev/null; then
+        echo "Installing gulp..."
+        npm install --global gulp-cli
+    fi
+    gulp dapDebugServer
+    cd ../..
+    cp -r js-dap/vscode-js-debug/dist/src/* js-dap/
+    rm -rf js-dap/vscode-js-debug
+    cd ../../..
+else
+    echo "Js DAP already installed."
+fi
+
+
+# Js Tree sitter
+echo "[Js Tree sitter] Checking for Js tree sitter..."
+# check if src/livefromdap/bin/treesitter/javascript.so exists
+if [ ! -f "src/livefromdap/bin/treesitter/javascript.so" ]; then
+    echo "Downloading Js tree sitter..."
+    mkdir -p src/livefromdap/bin/treesitter
+    cd src/livefromdap/bin/treesitter
+    git clone https://github.com/tree-sitter/tree-sitter-javascript
+    python -c "from tree_sitter import Language;Language.build_library('javascript.so', ['tree-sitter-javascript'])"
+    rm -rf tree-sitter-javascript
+    cd ../../..
+else
+    echo "Js tree sitter already installed."
+fi
+
+# Make runner files executable
+echo "[Runner] Making runner files executable..."
+cd src/livefromdap
+make runner
+chmod +x runner/*
+cd ../..
+
 
