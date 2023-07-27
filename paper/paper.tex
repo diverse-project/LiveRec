@@ -10,6 +10,7 @@
 \usepackage{listings}
 \usepackage{graphicx}
 \usepackage{subcaption} % For subfigures
+\usepackage{array, caption, tabularx,  ragged2e,  booktabs}
 
 
 %
@@ -428,25 +429,47 @@ As long as the method is not finished, the debugger registers the stackframe and
 \label{sec:generalizing-live-probes}
 The Debug Adapter Protocol (DAP), developed by Microsoft, is a standard method of communicating with a programming language debugger. It is compatible with various editors, including VS Code, and provides a unified interface for all programming languages. 
 
-By exploiting this protocol, we have created a new language parametric backend, which we have implemented for the C, Python and Java programming languages. These languages are chosen to cover both compiled and interpreted languages. 
+By exploiting this protocol, we have created a new language parametric backend, which we have implemented for the C, Python, Java and Javascript programming languages. These languages are chosen to cover both compiled and interpreted languages. 
 This backend offers an interface common to all three languages, which includes methods for starting and initialising the debugging server, loading and reloading code in the debugger, and executing a method while performing stack recording. 
 
 These methods allow us to carry out stack recording independently of the chosen language and facilitate the future implementation of live programming interfaces. 
 
 The implementation for each language includes a keep-alive agent and code to communicate with the debugger and keep-alive agent to provide the interface functionality.
-These methods depend on both the implementation of the debugging server and the keep-alive agent. 
-The debug server initialisation parameters are specific to each language.
+These methods depend on both the implementation of the debugging server and the keep-alive agent. The differences between the implementations are shown in the Table \ref{tab:implementation-differences}.
 
-The way in which the code is loaded also depends on the language. 
-For interpreted languages such as Python, the code can be interpreted at runtime and then loaded into the debugger's memory. 
-For Java, we have extended the ClassLoader to add and modify classpaths and classes at runtime in the keep-alive agent. 
-For C, the code is loaded into shared libraries that can be added and reloaded during execution.
 
-Method execution for Java and Python is different to that used in C. 
-For Java and Python, calling methods directly from the debugger does not trigger breakpoints for these languages. 
-To remedy this, execution must be initiated from the agent and not by a debugger command. 
-To do this, the Python and Java agents have fields for referencing a method and its arguments; when this information is entered, the agent starts execution.
-For C, as is the case in the backend using JDI, the method call is made from the debugger console.
+\begin{table}[h]
+    \centering
+    \noindent\setlength\tabcolsep{4pt}%
+    \begin{tabularx}{\linewidth}{lc*{4}{>{\RaggedRight\arraybackslash}X}}
+      \toprule
+      Implementation & Compile & Load Code & Execution Caller \\ [0.5ex]
+      \midrule
+      JDI Java & Java Compiler API & Dynamic ClassLoader & Debugger \\ 
+      \addlinespace
+      DAP Java & \code{javac} from command line & Dynamic ClassLoader & Debuggee \\ 
+      \addlinespace
+      DAP Python & ~ & Interpreted in debug console & Debuggee \\ 
+      \addlinespace
+      DAP C & \code{gcc} from command line & Loaded as shared library & Debugger \\
+      \addlinespace
+      DAP Javascript & ~ & Imported as module & Debuggee \\ 
+      \bottomrule
+    \end{tabularx}
+    \caption{Implementation differences between languages}
+    \label{tab:implementation-differences}
+\end{table}
+
+With DAP, the compilation step is performed by calling a command line compilation tool (javac and gcc). For the JDI version, developed in Java, the Java compilation API has been used for better performance.
+
+The way the code is loaded also depends on the programming language. For Python, the code is loaded by being interpreted by the debug console during execution.
+For Javascript, a line is added at the end of the imported file to export all the functions in the file as a module, which is then loaded into the KeepAliveAgent with \code{require}.
+For Java, as with the JDI version, a DynamicClassLoader is used. For C, the code is loaded into shared libraries that can be added and reloaded at runtime.
+
+Method execution can be divided into two categories.
+For Java with DAP, Python and Javascript, calling methods directly from the debugger does not trigger breakpoints. To remedy this, execution must be initiated by the KeepAliveAgent rather than by a debugger command. 
+To do this, the KeepAliveAgent code in these languages has fields for referencing a method and its arguments; when this information is entered, the agent starts execution.
+In C, as in Java with JDI, the method is called from the debugger console.
 
 \section{Evaluation}
 \label{sec:evaluation}
@@ -459,7 +482,7 @@ For C, as is the case in the backend using JDI, the method call is made from the
   \label{fig:demo}
 \end{figure}
 
-We have developed a dynamic programming environment that incorporates live probes through Java, C, and Python debug servers. 
+We have developed a dynamic programming environment that incorporates live probes through Java, C, Python, Javascript debug servers. 
 The user interface consists of a web page that interacts with a local server. 
 In Figure \ref{fig:demo}, we present a screenshot depicting a session with a binary\_search function in C. 
 On the left-hand side, there is a code editor (based on CodeMirror 5), while on the right, a panel showcases live probes.
@@ -507,7 +530,7 @@ We therefore measured the performance of our approach in response to various que
   \label{fig:compileload}
 \end{figure}
 
-In our evaluation, we assessed the time required to compile and load code into the debugger memory for Python, C, and Java. 
+In our evaluation, we assessed the time required to compile and load code into the debugger memory for Python, C, Java and Javascript. 
 To accomplish this, we compiled and loaded programs ranging from 5 to 100 lines of code. 
 The summarized results can be found in Figure \ref{fig:compileload}.
 
@@ -515,9 +538,9 @@ In Sub-figure \ref{subfig:compile}, we present the compilation time for C and Ja
 The compilation process was executed from the command line using javac and gcc. 
 The compilation times remain nearly constant, regardless of the number of lines of code, with an average of 34.6 ms for Java and 8.5 ms for C.
 
-Moving to Sub-figure \ref{subfig:load}, we depict the loading time in the debugger for C, Java, and Python as a function of the number of lines of code. 
+Moving to Sub-figure \ref{subfig:load}, we depict the loading time in the debugger for C, Java, Python and Javascript as a function of the number of lines of code. 
 The data shows that the loading time remains constant concerning the number of lines of code. 
-On average, Python takes 3 ms, Java takes 2.8 ms, and C takes 1 ms for loading.
+%On average, Python takes 3 ms, Java takes 2.8 ms, and C takes 1 ms for loading.
 
 \subsubsection{How long does it need to run the program, depending on the number of steps to make the stack recording ?}
 
@@ -641,7 +664,7 @@ The scenario also includes the case where the tested method does not finish at s
 
 For this test we set the maximum size of the stack recording at 80 stackframes. When the recording exceeds this limit, the debugger is stopped and restarted.
 
-The figure \ref{fig:scenario-bs} shows the time and number of stackframes recorded for each stage of the scenario in Python, C and Java. 
+The figure \ref{fig:scenario-bs} shows the time and number of stackframes recorded for each stage of the scenario in Python, C, Java and Javascript. 
 When the initialisation is executed for Java and C, the time taken at each stage follows the same trend as the number of stack frames registered. 
 At step 16, we also observe the case of an infinite loop in the scenario.
 
