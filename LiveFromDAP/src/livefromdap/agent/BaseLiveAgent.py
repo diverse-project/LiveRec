@@ -4,6 +4,11 @@ from abc import ABC, abstractmethod
 
 from livefromdap.utils.StackRecording import StackRecording
 
+class DebuggeeTerminatedError(Exception):
+    def __init__(self):
+        super().__init__("Debuggee terminated")
+    
+
 class BaseLiveAgentInterface(ABC):
     """Interface for the LiveAgent
     This class define all methods that a LiveAgent should implement"""
@@ -49,6 +54,12 @@ class BaseLiveAgent(BaseLiveAgentInterface):
     def __init__(self, *args, **kwargs):
         self.debug = kwargs.get("debug", False)
         self.seq = 0
+        
+    def __del__(self):
+        try:
+            self.stop_server()
+        except:
+            pass
 
     def new_seq(self):
         self.seq += 1
@@ -304,7 +315,6 @@ class BaseLiveAgent(BaseLiveAgentInterface):
                     if command is None or output["command"] == command:
                         return output
             if output["type"] == "event" and output["event"] == "terminated":
-                self.stop_server()
-                raise Exception("Debuggee terminated")
+                raise DebuggeeTerminatedError()
 
     
