@@ -70,6 +70,16 @@
 \definecolor{codegray}{gray}{0.9}
 \newcommand{\code}[1]{\colorbox{codegray}{\texttt{#1}}}
 
+\definecolor{javared}{rgb}{0.6,0,0} % for strings
+\definecolor{javagreen}{rgb}{0.25,0.5,0.35} % comments
+\definecolor{javapurple}{rgb}{0.5,0,0.35} % keywords
+\definecolor{javadocblue}{rgb}{0.25,0.35,0.75} % javadoc
+ 
+\lstset{language=Java,
+keywordstyle=\color{javapurple},
+stringstyle=\color{javared},
+commentstyle=\color{javagreen}}
+
 \begin{document}
 
 \title{Language-Parametric Techniques for Live Probes}
@@ -569,25 +579,31 @@ The results are shown in table \ref{table:average-time}.
 \end{comment}
 \begin{figure}[htbp]
   \centering
-  \begin{subfigure}[b]{0.3\textwidth}
+  \begin{subfigure}[b]{0.45\textwidth}
       \centering
       \includegraphics[width=\textwidth]{img/scenario_bs_c.png}
       \caption{\centering C}
       \label{subfig:scenario-bs-c}
   \end{subfigure}
   \hfill
-  \begin{subfigure}[b]{0.3\textwidth}
+  \begin{subfigure}[b]{0.45\textwidth}
       \centering
       \includegraphics[width=\textwidth]{img/scenario_bs_java.png}
       \caption{\centering Java}
       \label{subfig:scenario-bs-java}
   \end{subfigure}
-  \hfill
-  \begin{subfigure}[b]{0.3\textwidth}
+  \begin{subfigure}[b]{0.45\textwidth}
     \centering
     \includegraphics[width=\textwidth]{img/scenario_bs_python.png}
     \caption{\centering Python}
     \label{subfig:scenario-bs-py}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.45\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{img/scenario_bs_javascript.png}
+    \caption{\centering Javascript}
+    \label{subfig:scenario-bs-js}
   \end{subfigure}
 
   \caption{Execution time and Stackrecording size for binary search scenario.}
