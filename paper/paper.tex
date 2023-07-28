@@ -13,6 +13,7 @@
 \usepackage{array, caption, tabularx,  ragged2e,  booktabs}
 
 
+
 %
 % Packages and Commands specific to article (see 3)
 %
@@ -670,8 +671,36 @@ When the initialisation is executed for Java and C, the time taken at each stage
 At step 16, we also observe the case of an infinite loop in the scenario.
 
 
-\section{Related Work}
+\section{Discussion \&\ Related Work}
 \label{sec:related-work}
+
+\subsection{Discussion}
+
+While our approach to implement live probes on top of off-the-shelf debuggers provides a viable strategy to add live probes to many mainstream languages, some limitations and open questions remain. Below discuss these in more detail.
+
+``All problems in computer science can be solved by another level of indirection,''\footnote{Attributed to David Wheeler (\url{https://en.wikipedia.org/wiki/David_Wheeler_(computer_scientist)})} yet that often creates other problems. This state of affairs can be recognized in some of the performance results of the DAP-based live probes discussed above. Layering another level of abstraction (the DAP) between the native debuggers and the live probe server, causes performance to degrade, in this case mostly because of the asynchronous nature of the DAP, and serializing data shipped back and forth over sockets (TO CHECK). 
+
+
+In our current approach, the programmer specifies input arguments to functions or methods using special comments in the code. This choice is motivated by the fact that it works in every programming language, does not require special UI affordances, and allows example data to be committed to version control systems. Nevertheless, while most primitive data types have a convenient, human readable literal notation, this can become cumbersome with complex, hetergeneous, structured data, such as arrays, objects, records, etc.  Moreover, these literal notations are language specific: how to specify a constant array in C, Java or Javascript is very different, and needs to be parsed into actual data values from their textual representation in the special comments. 
+
+Another challenge is most visible in the case of object-oriented languages, such as Java, where methods typically live in classes, and can only be invoked when an instance of a class is available. This means the programmer has to specify not just the input parameters, but also values for fields, or arguments to constructors, so that the live probe server can construct the object. This situation becomes worse if, e.g., the constructor depends on other objects as argument, which, in turn, require initialization, and so on.
+
+The above problem of objects and initialization hints at a more basic and general question: how to obtain useful example data in the first place. In this paper we have assumed the programmer provides the data, but there are other strategies worth considering. For instance:
+\begin{itemize}
+  \item As a base case, one could use default values for all arguments (e.g., \lstinline{0}, \lstinline{""}, \lstinline{null}, etc.). This has the drawback that such values might not lead to interesting probe displays. 
+  \item Random value generation, as is employed in randomized testing, could be used to assign values to parameters. However, in this case it is unclear if it leads to the insight the programmer wants, and would be very confusing if the values would change in every iteration.
+  \item If a test suite is available, an off-line tool could observe frequently occurring values and objects passed into methods, through dynamic analysis of the test suite execution. Just like with random generation, however, the problem is to make the assignment stable somehow. 
+\end{itemize}
+The above strategies absolve the programmer from having to specify the example values, but potentially at the cost of reduced quality of feedback. Further research is needed to find an appropriate middle ground between full manual specification, and fully automatic techniques.
+
+Live probes require continual execution of methods and functions. This is fine if the code does not perform any harmful side-effects, such as sending out email, writing files, or launching missiles. While it is probably undecidable to statically check whether a piece of code might eventually perform such a side effect, we leave it to the programmer to indicate whether the live probing feature is switched on, e.g., by providing the annotation of the input arguments. 
+
+Possible future directions to solve this problem would include sandboxed execution~\cite{???}, or intercepting all calls to IO libraries or the operating system. The latter technique would also allow the live probes to not only display variable values, but also, e.g., console output. 
+A more disciplined solution would be offered by languages with built-in notions of capability-based security (such as, e.g., Newspeak~\cite{Newspeak}), so that the live probes can be configured to execute in an environment where dangerous features (such as IO) are not available.  
+
+While the live probes that we have demonstrated support variables updated in loops by displaying them in tabular form, we have not discussed what happens with recursion. The live probe execution repeatedly instructs the debugger to step-over function calls, intermediate stack frames are automatically excluded from the stack-recording, \textit{except} for execution arrives back at the function that is currently probed, since it has a breakpoint on entry. Our current implementation simply continues, and adds stack frames to the recording, even though we are on a different level of the stack. Further research is needed to explicitly deal with this case, and find an appropriate tree-based or nested visualization.
+
+\subsection{Related Work}
 
 Example-Based Live Programming for Everyone\cite{ExampleBasedGraalVM} : Use GraalVM/Truffle to get live information from the code of multiple languages.
 
