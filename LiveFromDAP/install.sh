@@ -122,7 +122,7 @@ if [ ! -f "src/livefromdap/bin/treesitter/javascript.so" ]; then
     git clone https://github.com/tree-sitter/tree-sitter-javascript
     python -c "from tree_sitter import Language;Language.build_library('javascript.so', ['tree-sitter-javascript'])"
     rm -rf tree-sitter-javascript
-    cd ../../..
+    cd ../../../..
 else
     echo "Js tree sitter already installed."
 fi

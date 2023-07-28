@@ -2,4 +2,5 @@ debugpy
 pycparser
 pandas
 flask_socketio
+tree_sitter
 -e git+https://github.com/jbdoderlein/javalang#egg=javalang

@@ -11,6 +11,7 @@ dependencies = [
     "pycparser",
     "flask_socketio",
     "pandas",
+    "tree_sitter",
 ]
 
 [build-system]

@@ -11,6 +11,8 @@ python -m venv venv # Create a virtual environment
 source venv/bin/activate # Activate the virtual environment
 pip install -r requirements.txt # Install the requirements
 pip install -e . # Install the package
+chmod +x install.sh
+./install.sh # Install the debug servers
 ```
 
 ### Getting the debug servers
