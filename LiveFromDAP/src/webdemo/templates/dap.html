@@ -31,6 +31,11 @@ public class Live{
 int foo(int a, int b){
     return a + b;
 }
+{% elif language == 'javascript' %}
+//@foo(1,2)
+function foo(a, b){
+    return a + b;
+}
 {% endif %}
             </textarea>
             <div id="editor-resizer"></div>
@@ -65,6 +70,7 @@ int foo(int a, int b){
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/clike/clike.min.js" integrity="sha512-x8RaqBHf5czJURmaGWqoI3DULFVYrC/GNPfk2iqL5wTCdEX8rlfQw2aHpuZhaEVuMJu1X654forBDVuahLivtQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js" integrity="sha512-vco9RAxEuv4PQ+iTQyuKElwoUOcsVdp+WgU6Lgo82ASpDfF7vI66LlWz+CZc2lMdn52tjjLOuHvy8BQJFp8a1A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js" integrity="sha512-Vs2GKxnxnTQBRW7o2xXZ9A28njjmu5RToS42efiKNEWmikov0inZY522EtGVK5CcVo0M/FQwmXsTfl9skgRnvw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js" integrity="sha512-I6CdJdruzGtvDyvdO4YsiAq+pkWf2efgd1ZUSK2FnM/u2VuRASPC7GowWQrWyjxCZn6CT89s3ddGI+be0Ak9Fg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="{{ url_for('static', filename='live.js') }}"></script>
 <script src="{{ url_for('static', filename='bret.js') }}"></script>
 <script src="{{ url_for('static', filename='resize.js') }}"></script>

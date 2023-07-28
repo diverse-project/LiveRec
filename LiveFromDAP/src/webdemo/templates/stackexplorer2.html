@@ -33,7 +33,13 @@ public class Live{
 //@foo(1,2)
 int foo(int a, int b){
     return a + b;
-}{% endif %}</textarea>
+}
+{% elif language == 'javascript' %}
+//@foo(1,2)
+function foo(a, b){
+    return a + b;
+}
+{% endif %}</textarea>
             <div id="editor-resizer"></div>
         </div>
         <div id="output-container">
@@ -98,6 +104,7 @@ int foo(int a, int b){
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"
     integrity="sha512-Vs2GKxnxnTQBRW7o2xXZ9A28njjmu5RToS42efiKNEWmikov0inZY522EtGVK5CcVo0M/FQwmXsTfl9skgRnvw=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js" integrity="sha512-I6CdJdruzGtvDyvdO4YsiAq+pkWf2efgd1ZUSK2FnM/u2VuRASPC7GowWQrWyjxCZn6CT89s3ddGI+be0Ak9Fg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="{{ url_for('static', filename='live.js') }}"></script>
 <script src="{{ url_for('static', filename='stack2.js') }}"></script>
 <script src="{{ url_for('static', filename='resize.js') }}"></script>

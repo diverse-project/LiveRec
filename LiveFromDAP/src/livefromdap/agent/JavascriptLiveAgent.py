@@ -266,6 +266,9 @@ class JavascriptLiveAgent(BaseLiveAgent):
         """Execute a method with the given arguments"""
         if not path in self._entry_line:
             self.load_code(path)
+            
+        if not method in self._entry_line[path]:
+            return
         
         self.set_breakpoint(path, [self._entry_line[path][method]])
         
@@ -286,7 +289,7 @@ class JavascriptLiveAgent(BaseLiveAgent):
                 height = 0
             else:
                 height = len(stacktrace) - initial_height
-            
+            print(stacktrace[0]["name"], stacktrace[0]["line"])
             if stacktrace[0]["name"] != method:
                 break
             # We need to get local variables
@@ -308,12 +311,13 @@ class JavascriptLiveAgent(BaseLiveAgent):
                 self.initialize()
                 return "Interrupted", stackrecording
         # We are now out of the function, we need to get the return value
-        scope = self.get_scopes(stacktrace[0]["id"])[0]
-        variables = self.get_variables(scope["variablesReference"])
-        return_value = None
-        for variable in variables:
-            if variable["name"] == f'result':
-                return_value = variable["value"]
+        # Pop the last stackframe
+        if len(stackrecording.stackframes) > 1:
+            last = stackrecording.stackframes.pop()
+            stackrecording.stackframes[-1].set_successor(None)
+            return_value = last.get_variable("Return value")
+        else:
+            return_value = None
         for i in range(2): # Needed to reset the debugger agent loop
             self.next_breakpoint()
             self.wait("event", "stopped")

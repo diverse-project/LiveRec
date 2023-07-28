@@ -7,6 +7,9 @@ if (language=="c"){
 if (language=="java"){
     CodeMirror_mode = "text/x-java";
 }
+if (language=="javascript"){
+    CodeMirror_mode = "text/javascript";
+}
 if (language=="python"){
     CodeMirror_mode = {name: "python",
         version: 3,

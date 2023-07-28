@@ -14,6 +14,7 @@ from pycparser import c_parser, parse_file, c_generator
 import ast as python_ast
 import javalang
 from prettyprinter.JavaPrettyPrinter import JavaPrettyPrinter
+from prettyprinter.JavascriptPrettyPrinter import JavascriptPrettyPrinter
 from prettyprinter.PythonPrettyPrinter import PythonPrettyPrinter
 
 class ThreadWithReturnValue(Thread):
@@ -314,7 +315,7 @@ class AutoJavascriptLiveAgent(AutoLiveAgent):
         if self.previous_ast is None:
             self.previous_ast = ast
             changed = True
-        elif self.previous_ast.get_changed_ranges(ast) != []:
+        elif self.previous_ast.root_node.sexp() != ast.root_node.sexp():
             self.previous_ast = ast
             changed = True
         return parsable, changed
@@ -338,13 +339,15 @@ class AutoJavascriptLiveAgent(AutoLiveAgent):
                 "return_value": return_value,
                 "stacktrace": stacktrace.to_json()
             })
-        printer = PythonPrettyPrinter(self.source_path,method)
+        printer = JavascriptPrettyPrinter(self.source_path,method)
         output = printer.pretty_print(stacktrace, return_value=return_value)
         return output
 
     def execute(self, method, args):
         print("Executing", args)
         output = self.agent.execute(self.source_path, method, args)
+        if output is None:
+            return ""
         if output[0] == "Interrupted":
             self.agent.load_code(self.source_path)
         # Get the output of the thread
