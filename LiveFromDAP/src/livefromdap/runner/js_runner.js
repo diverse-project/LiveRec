@@ -19,7 +19,10 @@ var loadFile = function (filename) {
 // test file /home/jbdod/CWI/LiveProbes/test.js
 while (true) {
     if (target_function != null && target_args != null) {
-        let result = target_function.apply(null, target_args);
+        let result = "Interrupted";
+        try{
+            let result = target_function.apply(null, target_args);
+        } catch (e) {}
         target_function = null;
         target_args = null;
     }  
