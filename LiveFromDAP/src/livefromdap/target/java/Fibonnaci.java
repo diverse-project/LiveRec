@@ -1,5 +1,5 @@
 public class Fibonnaci {
-    public static int fibonnaci(int n) throws InterruptedException {
+    public int fibonnaci(int n) throws InterruptedException {
         if (n <= 1) {
             return n;
         }

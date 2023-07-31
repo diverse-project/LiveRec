@@ -44,7 +44,7 @@ def test_java_bubblesort():
     assert return_value is None
 
     return_value, _ = agent.execute("BubbleSort", "bubbleSort", ["new int[]{6,5,4,3,2,1}"])
-    assert return_value is None
+    assert return_value == "Interrupted"
 
     agent.stop_server()
 
@@ -64,7 +64,7 @@ def test_java_fibonnaci():
 
     return_value, _ = agent.execute("Fibonnaci", "fibonnaci", ["5"])
     assert return_value == "5"
-    return_value, _ = agent.execute("Fibonnaci", "fibonnaci", ["8"])
+    return_value, _ = agent.execute("Fibonnaci", "fibonnaci", ["8"], max_steps=1000)
     assert return_value == "21"
 
     agent.stop_server()

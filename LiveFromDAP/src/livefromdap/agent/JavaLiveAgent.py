@@ -139,9 +139,6 @@ class JavaLiveAgent(BaseLiveAgent):
             outputPath = response["result"]["org.eclipse.jdt.ls.core.outputPath"]
             self.project_name = outputPath.split("/")[-2]
         
-        
-        
-
     def lsp_add_document(self, file_path):
         with open(file_path, "r") as f:
             file_code = f.read()
@@ -269,7 +266,7 @@ class JavaLiveAgent(BaseLiveAgent):
         self.server.close()
     
     def setup_runner_breakpoint(self):
-        self.set_breakpoint(os.path.join(self.runner_path, self.runner_file), [53])
+        self.set_breakpoint(os.path.join(self.runner_path, self.runner_file), [56])
         self.configuration_done()
 
     def add_classpath(self, classpath):
