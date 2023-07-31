@@ -8,8 +8,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.sun.jdi.*;
-import com.sun.jdi.LocalVariable;
-import com.sun.jdi.Method;
 import com.sun.jdi.connect.Connector;
 import com.sun.jdi.connect.IllegalConnectorArgumentsException;
 import com.sun.jdi.connect.LaunchingConnector;
@@ -28,10 +26,11 @@ enum State {
 
 
 public class Debugger {
+    private static final String DEBUG_CLASS_PATH = "target/classes";
     private static final String DEBUG_CLASS = "debugger.DebugAgent";
-    private final String classPath;
-    private final String debugClass;
-    private final String debugMethod;
+    private String currentClassPath;
+    private String currentClass;
+    private String currentMethod;
     private final long autoRestart;
 
     private final AtomicReference<VirtualMachine> vm;
@@ -71,10 +70,7 @@ public class Debugger {
         currentStackRecording.get().addStackFrame(new StackFrame(lineNumber, variableMap));
     }
 
-    Debugger(String classPath, String debugClass, String debugMethod, long autoRestart) {
-        this.debugClass = debugClass;
-        this.debugMethod = debugMethod;
-        this.classPath = classPath;
+    Debugger(long autoRestart) {
         this.autoRestart = autoRestart;
         this.vm = new AtomicReference<>();
         this.state = new AtomicReference<>(State.BOOTING);
@@ -83,15 +79,32 @@ public class Debugger {
         this.mirrorCreator = new AtomicReference<>();
     }
 
-    Debugger(String classPath, String debugClass, String debugMethod) {
-        this(classPath, debugClass, debugMethod, 0);
+    Debugger() {
+        this(0);
+    }
+
+    public void loadClass(String classPath, String className) throws ClassNotLoadedException, InvalidTypeException, IncompatibleThreadStateException, InvocationException {
+        assertVMReady();
+        initializeContexts();
+        if (this.currentClassPath == null || !this.currentClassPath.equals(classPath)) {
+            mirrorCreator.get().addClassPath(classPath);
+        }
+        currentClassPath = classPath;
+        if (this.currentClass == null || vm.get().classesByName(className).isEmpty()) {
+            EventRequestManager mgr = vm.get().eventRequestManager();
+            ClassPrepareRequest classPrepareRequest = mgr.createClassPrepareRequest();
+            classPrepareRequest.addClassFilter(className);
+            classPrepareRequest.enable();
+        }
+        currentClass = className; // Will be auto loaded when needed
+        //setState(State.RUNNING);
     }
 
 
     public void connectAndLaunchVM() throws IOException, IllegalConnectorArgumentsException, VMStartException {
         LaunchingConnector launchingConnector = Bootstrap.virtualMachineManager().defaultConnector();
         Map<String, Connector.Argument> arguments = launchingConnector.defaultArguments();
-        arguments.get("main").setValue("-classpath "+ this.classPath + " debugger.DebugAgent");
+        arguments.get("main").setValue("-classpath "+ DEBUG_CLASS_PATH + " " + DEBUG_CLASS);
         vm.set(launchingConnector.launch(arguments));
         mirrorCreator.set(new MirrorCreator(vm.get()));
     }
@@ -103,11 +116,6 @@ public class Debugger {
         ClassPrepareRequest debugAgentRequest = mgr.createClassPrepareRequest();
         debugAgentRequest.addClassFilter(DEBUG_CLASS);
         debugAgentRequest.enable();
-
-        //Create a special class prepare requests for the debug class
-        ClassPrepareRequest classPrepareRequest = mgr.createClassPrepareRequest();
-        classPrepareRequest.addClassFilter(this.debugClass);
-        classPrepareRequest.enable();
     }
 
 
@@ -120,13 +128,13 @@ public class Debugger {
         }
 
         // If no debug method context, create one
-        if (debugObjectReference.get() == null) {
-            ObjectInvocationRequest objectInvocationRequest = new ObjectInvocationRequest(this.debugClass);
+        if (debugObjectReference.get() == null && currentClass != null) {
+            ObjectInvocationRequest objectInvocationRequest = new ObjectInvocationRequest(currentClass);
             debugObjectReference.set((ObjectReference) mirrorCreator.get().mirrorOf(objectInvocationRequest));
         }
     }
 
-    public Optional<Value> callFunction(Object... arguments) throws InterruptedException, IllegalConnectorArgumentsException, VMStartException, IOException, ClassNotLoadedException, InvalidTypeException, IncompatibleThreadStateException, InvocationException {
+    private Optional<Value> callFunction(Object... arguments) throws InterruptedException, IllegalConnectorArgumentsException, VMStartException, IOException, ClassNotLoadedException, InvalidTypeException, IncompatibleThreadStateException, InvocationException {
         assertVMReady();
         // New StackFrame saver
         currentStackRecording.set(new StackRecording());
@@ -143,7 +151,7 @@ public class Debugger {
         Thread thread1 = new Thread(() -> {
             try {
                 List<Value> argumentValues = mirrorCreator.get().convert(arguments);
-                Value returnedValue = debugObjectReference.get().invokeMethod(getThread(), getMethod(), argumentValues, ObjectReference.INVOKE_SINGLE_THREADED);
+                Value returnedValue = debugObjectReference.get().invokeMethod(getThread(), mirrorCreator.get().getMethod(currentClass, currentMethod), argumentValues, ObjectReference.INVOKE_SINGLE_THREADED);
                 invokeSuccess.complete(true);
                 returnValue.complete(returnedValue);
             }
@@ -179,8 +187,9 @@ public class Debugger {
         return Optional.empty();
     }
 
-    public Value callFunctionUntilValue(Object... arguments) {
+    public Value execute(String method, Object... arguments) {
         Value value = null;
+        currentMethod = method;
         while (value == null) {
             // if not the same vm from context, then we need to restart the vm
             try {
@@ -197,15 +206,11 @@ public class Debugger {
         return value;
     }
 
-    public void reloadClass(byte[] classBytes) throws ClassNotLoadedException, IncompatibleThreadStateException, InvocationException, InvalidTypeException {
+    public void reloadClass(String className) throws ClassNotLoadedException, IncompatibleThreadStateException, InvocationException, InvalidTypeException {
         assertVMReady();
         // Initialize contexts
         initializeContexts();
-        Map<ClassType, byte[]> classToBytes = new HashMap<>();
-        ClassType debugClassType = (ClassType) vm.get().classesByName(this.debugClass).get(0);
-        classToBytes.put(debugClassType, classBytes);
-
-        vm.get().redefineClasses(classToBytes); // TODO Handle case where the class has not the same signature (see JShell)
+        mirrorCreator.get().loadClass(className);
     }
 
     public void probeVariables(LocatableEvent event)  throws AbsentInformationException {
@@ -216,7 +221,7 @@ public class Debugger {
         catch (Exception e) {
             return;
         }
-        if(stackFrame.location().toString().contains(debugClass) && stackFrame.location().method().name().equals(debugMethod)) {
+        if(stackFrame.location().toString().contains(currentClass) && stackFrame.location().method().name().equals(currentMethod)) {
             Map<LocalVariable, Value> visibleVariables = stackFrame.getValues(stackFrame.visibleVariables());
             HashMap<String, String> visibleResolvedVariables = new HashMap<>();
             for (Map.Entry<LocalVariable, Value> entry : visibleVariables.entrySet()) {
@@ -264,15 +269,6 @@ public class Debugger {
     private ThreadReference getThread() {
         return vm.get().allThreads().get(0);
     }
-
-    private ClassType getClassType() {
-        return (ClassType) vm.get().classesByName(debugClass).get(0);
-    }
-
-    private Method getMethod() {
-        return getClassType().methodsByName(debugMethod).get(0);
-    }
-
 
     public void start() throws IllegalConnectorArgumentsException, VMStartException, IOException {
         connectAndLaunchVM();
@@ -352,7 +348,7 @@ public class Debugger {
             breakpointRequest.setSuspendPolicy(EventRequest.SUSPEND_ALL);
             breakpointRequest.enable();
         }
-        if (Objects.equals(classType.name(), debugClass) || Objects.equals(classType.name(), DEBUG_CLASS)){
+        if (Objects.equals(classType.name(), currentClass) || Objects.equals(classType.name(), DEBUG_CLASS)){
             MethodEntryRequest entryRequest = mgr.createMethodEntryRequest();
             MethodExitRequest exitRequest = mgr.createMethodExitRequest();
 
@@ -379,7 +375,7 @@ public class Debugger {
     private boolean handleMethodEntryEvent(MethodEntryEvent methodEntryEvent) throws IncompatibleThreadStateException, AbsentInformationException {
         // print the current stack frame variables
         EventRequestManager mgr = vm.get().eventRequestManager();
-        if (Objects.equals(methodEntryEvent.location().declaringType().name(), debugClass) && Objects.equals(methodEntryEvent.location().method().name(), debugMethod)) {
+        if (Objects.equals(methodEntryEvent.location().declaringType().name(), currentClass) && Objects.equals(methodEntryEvent.location().method().name(), currentMethod)) {
             addMethodCallStackFrame(methodEntryEvent);
             probeVariables(methodEntryEvent);
             if (!mgr.stepRequests().isEmpty()) {
@@ -398,7 +394,7 @@ public class Debugger {
     }
 
     private boolean handleMethodExitEvent(MethodExitEvent methodExitEvent){
-        if (Objects.equals(methodExitEvent.location().declaringType().name(), debugClass) && Objects.equals(methodExitEvent.location().method().name(), debugMethod)) {
+        if (Objects.equals(methodExitEvent.location().declaringType().name(), currentClass) && Objects.equals(methodExitEvent.location().method().name(), currentMethod)) {
             EventRequestManager mgr = vm.get().eventRequestManager();
             if (!mgr.stepRequests().isEmpty() && (mgr.stepRequests().get(0).isEnabled())) {
                 mgr.stepRequests().get(0).disable();

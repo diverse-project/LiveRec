@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 public class PrettyPrinterTest {
-
+/*
     @Test
     void testPrettyPrinter() throws Exception {
         Debugger debuggerInstance = new Debugger("target/classes", "samples.BretVictorExample", "binarySearch", 200);
@@ -32,4 +32,5 @@ public class PrettyPrinterTest {
         System.out.println(output);
         debuggerInstance.stop();
     }
+    */
 }

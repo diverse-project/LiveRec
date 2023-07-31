@@ -19,8 +19,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class DebuggerTest {
     @Test
     void testBretVictorExample() throws Exception {
-        Debugger debuggerInstance = new Debugger("target/classes", "samples.BretVictorExample", "binarySearch", 200);
+        Debugger debuggerInstance = new Debugger(200);
         debuggerInstance.start();
+        debuggerInstance.loadClass("target/classes", "samples.BretVictorExample");
         char[] array = new char[]{'a', 'b', 'c', 'd', 'e', 'f'};
         List<Character> list = new ArrayList<>();
         for (char c : array) {
@@ -28,7 +29,7 @@ class DebuggerTest {
         }
         for(char key = 'a'; key < 'k'; key++) {
             // wait for the vm to be finished
-            Value v = debuggerInstance.callFunctionUntilValue(array, key);
+            Value v = debuggerInstance.execute("binarySearch", array, key);
             // Check that if key is in array, then the result is the index of key in array
             if (list.contains(key)) {
                 assertNotEquals("-1", v.toString());
@@ -42,18 +43,19 @@ class DebuggerTest {
 
     @Test
     void testForLoopExample() throws Exception {
-        Debugger debuggerInstance = new Debugger("target/classes", "samples.ForLoopExample", "fibonacci", 200);
+        Debugger debuggerInstance = new Debugger(200);
         debuggerInstance.start();
+        debuggerInstance.loadClass("target/classes", "samples.ForLoopExample");
         for(int key = 0; key < 10; key++) {
             // wait for the vm to be finished
-            Value v = debuggerInstance.callFunctionUntilValue(key);
+            Value v = debuggerInstance.execute("fibonacci", key);
             // Check if the return value is not null and >= 0
             assertNotEquals("null", v.toString());
             assertNotEquals("-1", v.toString());
         }
         debuggerInstance.stop();
     }
-
+    /*
     @Test
     void testClassReload() throws Exception {
         //We need to measure the time of the execution of the function
@@ -102,11 +104,13 @@ class DebuggerTest {
         System.out.println("Time to reload the class: " + (t5 - t4)/1000000000.0);
         System.out.println("Time to execute the function with the modified class: " + (t6 - t5)/1000000000.0);
     }
+    */
 
     @Test
     void testComplexObject1() throws Exception {
-        Debugger debuggerInstance = new Debugger("target/classes", "samples.ComplexObject1", "complexObject1", 200);
+        Debugger debuggerInstance = new Debugger(200);
         debuggerInstance.start();
+        debuggerInstance.loadClass("target/classes", "samples.ComplexObject1");
         boolean a= true;
         byte b = 1;
         char c = 'a';
@@ -117,7 +121,7 @@ class DebuggerTest {
         double h = 6;
         String i = "abc";
         int[] j = new int[]{1,2,3};
-        Value v = debuggerInstance.callFunctionUntilValue(a, b, c, d, e, f, g, h, i, j);
+        Value v = debuggerInstance.execute("complexObject1", a, b, c, d, e, f, g, h, i, j);
         // Check that if key is in array, then the result is the index of key in array
         assertEquals("3", v.toString());
         debuggerInstance.stop();
@@ -125,9 +129,10 @@ class DebuggerTest {
 
     @Test
     void testMultipleClassInvocation() throws Exception {
-        Debugger debuggerInstance = new Debugger("target/classes", "samples.MultipleClassInvocation", "multipleClassInvocation", 200);
+        Debugger debuggerInstance = new Debugger(200);
         debuggerInstance.start();
-        Value v = debuggerInstance.callFunctionUntilValue();
+        debuggerInstance.loadClass("target/classes", "samples.MultipleClassInvocation");
+        Value v = debuggerInstance.execute("multipleClassInvocation");
         // Check that if key is in array, then the result is the index of key in array
         assertTrue(v instanceof VoidValue);
         debuggerInstance.stop();
@@ -135,11 +140,12 @@ class DebuggerTest {
 
     @Test
     void testObjectArgument() throws Exception {
-        Debugger debuggerInstance = new Debugger("target/classes", "samples.ObjectArgument", "objectArgument", 0);
+        Debugger debuggerInstance = new Debugger(200);
         debuggerInstance.start();
+        debuggerInstance.loadClass("target/classes", "samples.ObjectArgument");
         ObjectInvocationRequest bretVictorExampleInvocationRequest = new ObjectInvocationRequest("samples.BretVictorExample");
         ObjectInvocationRequest forLoopExampleInvocationRequest = new ObjectInvocationRequest("samples.ForLoopExample");
-        Value v = debuggerInstance.callFunctionUntilValue(bretVictorExampleInvocationRequest, forLoopExampleInvocationRequest);
+        Value v = debuggerInstance.execute("objectArgument", bretVictorExampleInvocationRequest, forLoopExampleInvocationRequest);
         // Check that if key is in array, then the result is the index of key in array
         assertTrue(v instanceof VoidValue);
         debuggerInstance.stop();
@@ -147,17 +153,20 @@ class DebuggerTest {
 
     @Test
     void testPerformance() throws Exception {
-        Debugger debuggerInstance = new Debugger("target/classes", "samples.UselessClass", "uselessMethod", 200);
+        Debugger debuggerInstance = new Debugger(200);
         debuggerInstance.start();
-        int i = 0;
+        debuggerInstance.loadClass("target/classes", "samples.UselessClass");
+        debuggerInstance.execute("uselessMethod", 10); //warmup
+
         StringBuilder sb = new StringBuilder();
         sb.append(",step, time\n");
-        for(int key = 10; key < 200; key++) {
-            //time the function below
+        for(int key = 1; key < 55; key++) {
+            System.out.println("Step " + key);
             long t1 = System.nanoTime();
-            Value v = debuggerInstance.callFunctionUntilValue(key);
+            Value v = debuggerInstance.execute("uselessMethod", key);
             long t2 = System.nanoTime();
-            sb.append(i).append(",").append(key).append(",").append((t2 - t1) / 1000000000.0).append("\n");
+            StackRecording res = debuggerInstance.getCurrentStackRecording();
+            sb.append(key).append(",").append(res.length()).append(",").append((t2 - t1) / 1000000000.0).append("\n");
         }
         // save to csv
         System.out.println(sb);

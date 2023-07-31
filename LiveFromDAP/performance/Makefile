@@ -29,5 +29,5 @@ scenario/binary_search_javascript_times.json : scenario/evaluate_javascript.py
 .PHONY : clean
 
 clean :
-	rm -f *.csv
+	find . -name "*.csv" | grep -v jdi_times.csv | xargs rm
 	rm -f scenario/*.json

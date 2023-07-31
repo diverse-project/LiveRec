@@ -109,13 +109,40 @@ public class MirrorCreator {
         return array;
     }
 
+    public void addClassPath(String path) throws ClassNotLoadedException, InvalidTypeException, IncompatibleThreadStateException, InvocationException {
+        debugAgent.invokeMethod(vm.allThreads().get(0), debugAgent.referenceType().methodsByName("addPath").get(0), convert(path), ObjectReference.INVOKE_SINGLE_THREADED);
+    }
+
+    public ClassType loadClass(String className) throws ClassNotLoadedException, InvalidTypeException, IncompatibleThreadStateException, InvocationException {
+        ClassObjectReference classLoaded = (ClassObjectReference) debugAgent.invokeMethod(vm.allThreads().get(0), debugAgent.referenceType().methodsByName("loadClass").get(0), convert(className), ObjectReference.INVOKE_SINGLE_THREADED);
+        return (ClassType) classLoaded.reflectedType();
+    }
+
+    public ClassType getClassType(String className){
+        List<ReferenceType> classes = vm.classesByName(className);
+        if (classes.isEmpty()) {
+            try{
+                return loadClass(className);
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        return (ClassType) classes.get(0);
+    }
+
+    public Method getMethod(String className, String debugMethod){
+        ClassType classType = getClassType(className);
+        return classType.methodsByName(debugMethod).get(0);
+    }
+
     private ObjectReference mirrorOf(ObjectInvocationRequest objectInvocationRequest) throws ClassNotLoadedException, InvalidTypeException, IncompatibleThreadStateException, InvocationException {
         List<ReferenceType> classes = vm.classesByName(objectInvocationRequest.getClassName());
         if (classes.isEmpty()) {
-            debugAgent.invokeMethod(vm.allThreads().get(0), debugAgent.referenceType().methodsByName("loadClass").get(0), convert(objectInvocationRequest.getClassName()), ObjectReference.INVOKE_SINGLE_THREADED);
+            loadClass(objectInvocationRequest.getClassName());
             classes = vm.classesByName(objectInvocationRequest.getClassName());
         }
         ClassType objectClassType = (ClassType) classes.get(0);
+
         List<Method> methods = objectClassType.methodsByName("<init>");
         Method constructor = methods.get(0);
         return objectClassType.newInstance(vm.allThreads().get(0), constructor, convert(objectInvocationRequest.getArgs()), ObjectReference.INVOKE_SINGLE_THREADED);

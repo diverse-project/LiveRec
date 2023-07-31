@@ -6,6 +6,11 @@ import java.util.List;
 public class StackRecording{
     List<StackFrame> stackFrames = new LinkedList<>();
 
+    //length of stack recording
+    public int length(){
+        return stackFrames.size();
+    }
+
     public StackRecording(){
         super();
     }
