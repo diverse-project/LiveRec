@@ -112,16 +112,25 @@ else
 fi
 
 
-# Js Tree sitter
-echo "[Js Tree sitter] Checking for Js tree sitter..."
-# check if src/livefromdap/bin/treesitter/javascript.so exists
-if [ ! -f "src/livefromdap/bin/treesitter/javascript.so" ]; then
-    echo "Downloading Js tree sitter..."
+# Tree sitter
+echo "[Tree sitter] Checking for tree sitters ..."
+# check if src/livefromdap/bin/treesitter directory exists
+if [ ! -d "src/livefromdap/bin/treesitter" ]; then
+    echo "Downloading tree sitters..."
     mkdir -p src/livefromdap/bin/treesitter
     cd src/livefromdap/bin/treesitter
     git clone https://github.com/tree-sitter/tree-sitter-javascript
+    git clone https://github.com/tree-sitter/tree-sitter-python
+    git clone https://github.com/tree-sitter/tree-sitter-java
+    git clone https://github.com/tree-sitter/tree-sitter-c
     python -c "from tree_sitter import Language;Language.build_library('javascript.so', ['tree-sitter-javascript'])"
+    python -c "from tree_sitter import Language;Language.build_library('python.so', ['tree-sitter-python'])"
+    python -c "from tree_sitter import Language;Language.build_library('java.so', ['tree-sitter-java'])"
+    python -c "from tree_sitter import Language;Language.build_library('c.so', ['tree-sitter-c'])"
     rm -rf tree-sitter-javascript
+    rm -rf tree-sitter-python
+    rm -rf tree-sitter-java
+    rm -rf tree-sitter-c
     cd ../../../..
 else
     echo "Js tree sitter already installed."

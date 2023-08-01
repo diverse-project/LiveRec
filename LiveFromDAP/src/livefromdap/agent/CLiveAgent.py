@@ -1,46 +1,10 @@
 import os
 import subprocess
-import time
-import pycparser
+from tree_sitter import Language, Parser
 from debugpy.common.messaging import JsonIOStream
 
 from livefromdap.utils.StackRecording import Stackframe, StackRecording
 from .BaseLiveAgent import BaseLiveAgent
-
-class FunctionEndFinder(pycparser.c_ast.NodeVisitor):
-    """Find the possible end line of a function(return and closing bracket)"""
-
-    def __init__(self, path, function_name):
-        self.function_name = function_name
-        with open(path, 'r') as file:
-            self.code = file.read()
-        self.ast = pycparser.parse_file(os.path.abspath(path), use_cpp=True)
-        self.end_line = []
-        self.visit(self.ast)
-        
-    def matching_curly_bracket(self, code, start):
-        stack = []
-        brackets = []
-        lines = code.split("\n")
-        for i, line in enumerate(lines[start:]):
-            for c in line:
-                if c == '{':
-                    stack.append(i)
-                elif c == '}':
-                    j = stack.pop()
-                    brackets.append((start+j+1, start+i+1))
-        return brackets
-        
-    def visit_FuncDef(self, node):
-        if node.decl.name == self.function_name:
-            last_line = self.matching_curly_bracket(self.code, node.coord.line-1)[-1][1]
-            self.end_line.append(last_line)
-            
-    def visit_Return(self, node):
-        self.end_line.append(node.coord.line)
-        self.generic_visit(node)
-
-
 
 class CLiveAgent(BaseLiveAgent):
     def __init__(self, *args,**kwargs):
@@ -49,6 +13,17 @@ class CLiveAgent(BaseLiveAgent):
         self.runner_path = kwargs.get("runner_path", os.path.join(os.path.dirname(__file__), "..", "runner", "c_runner.c"))
         self.runner_path_exec = kwargs.pop("runner_path_exec", os.path.join(os.path.dirname(__file__), "..", "runner", "c_runner"))
         self.dap_server_path = kwargs.get("dap_server_path", os.path.join(os.path.dirname(__file__), "..", "bin", "OpenDebugAD7", "OpenDebugAD7"))
+        self.lang = Language(kwargs.get("tree_sitter_path", os.path.join(os.path.dirname(__file__), "..", "bin", "treesitter", "c.so")), 'c')
+        self.parser = Parser()
+        self.parser.set_language(self.lang)
+        self.end_function_query_string = """
+            (function_definition
+                declarator: (function_declarator
+                    declarator: (identifier) @fname
+                    (#match? @fname "{function_name}")
+                )
+            ) @funcdef
+        """
         self.current_loaded_shared_libraries = None
         self.main_thread_id = None
 
@@ -145,6 +120,17 @@ class CLiveAgent(BaseLiveAgent):
         compilation = subprocess.run(self.compile_command.format(target_input=input_file, target_output=output_file), shell=True, check=True)
         return compilation.returncode
     
+    def get_end_line(self, path, function_name):
+        with open(path, 'r') as file:
+            code = file.read()
+        query = self.lang.query(self.end_function_query_string.format(function_name=function_name))
+        captures = query.captures(self.parser.parse(bytes(code, "utf8")).root_node)
+        captures = [c for c in captures if c[1] == "funcdef"]
+        if len(captures) == 0:
+            raise Exception(f"Function {function_name} not found")
+        else:
+            return captures[0][0].end_point[0]+1
+    
     def setup_runner_breakpoint(self):
         self.set_breakpoint(self.runner_path, [14])
         self.configuration_done()
@@ -166,7 +152,6 @@ class CLiveAgent(BaseLiveAgent):
         self.evaluate(f"-exec call load_lib(\"{path}\")", frame_id)
         self.current_loaded_shared_libraries = libname
             
-
     def add_variable(self, frame_id, stackframes, stackrecording):
         stackframe = stackframes[0]
         line = stackframe["line"]
@@ -183,7 +168,7 @@ class CLiveAgent(BaseLiveAgent):
         frame_id = self.get_stackframes(thread_id=self.main_thread_id)[0]["id"]
         self.evaluate(command, frame_id)
         self.wait("event", event="stopped")
-        end_lines = FunctionEndFinder(os.path.abspath(source_file),method).end_line
+        end_lines = [self.get_end_line(source_file, method)]
         stackrecording = StackRecording()
         self.initial_height = None
         i = 0
