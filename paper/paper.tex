@@ -418,21 +418,7 @@ These methods depend on both the implementation of the debugging server and the 
     \label{tab:implementation-differences}
 \end{table}
 
-\begin{table}[!ht]
-  \centering
-  \begin{tabular}{|l|l|l|}
-  \hline
-      \textbf{} & SLOC Live Probe Server & SLOC KAA \\ \hline
-      \textbf{Java JDI} & 592 (Java) & 15 (Java) \\ \hline
-      \textbf{DAP Base} & 267 (Python) & ~ \\ \hline
-      \textbf{DAP Java} & 352 (Python) & 91 (Java) \\ \hline
-      \textbf{DAP Python} & 142 (Python) & 26(Python) \\ \hline
-      \textbf{DAP Javascript} & 257 (Python) & 24(Javascript) \\ \hline
-      \textbf{DAP C} & 188 (Python) & 14(C) \\ \hline
-  \end{tabular}
-  \caption{SLOC of the Live Probe Server and Keep Alive Agent (To update after new Java changes)}
-  \label{tab:sloc}
-\end{table}
+
 
 With DAP, the compilation step is performed by calling a command line compilation tool (javac and gcc). For the JDI version, developed in Java, the Java compilation API has been used for better performance.
 
@@ -444,6 +430,30 @@ Method execution can be divided into two categories.
 For Java with DAP, Python and Javascript, calling methods directly from the debugger does not trigger breakpoints. To remedy this, execution must be initiated by the KeepAliveAgent rather than by a debugger command. 
 To do this, the KeepAliveAgent code in these languages has fields for referencing a method and its arguments; when this information is entered, the agent starts execution.
 In C, as in Java with JDI, the method is called from the debugger console.
+
+\subsection{Implementation specifications}
+
+\begin{table}[!ht]
+  \centering
+  \noindent\setlength\tabcolsep{4pt}%
+  \begin{tabularx}{0.7\linewidth}{lc*{4}{>{\RaggedRight\arraybackslash}X}}
+      \toprule
+      Implementation & SLOC Live Probe Server & SLOC KAA \\
+      \midrule
+      Java JDI & 527 (Java) & 77 (Java) \\ 
+      DAP Base & 267 (Python) & ~ \\ 
+      DAP Python & 142 (Python) & 26(Python) \\ 
+      DAP Java & 352 (Python) & 115 (Java) \\ 
+      DAP Javascript & 257 (Python) & 24(Javascript) \\ 
+      DAP C & 188 (Python) & 14(C) \\
+      \bottomrule
+  \end{tabularx}
+  \caption{SLOC of the Live Probe Server and Keep Alive Agent}
+  \label{tab:sloc}
+\end{table}
+
+The table \ref{tab:sloc} shows the number of lines of code for the server part and the KAA for each implementation, with the language in brackets. The DAP Base line corresponds to the common code used by the other DAP-based implementations.
+The tests were carried out with OpenJDK 20.0.2 for Java, Python 3.11.2 for Python and Node 18.16.1 for Javascript. The C code was compiled using GCC 13.1.1. The machine used to carry out the evaluations has an AMD Ryzen 5 2500U CPU and 8Gb of RAM.
 
 \section{Evaluation}
 \label{sec:evaluation}

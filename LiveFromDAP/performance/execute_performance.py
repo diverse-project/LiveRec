@@ -176,7 +176,7 @@ for _ in range(3):
 for i in range(33):
     print("Iteration: ", i, end="\r")
     t1 = time.time()
-    _, st = agent.execute(js_source_path, js_method, [i+1], max_steps=1000000)
+    _, st = agent.execute(js_source_path, js_method, [str(i+1)], max_steps=1000000)
     t2 = time.time()
     times["js"][len(st.stackframes)] = t2 - t1
 

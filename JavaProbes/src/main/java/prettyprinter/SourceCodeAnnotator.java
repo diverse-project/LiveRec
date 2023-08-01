@@ -4,10 +4,6 @@ import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import debugger.StackFrame;
 import debugger.StackRecording;
-import debugger.VariableMap;
-
-
-import java.util.List;
 
 
 public class SourceCodeAnnotator {

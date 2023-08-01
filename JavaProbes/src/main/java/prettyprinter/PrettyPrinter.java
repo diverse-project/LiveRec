@@ -1,7 +1,6 @@
 package prettyprinter;
 
 import debugger.StackRecording;
-import debugger.VariableMap;
 
 import java.io.BufferedReader;
 import java.io.File;
