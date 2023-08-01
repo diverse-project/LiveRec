@@ -79,3 +79,5 @@ paper/*.run.xml
 .idea/
 
 *.synctex.gz
+JavaProbes/tmp/*
+!JavaProbes/tmp/.ignore

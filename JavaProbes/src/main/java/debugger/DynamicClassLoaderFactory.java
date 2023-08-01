@@ -6,7 +6,6 @@ import java.util.List;
 public class DynamicClassLoaderFactory {
     List<URL> urls;
     ClassLoader parent;
-
     DynamicClassLoader dynamicClassLoader;
 
     public DynamicClassLoaderFactory(List<URL> urls, ClassLoader parent) {

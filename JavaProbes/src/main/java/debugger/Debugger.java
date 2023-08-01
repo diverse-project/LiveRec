@@ -89,15 +89,13 @@ public class Debugger {
         if (this.currentClassPath == null || !this.currentClassPath.equals(classPath)) {
             mirrorCreator.get().addClassPath(classPath);
         }
-        currentClassPath = classPath;
-        if (this.currentClass == null || vm.get().classesByName(className).isEmpty()) {
-            EventRequestManager mgr = vm.get().eventRequestManager();
-            ClassPrepareRequest classPrepareRequest = mgr.createClassPrepareRequest();
-            classPrepareRequest.addClassFilter(className);
-            classPrepareRequest.enable();
+        if (this.currentClass != null) { // already loaded another class, need to force reload
+            mirrorCreator.get().loadClass(className);
+            ObjectInvocationRequest objectInvocationRequest = new ObjectInvocationRequest(currentClass);
+            debugObjectReference.set((ObjectReference) mirrorCreator.get().mirrorOf(objectInvocationRequest));
         }
+        currentClassPath = classPath;
         currentClass = className; // Will be auto loaded when needed
-        //setState(State.RUNNING);
     }
 
 
@@ -204,13 +202,6 @@ public class Debugger {
             }
         }
         return value;
-    }
-
-    public void reloadClass(String className) throws ClassNotLoadedException, IncompatibleThreadStateException, InvocationException, InvalidTypeException {
-        assertVMReady();
-        // Initialize contexts
-        initializeContexts();
-        mirrorCreator.get().loadClass(className);
     }
 
     public void probeVariables(LocatableEvent event)  throws AbsentInformationException {
