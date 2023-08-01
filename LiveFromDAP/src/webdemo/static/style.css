@@ -70,3 +70,16 @@ body{
 .carousel .indicators .indicator-item {
     background-color: rgba(0, 0, 0, 0.25)!important;
 }
+
+input[type="range"]::-moz-range-thumb {
+	border: none;
+	height: 25px!important;
+	width: 11px!important;
+	border-radius: 10%!important;
+	background: #424242!important;
+	-webkit-transition: -webkit-box-shadow .3s;
+	transition: -webkit-box-shadow .3s;
+	transition: box-shadow .3s;
+	transition: box-shadow .3s, -webkit-box-shadow .3s;
+	margin-top: -3px;
+}

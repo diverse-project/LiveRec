@@ -440,7 +440,7 @@ In C, as in Java with JDI, the method is called from the debugger console.
       \toprule
       Implementation & SLOC Live Probe Server & SLOC KAA \\
       \midrule
-      Java JDI & 527 (Java) & 77 (Java) \\ 
+      Java JDI & 521 (Java) & 77 (Java) \\ 
       DAP Base & 267 (Python) & ~ \\ 
       DAP Python & 142 (Python) & 26(Python) \\ 
       DAP Java & 352 (Python) & 115 (Java) \\ 
@@ -459,6 +459,17 @@ The tests were carried out with OpenJDK 20.0.2 for Java, Python 3.11.2 for Pytho
 \label{sec:evaluation}
 \subsection{Demo : A Minimal Live Programming Environment}
 \label{sec:demo-small-c}
+
+
+We have developed a dynamic programming environment that integrates live probes via Java, C, Python and Javascript debugging servers. 
+
+Each time changes are made in the code editor, the code is sent to the server, which then checks for parseability and syntax errors. 
+In addition, if the code contains a comment beginning with "@", followed by a function call, the server attempts to create a stack recording of that function, with the parameters provided. 
+
+The user interface consists of a web page that interacts with a local server. The demo features two display methods. 
+
+\subsubsection{Bret Victor's style}
+\label{sec:bret-victor-style}
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\linewidth]{img/demo/c.png}
@@ -466,21 +477,46 @@ The tests were carried out with OpenJDK 20.0.2 for Java, Python 3.11.2 for Pytho
   \label{fig:demo}
 \end{figure}
 
-We have developed a dynamic programming environment that incorporates live probes through Java, C, Python, Javascript debug servers. 
-The user interface consists of a web page that interacts with a local server. 
-In Figure \ref{fig:demo}, we present a screenshot depicting a session with a binary\_search function in C. 
-On the left-hand side, there is a code editor (based on CodeMirror 5), while on the right, a panel showcases live probes.
-
-Whenever changes are made in the code editor, the code is sent to the server, which then checks for parseability and syntax errors. 
-Additionally, if the code contains a comment starting with "@", followed by a function call, the server attempts to create a stack recording of that function, along with the provided parameters. 
-This stack recording is subsequently processed through a parser to generate live probes, offering the following functionalities:
+The first mode is inspired by Bret Victor's presentation. The screenshot in Figure \ref{fig:demo} shows a session with a C binary search function. 
+On the left side there is a code editor (based on CodeMirror 5), while on the right a panel displays live probes. The display on the right is generated from source code and stackrecording with a tree sitter to display probes in different locations: 
 
 \begin{itemize}
-  \item Displaying input arguments and return values for each function call.
-  \item Showing the value of each variable definition or assignment. In cases where the assignment is within a loop or called multiple times, all the different values are displayed.
-  \item Presenting the comparison values for each loop (for and while).
+  \item Display of input arguments and return values for each function call.
+  \item Displays the value of each variable definition or assignment. In cases where the assignment is in a loop or is called several times, all the different values are displayed.
+  \item Display comparison values for each loop (for and while).
 \end{itemize}
-    
+
+The use of the tree-sitter is not required to display probes. In fact, it could simply display the variables when they are modified. However, using the tree sitter also allows us to be able to display the state of variables where they are used, such as in comparisons in loops.
+
+\subsubsection{Stack explorer}
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.4\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{img/demo/stack/0.png}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.4\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{img/demo/stack/1.png}
+  \end{subfigure}
+  \vfill
+  \begin{subfigure}[b]{0.4\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{img/demo/stack/2.png}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.4\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{img/demo/stack/3.png}
+  \end{subfigure}
+  \caption{Demo of stack explorer}
+  \label{fig:demo-stack}
+\end{figure}
+
+The second mode, featured in Figure \ref{fig:demo-stack}, displays the stack recording in the form of a history. The screenshots show the different stack states recorded. The right-hand panel shows the stackframe state and a slider for exploring the different states. The location in the source code corresponding to the state where the stackframe has been registered is highlighted in yellow in the Codemirror editor on the left.
+
 \subsection{Performance}
 \label{sec:performance}
 
