@@ -160,7 +160,7 @@ class JavaLiveAgent(BaseLiveAgent):
 
     def start_server(self):
         """Create a subprocess with the agent"""
-        if self.ls_server is None:
+        if not hasattr(self, "ls_server") or self.ls_server is None:
             self.start_ls_server()
         # check if ls server crashed
         if self.ls_server.poll() is not None:
