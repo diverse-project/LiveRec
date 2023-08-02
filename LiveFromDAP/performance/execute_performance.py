@@ -171,7 +171,7 @@ agent.load_code(js_source_path)
 
 # warm up
 for _ in range(3):
-    agent.execute(js_source_path, js_method, [1], max_steps=1000000)
+    agent.execute(js_source_path, js_method, ["1"], max_steps=1000000)
     
 for i in range(33):
     print("Iteration: ", i, end="\r")

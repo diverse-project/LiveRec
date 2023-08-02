@@ -13,7 +13,6 @@ public class DebugAgent {
     }
 
     public void addPath(String path) {
-        System.out.println("Adding path: " + path);
         try {
             File file = new File(path);
             if(file.exists()) {
@@ -26,7 +25,6 @@ public class DebugAgent {
     }
 
     public Class loadClass(String className) {
-        System.out.println("Loading class: " + className);
         try {
             Class clazz = classLoaderFactory.loadClass(className);
             forName(className, true, classLoaderFactory.getClassLoader()); // additional to force class preparation

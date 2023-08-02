@@ -25,9 +25,8 @@ class ThreadWithReturnValue(Thread):
         self._return = None
 
     def run(self):
-        if self._target is not None:
-            self._return = self._target(*self._args,
-                                                **self._kwargs)
+        if self._target is not None: # type: ignore
+            self._return = self._target(*self._args, **self._kwargs) # type: ignore
     def join(self, *args):
         Thread.join(self, *args)
         return self._return
@@ -61,7 +60,6 @@ class AutoCLiveAgent(AutoLiveAgent):
         self.agent = CLiveAgent(debug=False)
         self.agent.start_server()
         self.agent.initialize()
-        print("Agent initialized")
         self.buzy = False
         self.c_parser = c_parser.CParser()
         self.c_generator = c_generator.CGenerator()
@@ -117,7 +115,6 @@ class AutoCLiveAgent(AutoLiveAgent):
     def construct_result_json(self, method, output):
         return_value, stacktrace = output
         if self.raw:
-            print("Sending raw output")
             return json.dumps({
                 "return_value": return_value,
                 "stacktrace": stacktrace.to_json()
@@ -304,7 +301,6 @@ class AutoJavascriptLiveAgent(AutoLiveAgent):
         changed = False
         try:
             ast = self.parser.parse(bytes(code, "utf8"))
-            print("parsing ", ast.root_node.sexp())
             # Query to find ERROR or MISSING nodes
             query = self.lang.query("""
             (ERROR) @error
@@ -346,7 +342,6 @@ class AutoJavascriptLiveAgent(AutoLiveAgent):
         return output
 
     def execute(self, method, args):
-        print("Executing", args)
         output = self.agent.execute(self.source_path, method, args)
         if output is None:
             return ""

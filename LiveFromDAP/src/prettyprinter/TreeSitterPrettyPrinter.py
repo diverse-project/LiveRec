@@ -2,6 +2,9 @@ from tree_sitter import Language,Parser
 from livefromdap.utils.StackRecording import StackRecording
 
 class TreeSitterPrettyPrinter():
+    tree_sitter_path : str
+    tree_sitter_name : str
+    
     def __init__(self, file_path, method_name):
         self.file_path = file_path
         self.method_name = method_name
@@ -37,7 +40,7 @@ class TreeSitterPrettyPrinter():
     
     
     def setup_function(self, formatter : dict):
-        function_params_query = self.lang.query(self.setup_function_query.format(**formatter))
+        function_params_query = self.lang.query(self.setup_function_query.format(**formatter)) # type: ignore
         captures = function_params_query.captures(self.ast.root_node)
         params = []
         for capture, capture_type in captures:
@@ -53,7 +56,7 @@ class TreeSitterPrettyPrinter():
         self.output[self.function_start[0]] = fdef_string
         
     def visit_assignment(self):
-        vardecl_query = self.lang.query(self.assignment_query)
+        vardecl_query = self.lang.query(self.assignment_query) # type: ignore
         
         captures = vardecl_query.captures(self.ast.root_node)
         for capture, capture_type in captures:
@@ -68,7 +71,7 @@ class TreeSitterPrettyPrinter():
                 self.output[capture.start_point[0]] += f"{varname} = {value}"
     
     def visit_while(self):
-        while_decl_query = self.lang.query(self.while_query)
+        while_decl_query = self.lang.query(self.while_query) # type: ignore
         captures = while_decl_query.captures(self.ast.root_node)
         variables = {}
         for capture, capture_type in captures:

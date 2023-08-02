@@ -25,7 +25,7 @@ class CLiveAgent(BaseLiveAgent):
             ) @funcdef
         """
         self.current_loaded_shared_libraries = None
-        self.main_thread_id = None
+        self.main_thread_id = 0
 
     def start_server(self):
         """Create a subprocess with the agent"""
@@ -170,11 +170,11 @@ class CLiveAgent(BaseLiveAgent):
         self.wait("event", event="stopped")
         end_lines = [self.get_end_line(source_file, method)]
         stackrecording = StackRecording()
-        self.initial_height = None
+        self.initial_height = -1
         i = 0
         while True:
             stackframes = self.get_stackframes(thread_id=self.main_thread_id)
-            if self.initial_height is None:
+            if self.initial_height == -1:
                 self.initial_height = len(stackframes)
             frame_id = stackframes[0]["id"]
             if stackframes[0]["name"] == "main()":

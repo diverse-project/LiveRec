@@ -13,7 +13,7 @@ class JavaScriptPreprocessor:
     This is done by adding module.exports = {function_name: function_name} to the end of the file
     """
     
-    def __init__(self, input_path, output_path):
+    def __init__(self, input_path : str, output_path : str):
         self.input_path = input_path
         self.output_path = output_path
         self.lang = Language(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "bin","treesitter","javascript.so")), 'javascript')
@@ -90,18 +90,18 @@ class JavascriptLiveAgent(BaseLiveAgent):
         while True:
             # check if the process returned an error
             if self.server_process.poll() is not None:
-                error = self.server_process.stderr.readline()
+                error = self.server_process.stderr.readline() # type: ignore
                 # if address already in use
                 if b"Error: listen EADDRINUSE: address already in use" in error:
                     # fidn the process that is using the port
                     p = subprocess.Popen(["lsof", "-i", ":8123"], stdout=subprocess.PIPE)
                     p.wait()
-                    lsof_output = p.stdout.readlines()
+                    lsof_output = p.stdout.readlines() # type: ignore
                     pid = lsof_output[-1].split()[1]
                     subprocess.Popen(["kill", pid])
                     self.start_server()
                     return
-            output = self.server_process.stdout.readline()
+            output = self.server_process.stdout.readline() # type: ignore
             # wait for : Debug server listening at 127.0.0.1:8123
             if b"Debug server listening" in output:
                 break
@@ -254,7 +254,7 @@ class JavascriptLiveAgent(BaseLiveAgent):
         self.configuration_done()
 
 
-    def load_code(self, path):
+    def load_code(self, path : str):
         """For this agent, loading code is loading a class in the runner"""
         jspp = JavaScriptPreprocessor(path, path)
         self._entry_line[path] = jspp.functions
@@ -262,13 +262,13 @@ class JavascriptLiveAgent(BaseLiveAgent):
         self.evaluate(f'loadFile("{path}")', frame_id)
 
 
-    def execute(self, path, method, args, max_steps=100):
+    def execute(self, path : str, method : str, args : list[str], max_steps : int =100) -> tuple[str, StackRecording]:
         """Execute a method with the given arguments"""
         if not path in self._entry_line:
             self.load_code(path)
             
         if not method in self._entry_line[path]:
-            return
+            return "Error", StackRecording()
         
         self.set_breakpoint(path, [self._entry_line[path][method]])
         
@@ -289,7 +289,6 @@ class JavascriptLiveAgent(BaseLiveAgent):
                 height = 0
             else:
                 height = len(stacktrace) - initial_height
-            print(stacktrace[0]["name"], stacktrace[0]["line"])
             if stacktrace[0]["name"] != method:
                 break
             # We need to get local variables
@@ -317,7 +316,7 @@ class JavascriptLiveAgent(BaseLiveAgent):
             stackrecording.stackframes[-1].set_successor(None)
             return_value = last.get_variable("Return value")
         else:
-            return_value = None
+            return_value = "Unknown"
         for i in range(2): # Needed to reset the debugger agent loop
             self.next_breakpoint()
             self.wait("event", "stopped")

@@ -1,6 +1,7 @@
 import subprocess
 import os
 from abc import ABC, abstractmethod
+from debugpy.common.messaging import JsonIOStream
 
 from livefromdap.utils.StackRecording import StackRecording
 
@@ -50,8 +51,10 @@ class BaseLiveAgent(BaseLiveAgentInterface):
     This class should not be used directly, but should be inherited by a specific LiveAgent"""
 
     seq : int = 0
+    
+    io : JsonIOStream
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         self.debug = kwargs.get("debug", False)
         self.seq = 0
         
@@ -290,7 +293,7 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         self.io.write_json(evaluate_request)
         return self.wait("response", command="evaluate")
 
-    def wait(self, type: str, event : str= None, command : str = None) -> dict:
+    def wait(self, type: str, event : str = "", command : str = "") -> dict:
         """Wait for a specific message from the debuggee
 
         Args:
@@ -305,7 +308,7 @@ class BaseLiveAgent(BaseLiveAgentInterface):
             dict: the message received
         """
         while True:
-            output = self.io.read_json()
+            output : dict = self.io.read_json() # type: ignore
             if self.debug: print(output)
             if output["type"] == "request" and output["command"] == "runInTerminal":
                 if self._handleRunInTerminal(output):

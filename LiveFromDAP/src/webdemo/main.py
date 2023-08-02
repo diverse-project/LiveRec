@@ -164,15 +164,14 @@ def stackt(language):
 
 @socketio.on('disconnect')
 def on_disconnect():
-    if request.sid in sessions_to_sid and (session_id:=sessions_to_sid[request.sid]) in sessions:
+    if request.sid in sessions_to_sid and (session_id:=sessions_to_sid[request.sid]) in sessions: # type: ignore
         sessions[session_id].agent.agent.stop_server()
         del sessions[session_id]
 
 @socketio.on('join')
 def on_join(data):
-    print("join")
     session_id = data.get("session_id")
-    sessions_to_sid[request.sid] = session_id
+    sessions_to_sid[request.sid] = session_id # type: ignore
     language = data.get("language")
     join_room(session_id)
     if not session_id in sessions:

@@ -10,7 +10,6 @@ from .JavaParams import *
 class JavaLiveAgent(BaseLiveAgent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.ls_server = None
         self.ls_server_path = kwargs.get("ls_server_path", os.path.join(os.path.dirname(__file__), "..", "bin", "jdt-language-server", "bin", "jdtls"))
         self.debug_jar_path = kwargs.get("debug_jar_path", os.path.join(os.path.dirname(__file__), "..", "bin", "com.microsoft.java.debug.plugin.jar"))
         self.runner_path = kwargs.get("runner_path", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "runner")))
@@ -57,7 +56,7 @@ class JavaLiveAgent(BaseLiveAgent):
         }
         })
         while True:
-            response = self.ls_io.read_json()
+            response : dict = self.ls_io.read_json() # type: ignore
             if self.debug: print("[LanguageServer]", response)
             if "method" in response and response["method"] == "client/registerCapability" and response["params"]["registrations"][0]["method"] == "workspace/executeCommand":
                 self.ls_capabilities += response["params"]["registrations"][0]["registerOptions"]["commands"]
@@ -72,7 +71,7 @@ class JavaLiveAgent(BaseLiveAgent):
         runner_file_path = os.path.join(self.runner_path, self.runner_file)
         self.lsp_add_document(runner_file_path)
         while True:
-            response = self.ls_io.read_json()
+            response = self.ls_io.read_json() # type: ignore
             if self.debug: print("[LanguageServer]", response)
             if "method" in response and response["method"] == "client/registerCapability" and response["params"]["registrations"][0]["method"] == "workspace/executeCommand":
                 self.ls_capabilities += response["params"]["registrations"][0]["registerOptions"]["commands"]
@@ -92,7 +91,7 @@ class JavaLiveAgent(BaseLiveAgent):
                 }
             })
             while True:
-                response = self.ls_io.read_json()
+                response = self.ls_io.read_json() # type: ignore
                 if self.debug: print("[LanguageServer]",response)
                 if "id" in response and response["id"] == 30:
                     break
@@ -111,7 +110,7 @@ class JavaLiveAgent(BaseLiveAgent):
             })
         
             while True:
-                response = self.ls_io.read_json()
+                response = self.ls_io.read_json() # type: ignore
                 if self.debug: print("[LanguageServer]",response)
                 if "id" in response and response["id"] == 30:
                     break
@@ -131,7 +130,7 @@ class JavaLiveAgent(BaseLiveAgent):
                 }
             })
             while True:
-                response = self.ls_io.read_json()
+                response = self.ls_io.read_json() # type: ignore
                 if self.debug: print("[LanguageServer]",response)
                 if "id" in response and response["id"] == 32:
                     break
@@ -178,7 +177,7 @@ class JavaLiveAgent(BaseLiveAgent):
         })
         debug_serport = None
         while True:
-            response = self.ls_io.read_json()
+            response : dict = self.ls_io.read_json() # type: ignore
             if self.debug: print("[LanguageServer]", response)
             if "id" in response and response["id"] == 2:
                 debug_serport = response["result"]
@@ -290,7 +289,7 @@ class JavaLiveAgent(BaseLiveAgent):
         self.evaluate(f"runner.loadMethod(\"{method_name}\")", frame_id)
         self.method_loaded = method_name
             
-    def get_start_line(self, file_path, class_name, method_name):
+    def get_start_line(self, file_path : str, class_name : str, method_name : str) -> int:
         """Get the first line of the file"""
         seq_id = self.new_seq()
         def_req = {
@@ -305,7 +304,7 @@ class JavaLiveAgent(BaseLiveAgent):
         }
         self.ls_io.write_json(def_req)
         while True:
-            output = self.ls_io.read_json()
+            output : dict = self.ls_io.read_json() # type: ignore
             if self.debug: print("[LSP]", output)
             if "id" in output and output["id"] == seq_id:
                 break
@@ -315,6 +314,7 @@ class JavaLiveAgent(BaseLiveAgent):
                 for method in clazz["children"]:
                     if f"{method_name}(" in method["name"]:
                         return method["range"]["start"]["line"]
+        return -1
     
     def get_local_variables(self):
         stacktrace = self.get_stackframes(thread_id=self.thread_id)

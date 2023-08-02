@@ -104,22 +104,22 @@ java_args = ["new int[]{1,2,3,4,5,6}", "9"]
 
 times = {
     "c": {
-        "initialize": 0,
-        "compile": 0,
-        "load_code": 0,
-        "execute": 0
+        "initialize": 0.,
+        "compile": 0.,
+        "load_code": 0.,
+        "execute": 0.
     },
     "python": {
-        "initialize": 0,
-        "compile": 0,
-        "load_code": 0,
-        "execute": 0
+        "initialize": 0.,
+        "compile": 0.,
+        "load_code": 0.,
+        "execute": 0.
     },
     "java": {
-        "initialize": 0,
-        "compile": 0,
-        "load_code": 0,
-        "execute": 0
+        "initialize": 0.,
+        "compile": 0.,
+        "load_code": 0.,
+        "execute": 0.
     }
 }
 
