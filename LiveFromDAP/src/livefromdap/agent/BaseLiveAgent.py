@@ -314,8 +314,8 @@ class BaseLiveAgent(BaseLiveAgentInterface):
                 if self._handleRunInTerminal(output):
                     continue
             if output["type"] == type:
-                if event is None or output["event"] == event:
-                    if command is None or output["command"] == command:
+                if event == "" or output["event"] == event:
+                    if command == "" or output["command"] == command:
                         return output
             if output["type"] == "event" and output["event"] == "terminated":
                 raise DebuggeeTerminatedError()

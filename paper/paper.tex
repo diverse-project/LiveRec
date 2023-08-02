@@ -492,22 +492,23 @@ The use of the tree-sitter is not required to display probes. In fact, it could 
 
 \begin{figure}[htbp]
   \centering
-  \begin{subfigure}[b]{0.4\textwidth}
+  \begin{subfigure}[b]{0.45\textwidth}
       \centering
       \includegraphics[width=\textwidth]{img/demo/stack/0.png}
   \end{subfigure}
   \hfill
-  \begin{subfigure}[b]{0.4\textwidth}
+  \begin{subfigure}[b]{0.45\textwidth}
     \centering
     \includegraphics[width=\textwidth]{img/demo/stack/1.png}
   \end{subfigure}
   \vfill
-  \begin{subfigure}[b]{0.4\textwidth}
+  \par\bigskip
+  \begin{subfigure}[b]{0.45\textwidth}
     \centering
     \includegraphics[width=\textwidth]{img/demo/stack/2.png}
   \end{subfigure}
   \hfill
-  \begin{subfigure}[b]{0.4\textwidth}
+  \begin{subfigure}[b]{0.45\textwidth}
     \centering
     \includegraphics[width=\textwidth]{img/demo/stack/3.png}
   \end{subfigure}
@@ -566,9 +567,16 @@ The data shows that the loading time remains constant concerning the number of l
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\textwidth]{img/execute.png}
-  \caption{Execution time in seconds depending on the number of steps.}
+  \includegraphics[width=0.5\textwidth]{img/execute.png}
+  \caption{Execution time with DAP in seconds depending on the number of steps.}
   \label{fig:execute-time}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.5\textwidth]{img/execute_java_jdi.png}
+  \caption{Comparison of execution time with DAP and JDI in seconds depending on the number of steps.}
+  \label{fig:execute-java-jdi}
 \end{figure}
 
 Next, we evaluated the execution time as a function of the number of steps in the debugger. 
@@ -577,6 +585,10 @@ Note that the execution time shows a linear relationship with the number of step
 In fact, for each implementation we obtain a constant time for each stack frame recorded, corresponding to the time taken to obtain the state of the stack frame and the time taken for the debugger to perform a step. 
 The difference in time between the different DAP languages is explained by the implementation of the debug server. 
 With C, the debug server is a simple wrapper around gdb, which has very good performance.
+Figure \ref{fig:execute-java-jdi} shows Java execution times with DAP and JDI. 
+The y-axis is in logarithmic scale. 
+There is a significant difference in performance between the two implementations, despite the fact that the DAP server implementation in Java also uses JDI.
+We have not found the cause of this difference in performance. % TODO : find it
 
 \subsubsection{What is the average performance during a live programming session?}
 
@@ -648,6 +660,7 @@ The results are shown in table \ref{table:average-time}.
 To test the performance of our approach under real conditions, we recreated the live programming scenario presented in the video by bret victor. 
 The scenario describes the programming of a function performing a binary search on an array of characters. It consists of 19 steps, including 10 steps where the source code is modified and 9 steps where the parameters are changed. 
 
+\begin{table}
 \begin{enumerate}
   \item The function is defined and the parameters are defined to be an array of characters(\code{['a','b','c','d','e',f']}) and a target character(\code{'d'}).
   \item A new variable \code{low} is defined.
@@ -669,6 +682,9 @@ The scenario describes the programming of a function performing a binary search 
   \item The condition of the while loop is changed to \code{low <= high}.
   \item A return \code{-1} is added at the end of the function.
 \end{enumerate}
+\caption{Steps of the binary search scenario.}
+\label{table:scenario-bs}
+\end{table}
 
 
 The scenario also includes the case where the tested method does not finish at step 17. As the code in Bret Victor's presentation is in Javascript, it has been adapted to the 3 languages studied in this paper.
