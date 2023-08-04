@@ -42,6 +42,7 @@
 %%
 
 
+
 %%%%%%%%%%%%%%%%%%
 %% These data MUST be filled for your submission. (see 5.3)
 \paperdetails{
@@ -272,19 +273,26 @@ int foo(int n) {
   \label{fig:stack-recording}
 \end{figure}
 
-\begin{table}[ht]
+\begin{table}[t]
   \centering
-  \begin{tabular}{|c|c|c|c|c|}
-  \hline
-      \textbf{Line 3} & \textbf{Line 4} & \textbf{Line 5} & \textbf{Line 7} & \textbf{Line 8} \\ \hline
-      n=3 & n=3;i=0 & n=3;i=0 & ~ & ~ \\ \hline
-      ~ & n=3;i=1 & n=3;i=1 & ~ & ~ \\ \hline
-      ~ & n=3;i=2 & n=3;i=2 & ~ & ~ \\ \hline
-      ~ & n=3;i=3 & ~ & n=3;i=3 & return 3 \\ \hline
-  \end{tabular}
-  \label{tab:stack-recording}
-  \caption{Stack Recording Example 2}
+  \includegraphics[width=\textwidth]{img/matrix.pdf}
+  \caption{Tracking variable values across time and space}
 \end{table}
+
+
+% \begin{table}[ht]
+%   \centering
+%   \begin{tabular}{|c|c|c|c|c|}
+%   \hline
+%       \textbf{Line 3} & \textbf{Line 4} & \textbf{Line 5} & \textbf{Line 7} & \textbf{Line 8} \\ \hline
+%       n=3 & n=3;i=0 & n=3;i=0 & ~ & ~ \\ \hline
+%       ~ & n=3;i=1 & n=3;i=1 & ~ & ~ \\ \hline
+%       ~ & n=3;i=2 & n=3;i=2 & ~ & ~ \\ \hline
+%       ~ & n=3;i=3 & ~ & n=3;i=3 & return 3 \\ \hline
+%   \end{tabular}
+%   \label{tab:stack-recording}
+%   \caption{Stack Recording Example 2}
+% \end{table}
 
 In order to generate the data needed to probe a variable, we need to be able to retrieve the state of the variable during execution. 
 This information is contained in the stackframe at the time of execution. 
@@ -434,21 +442,21 @@ In C, as in Java with JDI, the method is called from the debugger console.
 \subsection{Implementation specifications}
 
 \begin{table}[!ht]
-  \centering
+  %\centering
   \noindent\setlength\tabcolsep{4pt}%
-  \begin{tabularx}{0.7\linewidth}{lc*{4}{>{\RaggedRight\arraybackslash}X}}
+  \begin{tabular}{lrlrl}
       \toprule
-      Implementation & SLOC Live Probe Server & SLOC KAA \\
+      Implementation & \multicolumn{2}{l}{\#SLOC Probe Server} & \multicolumn{2}{l}{\#SLOC Keep-Alive Agent} \\
       \midrule
-      Java JDI & 521 (Java) & 77 (Java) \\ 
-      DAP Base & 267 (Python) & ~ \\ 
-      DAP Python & 142 (Python) & 26(Python) \\ 
-      DAP Java & 352 (Python) & 115 (Java) \\ 
-      DAP Javascript & 257 (Python) & 24(Javascript) \\ 
-      DAP C & 188 (Python) & 14(C) \\
+      Java JDI & 521 & Java & 77 & Java \\ 
+      DAP Base & 267  & Python & --- & \\ 
+      DAP Python & 142 & Python & 26 & Python \\ 
+      DAP Java & 352 & Python & 115 & Java \\ 
+      DAP Javascript & 257 & Python & 24 & Javascript \\ 
+      DAP C & 188 & Python & 14 & C \\
       \bottomrule
-  \end{tabularx}
-  \caption{SLOC of the Live Probe Server and Keep Alive Agent}
+  \end{tabular}
+  \caption{Size of the language specific components in SLOC and their implementation languages.}
   \label{tab:sloc}
 \end{table}
 
