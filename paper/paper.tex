@@ -10,7 +10,7 @@
 \usepackage{listings}
 \usepackage{graphicx}
 \usepackage{subcaption} % For subfigures
-\usepackage{array, caption, tabularx,  ragged2e,  booktabs}
+\usepackage{array, caption, tabularx,  ragged2e,  booktabs, xspace}
 
 
 
@@ -41,7 +41,7 @@
 \newcommand*{\CTAN}[1]{\href{http://ctan.org/tex-archive/#1}{\nolinkurl{CTAN:#1}}}
 %%
 
-
+\def\coolname{\textsc{LiveRec}\xspace}
 
 %%%%%%%%%%%%%%%%%%
 %% These data MUST be filled for your submission. (see 5.3)
@@ -135,25 +135,25 @@ commentstyle=\color{javagreen}}
 \begin{abstract}
   %What is the broad context of the work? What is the importance of the general research area?
   \textit{Context.}
-  In the first part of his 2012 presentation ``Inventing on Principle''~\cite{InventingOnPrinciple}, Bret Victor gives a demo of live code editor for Javascript which shows the dynamic history of values of variables in real time. This form of live programming has become known as ``live probes''~\cite{MakingMethodsLive,UsableLiveProgramming,ExampleBasedGraalVM}. Using live probes the programmer has a permanent and continuous insight into the dynamic evolution of function or method variables, thus improving feedback and developer experience. 
+  In the first part of his 2012 presentation ``Inventing on Principle''~\cite{InventingOnPrinciple}, Bret Victor gives a demo of live code editor for Javascript which shows the dynamic history of values of variables in real time. This form of live programming has become known as ``probes''~\cite{MakingMethodsLive,UsableLiveProgramming,ExampleBasedGraalVM}. Probes provide the programmer with permanent and continuous insight into the dynamic evolution of function or method variables, thus improving feedback and developer experience. 
   
   % What problem or question does the paper address? How has this problem or question been addressed by others (if at all)?
-  \textit{Inquiry.} Although Bret Victor shows a working prototype of live probes in the context of Javascript, he does not discuss strategies for implementing them. Later work~\cite{ExampleBasedGraalVM} provides an implementation approach, but this requires a programming language to be implemented on top of the GraalVM runtime~\cite{GraalVM}. In this paper we investigate generic engineering strategies that can be applied in the context of many programming languages, without requiring dedicated compiler or runtime support. 
+  \textit{Inquiry.} Although Bret Victor shows a working prototype of live probes in the context of Javascript, he does not discuss strategies for implementing them. Later work~\cite{ExampleBasedGraalVM} provides an implementation approach, but this requires a programming language to be implemented on top of the GraalVM runtime~\cite{GraalVM}. In this paper we present \coolname, a generic approach for implementing probes which can be applied in the context of many programming languages, without requiring dedicated compiler or runtime support. 
   
   % What was done that unveiled new knowledge?
   \textit{Approach.}
-  In this paper we explore how debugger protocols can be exploited to implement live probes. Methods or functions are compiled after every code change and executed inside the debugger. During execution the evolution of all local variables in the current stack frame are recorded and communicated back to the IDE for display to the user. 
+  \coolname is based on reusing existing debug protocols to implement probes. Methods or functions are compiled after every code change and executed inside the debugger. During execution the evolution of all local variables in the current stack frame are recorded and communicated back to the IDE for display to the user. 
 
   % What new facts were uncovered? If the research was not results oriented, what new capabilities are enabled by the work?
   \textit{Knowledge.}
-  It turns out that debugger protocols are rich enough for implementing live probes. Step-wise execution, hot code swapping and stack frame inspection provide the right granularity and sufficient information to realize live probes, without modifying compilers or language runtimes. Furthermore, it turns out that the recently proposed Debugger Adapter Protocol (DAP)~\cite{DAP} provides an even more generic approach of implementing live probes, but, in some cases, at the cost of a significant performance penalty. 
+  It turns out that debug protocols are rich enough for implementing live probes. Step-wise execution, hot code swapping, and stack frame inspection provide the right granularity and sufficient information to realize live probes, without modifying compilers or language runtimes. Furthermore, it turns out that the recently proposed Debugger Adapter Protocol (DAP)~\cite{DAP} provides an even more generic approach of implementing live probes, but, in some cases, at the cost of a significant performance penalty. 
 
   % What argument, feasibility proof, artifacts, or results and evaluation support this work?
   \textit{Grounding.}
-  We have implemented live probes using stack recording natively for Java through the Java Debug Interface (JDI)~\cite{JDI}, and through the DAP for Java, Python, C, and Javascript, all with minimum glue code.  We evaluate the run-time performance of all four live probes prototypes, decomposed into: compile-after-change, hotswap, single step overhead, and stack recording overhead. Our results show that live probes on top of native debugger APIs are performant enough for interactive use. In the case of DAP, it depends on characteristics of the programming language. 
+  We have applied \coolname to implement probes using stack recording natively for Java through the Java Debug Interface (JDI)~\cite{JDI}, and through the DAP for Java, Python, C, and Javascript, all requiring just reasonable amounts glue code. We evaluate the run-time performance of all four probes prototypes, decomposed into: compile-after-change, hotswap, single step overhead, and stack recording overhead. Our results show that live probes on top of native debug APIs are performant enough for interactive use. In the case of DAP, it depends on characteristics of the programming language. 
 
   % Why does this work matter?
-  \textit{Importance.} Live programming improves the programmer experience by providing immediate feedback about a program's execution and eliminating disruptive edit-compile-restart sequences. Live probes are one way to shorten the programmer feedback loop at the level of functions and methods. Although live probes are not new, and have been implemented in (prototype) systems, our approach of building live probes on top of existing and generic debugger protocols opens up live probes for a host of mainstream programming languages, with minimum effort.
+  \textit{Importance.} Live programming improves the programmer experience by providing immediate feedback about a program's execution and eliminating disruptive edit-compile-restart sequences. Probes are one way to shorten the programmer feedback loop at the level of functions and methods. Although probes are not new, and have been implemented in (prototype) systems, \coolname's approach of building live probes on top of existing and generic debug protocols opens up probes for a host of mainstream programming languages, with minimum effort.
 \end{abstract}
 
 
