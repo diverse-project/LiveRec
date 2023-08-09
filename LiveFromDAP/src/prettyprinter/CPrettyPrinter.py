@@ -42,6 +42,23 @@ class CPrettyPrinter(TreeSitterPrettyPrinter):
         )
     """
     
+    for_query = """
+        (for_statement
+            initializer: (declaration
+                declarator: (init_declarator
+                declarator: (identifier) @forvar
+                )
+            )
+            condition: (binary_expression
+                left: (identifier) @forvar
+                right: (identifier) @forvar
+            )
+            update: (update_expression
+                argument: (identifier) @forvar
+            )
+        )
+    """
+    
     def __init__(self, file, method):
         self.tree_sitter_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "livefromdap", "bin","treesitter","c.so"))
         self.tree_sitter_name = 'c'

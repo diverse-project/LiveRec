@@ -38,6 +38,15 @@ else
     echo "Java debug server already installed."
 fi
 
+# GDB Debug
+echo "[C Debug] Checking for gdb"
+# check if node is installed
+# if node -v exit with 0 then it is installed
+if ! gdb -v &> /dev/null; then
+    echo "You need to install GDB"
+    exit 1
+fi
+
 # C Debug
 echo "[C Debug] Checking for C debug server..."
 # check if src/livefromdap/bin/OpenDebugAD7 directory exists

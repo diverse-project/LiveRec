@@ -34,6 +34,8 @@ class TreeSitterPrettyPrinter():
             self.visit_assignment()
         if hasattr(self, "while_query"):
             self.visit_while()
+        if hasattr(self, "for_query"):
+            self.visit_for()
     
     def is_in_range(self, node):
         return node.start_point[0] >= self.function_start[0] and node.end_point[0] <= self.function_end[0]
@@ -59,12 +61,12 @@ class TreeSitterPrettyPrinter():
         vardecl_query = self.lang.query(self.assignment_query) # type: ignore
         
         captures = vardecl_query.captures(self.ast.root_node)
-        for capture, capture_type in captures:
+        for capture, _ in captures:
             if self.is_in_range(capture):
                 varname = capture.text.decode("utf8")
                 value = ""
                 for stack in self.stacktrace.get_stackframes_line(capture.start_point[0]+1):
-                    if stack.successor is not None and stack.successor.get_variable(varname) is not None:
+                    if stack.successor is not None and len(stack.successor.get_variable(varname)) > 0:
                         value += stack.successor.get_variable(varname) + ", "
                 if value != "":
                     value = value[:-2]
@@ -86,5 +88,22 @@ class TreeSitterPrettyPrinter():
             for var in vars:
                 output_string += f"{var} = {','.join([stack.successor.get_variable(var) for stack in stackframes if stack.successor is not None])} | "
             self.output[line] += output_string[:-3]
+    
+    def visit_for(self):
+        for_decl_query = self.lang.query(self.for_query) # type: ignore
+        captures = for_decl_query.captures(self.ast.root_node)
+        variables = {}
+        for capture, capture_type in captures:
+            if self.is_in_range(capture):
+                if capture_type == "forvar":
+                    if not capture.start_point[0] in variables:
+                        variables[capture.start_point[0]] = []
+                    variables[capture.start_point[0]].append(capture.text.decode("utf8").strip())
+        for line, vars in variables.items():
+            stackframes = self.stacktrace.get_stackframes_line(line+1)
+            output_string = ""
+            for var in set(vars):
+                output_string += f"{var} = {','.join([stack.successor.get_variable(var) for stack in stackframes if stack.successor is not None])} | "
+            self.output[line] = output_string[:-3]
         
     
