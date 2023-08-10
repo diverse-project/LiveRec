@@ -373,24 +373,25 @@ public class KeepAliveAgent {
   \label{fig:java-keep-alive-agent}
 \end{figure}
 
-We have developed a debugger capable of stack recording using JDI, a debugging interface for Java. 
-A simplified pseudo code of this class is presented in Figure \ref{fig:debugger-class}.
-The class includes a method to initialise the JVM (line 2), a method to search or reload a class in the VM (line 5) and a method to generate a stack recording of a method (line 10). 
+To enable stack recording, we developed a debugger leveraging the Java Debug Interface (JDI) library. 
+A simplified pseudo-code representation of this debugger is displayed in Figure \ref{fig:debugger-class}. 
+The class contains a method for starting the JVM (at line 2), a process to load or reload a class within the VM (at line 5), and a procedure for generating a method stack record (at line 10). Although in practice, the implementation involves multiple interacting threads, these details have been omitted from this overview in favor of clarity and simplicity.
 
-For initialisation, a JVM containing the instrumentation provided by JDI is launched on the KeepAliveAgent class \ref{fig:java-keep-alive-agent} and a breakpoint is set on the infinite loop in the \code{main} function (line 9). 
-This breakpoint is used to keep the debugger alive in a wait state, which is necessary to use the JDI primitives \code{mirrorOf}, \code{newInstance} and \code{invokeMethod}.
+Initialization involves the launch of a JVM that features JDI instrumentation, utilizing the KeepAliveAgent class (in Figure \ref{fig:java-keep-alive-agent}). 
+Concurrently, a breakpoint is established at the infinite loop within the \code{main} function, visible at line 9. 
+This breakpoint's function is to maintain the debugger in a state of suspension. This waiting state is requisite for the use of JDI primitives such as \code{mirrorOf}, \code{newInstance}, and \code{invokeMethod}.
 
-To load a class, we use a dynamic ClassLoader which allows us to add class paths and load a class during execution. 
-When the code changes, the class is reloaded into the KeepAliveAgent. 
-This method has one limitation: it only works if the class signature has not changed, and only the contents of the methods have changed. 
-If the structure has changed, the KeepAliveAgent must be restarted. 
-This limitation can be overcome with certain JVM implementations\cite{KABANOV201151}.
+Class loading is achieved using a dynamic ClassLoader, which gives us the ability to append class paths and load a class during execution. 
+Modifications to the code cause the class to be reloaded into the KeepAliveAgent. 
+However, there is a caveat to this procedure - it only works if the class signature remains consistent and only the method content is changed. 
+Any changes to the structure will require a restart of the KeepAliveAgent. 
+It is to be noted that specific JVM implementations can bypass this limitation \cite{}.
 
-To execute the target method (line 10 in Debugger\ref{fig:debugger-class}), the arguments are created in the client JVM, then passed to the debugger JVM using the \code{mirrorOf} and \code{newInstance} methods of the reflection API (line 11). 
-A breakpoint is then placed at the input of the target method (line 12).
-The target method is invoked using \code{invokeMethod}. 
-Stack recording is then performed using the algorithm described in the previous paragraph. 
-As long as the method is not finished, the debugger registers the stackframe and takes a step in the debuggee.
+To execute a function (line 10 in Debugger class, Figure \ref{fig:debugger-class}), the debugger creates the values associated with the arguments locally. 
+It then transmits these values to the JVM containing the KAA using the \code{mirrorOf} and \code{newInstance} methods of JDI's Reflection API (line 11). 
+The debugger then sets a breakpoint at the target method's input (line 12) and launches the target method using \code{invokeMethod}. 
+The debugger then registers the stack using the algorithm described in the previous paragraph.
+Until the method is completed, the debugger registers the stack frame and takes a step forward in debugging.
 
 \section{Generalizing Live Probes with Debugger Adapter Protocol}
 \label{sec:generalizing-live-probes}
