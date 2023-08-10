@@ -399,6 +399,32 @@ The Debug Adapter Protocol (DAP), developed by Microsoft, is a standard method o
 
 By exploiting this protocol, we have created a new language parametric backend, which we have implemented for the C, Python, Java and Javascript programming languages. These languages are chosen to cover both compiled and interpreted languages. 
 This backend offers an interface common to all three languages, which includes methods for starting and initialising the debugging server, loading and reloading code in the debugger, and executing a method while performing stack recording. 
+Table \ref{tab:dap-req} contains a list of the requests from the DAP that we have used to implement the interface.
+
+\begin{table}[h]
+  \centering
+  \noindent\setlength\tabcolsep{4pt}%
+  \begin{tabularx}{\linewidth}{ll*{2}{>{\RaggedRight\arraybackslash}X}}
+    \toprule
+    Request & Usage \\ [0.5ex]
+    \midrule
+    Initialize and Launch & Initialize the DAP server and launch the debuggee \\ 
+    \addlinespace
+    SetBreakpoints & Set breakpoints at location in source code \\ 
+    \addlinespace
+    StackTrace & Get the state of the current stacktrace \\ 
+    \addlinespace
+    Scops and Variables & Get the current scopes and variables in it \\ 
+    \addlinespace
+    Evaluate & Evaluate expression in the debugee \\ 
+    \addlinespace
+    Next and Continue & Request to step or continue in the debuggee \\ 
+    \addlinespace
+    \bottomrule
+  \end{tabularx}
+  \caption{DAP Requests}
+  \label{tab:dap-req}
+\end{table}
 
 These methods allow us to carry out stack recording independently of the chosen language and facilitate the future implementation of live programming interfaces. 
 
@@ -428,13 +454,11 @@ These methods depend on both the implementation of the debugging server and the 
     \label{tab:implementation-differences}
 \end{table}
 
-
-
 With DAP, the compilation step is performed by calling a command line compilation tool (javac and gcc). For the JDI version, developed in Java, the Java compilation API has been used for better performance.
 
 The way the code is loaded also depends on the programming language. For Python, the code is loaded by being interpreted by the debug console during execution.
 For Javascript, a line is added at the end of the imported file to export all the functions in the file as a module, which is then loaded into the KeepAliveAgent with \code{require}.
-For Java, as with the JDI version, a DynamicClassLoader is used. For C, the code is loaded into shared libraries that can be added and reloaded at runtime.
+For Java, as with the JDI version, a Dynamic ClassLoader is used. For C, the code is loaded into shared libraries that can be added and reloaded at runtime.
 
 Method execution can be divided into two categories.
 For Java with DAP, Python and Javascript, calling methods directly from the debugger does not trigger breakpoints. To remedy this, execution must be initiated by the KeepAliveAgent rather than by a debugger command. 
