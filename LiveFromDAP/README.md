@@ -58,19 +58,18 @@ For manual installation you can recompile from source or download the binaries:
 
 ```python
 from livefromdap import CLiveAgent
-agent = CLiveAgent(
-        runner_path="src/livefromdap/runner/runner.c",
-        target_path="src/livefromdap/target/binary_search.c",
-        target_method="binary_search",
-        runner_path_exec="src/livefromdap/runner/runner",
-        target_path_exec="src/livefromdap/target/binary_search.so",
-        debug=False)
-agent.load_code()
-return_value, _ = agent.execute(["{1,2,3,4,5,6}", "6", "9"])
-assert return_value['value'] == "-1"
+agent = CLiveAgent()
+agent.start_server()
+agent.initialize()
+source_path = os.path.abspath("src/livefromdap/target/c/binary_search.c")
+compiled_path = os.path.abspath("src/livefromdap/target/c/binary_search.so")
+agent.load_code(compiled_path)
+return_value, _ = agent.execute(source_path, "binary_search", ["{1,2,3,4,5,6}", "6", "9"])
+assert return_value == "-1"
+agent.stop_server()
 ```
 
 ## Web interface
 
 The web interface is available at `http://localhost:5000/` when the agent is running.
-To run the web interface, you need to run `python src/webdemo/main.py` and open the web interface in your browser.
+To run the web interface, you need to run `liverec` and open the web interface in your browser.

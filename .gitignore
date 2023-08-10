@@ -81,3 +81,4 @@ paper/*.run.xml
 *.synctex.gz
 JavaProbes/tmp/*
 !JavaProbes/tmp/.ignore
+paper/paper.pdf
