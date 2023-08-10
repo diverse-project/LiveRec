@@ -595,8 +595,12 @@ The difference in time between the different DAP languages is explained by the i
 With C, the debug server is a simple wrapper around gdb, which has very good performance.
 Figure \ref{fig:execute-java-jdi} shows Java execution times with DAP and JDI. 
 The y-axis is in logarithmic scale. 
-There is a significant difference in performance between the two implementations, despite the fact that the DAP server implementation in Java also uses JDI.
-We have not found the cause of this difference in performance. % TODO : find it
+There is a significant difference in performance between the two implementations, despite the fact that the DAP server implementation in Java also uses JDWP.
+By profiling the execution of the java debug server, we found two causes for this performance gap:
+\begin{itemize}
+  \item The first is due to the "evaluate" request in the DAP protocol. To run the function and define the arguments in the DAP implementation, we use "evaluate" requests. These requests require an additional compilation step in the debug server compared with the version using JDI. In the JDI version, the arguments are actually copied into the debugger directly from the server coded in Java. To improve the performance of our DAP implementation, if the arguments are not changed between two executions, they are kept in the KAA.
+  \item The second cause is the native performance of the debugger server. Our method automates debugger procedures, and the observed performance of these procedures is sufficient for human use. For example, obtaining the stacktrace takes an average of 40 ms. When used by a person, this delay is less than 0.1 seconds and is considered instantaneous. However, when we perform stack recording, this request will be executed a significant number of times (depending on the size of the code).
+\end{itemize}
 
 \subsubsection{What is the average performance during a live programming session?}
 
