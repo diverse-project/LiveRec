@@ -194,9 +194,9 @@ def handle_json(json_msg):
         return
     sessions[session_id].queue.put(json_msg)
     
-        
+def run():
+    socketio.run(app)
 
 
 if __name__ == '__main__':
-    #no reload because of the global variables
-    socketio.run(app)
+    run()

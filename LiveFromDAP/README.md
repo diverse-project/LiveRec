@@ -69,3 +69,8 @@ agent.load_code()
 return_value, _ = agent.execute(["{1,2,3,4,5,6}", "6", "9"])
 assert return_value['value'] == "-1"
 ```
+
+## Web interface
+
+The web interface is available at `http://localhost:5000/` when the agent is running.
+To run the web interface, you need to run `python src/webdemo/main.py` and open the web interface in your browser.
