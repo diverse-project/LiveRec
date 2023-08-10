@@ -450,12 +450,12 @@ In C, as in Java with JDI, the method is called from the debugger console.
       \toprule
       Implementation & \multicolumn{2}{l}{\#SLOC Probe Server} & \multicolumn{2}{l}{\#SLOC Keep-Alive Agent} \\
       \midrule
-      Java JDI & 521 & Java & 77 & Java \\ 
-      DAP Base & 267  & Python & --- & \\ 
+      Java JDI & 521 & Java & 75 & Java \\ 
+      DAP Base & 270  & Python & --- & \\ 
       DAP Python & 142 & Python & 26 & Python \\ 
-      DAP Java & 352 & Python & 115 & Java \\ 
-      DAP Javascript & 257 & Python & 24 & Javascript \\ 
-      DAP C & 188 & Python & 14 & C \\
+      DAP Java & 360 & Python & 114 & Java \\ 
+      DAP Javascript & 256 & Python & 24 & Javascript \\ 
+      DAP C & 181 & Python & 14 & C \\
       \bottomrule
   \end{tabular}
   \caption{Size of the language specific components in SLOC and their implementation languages.}
@@ -463,7 +463,7 @@ In C, as in Java with JDI, the method is called from the debugger console.
 \end{table}
 
 The table \ref{tab:sloc} shows the number of lines of code for the server part and the KAA for each implementation, with the language in brackets. The DAP Base line corresponds to the common code used by the other DAP-based implementations.
-The tests were carried out with OpenJDK 20.0.2 for Java, Python 3.11.2 for Python and Node 18.16.1 for Javascript. The C code was compiled using GCC 13.1.1. The machine used to carry out the evaluations has an AMD Ryzen 5 2500U CPU and 8Gb of RAM.
+The tests were carried out with OpenJDK 20.0.2 for Java, Python 3.11.2 for Python and Node 18.16.1 for Javascript. The C code was compiled using GCC 13.1.1 and GDB 13.2 was used for stack recording. The machine used to carry out the evaluations has an AMD Ryzen 5 2500U CPU and 8Gb of RAM.
 
 \section{Evaluation}
 \label{sec:evaluation}

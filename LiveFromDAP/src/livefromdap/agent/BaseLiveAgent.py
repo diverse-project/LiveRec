@@ -1,6 +1,7 @@
 import subprocess
 import os
 from abc import ABC, abstractmethod
+from typing import Any
 from debugpy.common.messaging import JsonIOStream
 
 from livefromdap.utils.StackRecording import StackRecording
@@ -51,10 +52,11 @@ class BaseLiveAgent(BaseLiveAgentInterface):
     This class should not be used directly, but should be inherited by a specific LiveAgent"""
 
     seq : int = 0
+    debug : bool = False
     
     io : JsonIOStream
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs : Any):
         self.debug = kwargs.get("debug", False)
         self.seq = 0
         

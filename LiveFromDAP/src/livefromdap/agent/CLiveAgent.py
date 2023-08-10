@@ -23,6 +23,7 @@ class CLiveAgent(BaseLiveAgent):
                     (#match? @fname "{function_name}")
                 )
             ) @funcdef
+            (return_statement) @return
         """
         self.current_loaded_shared_libraries = None
         self.main_thread_id = 0
@@ -120,16 +121,22 @@ class CLiveAgent(BaseLiveAgent):
         compilation = subprocess.run(self.compile_command.format(target_input=input_file, target_output=output_file), shell=True, check=True)
         return compilation.returncode
     
-    def get_end_line(self, path, function_name):
+    def get_end_line(self, path : str, function_name : str) -> list[int]:
         with open(path, 'r') as file:
             code = file.read()
         query = self.lang.query(self.end_function_query_string.format(function_name=function_name))
         captures = query.captures(self.parser.parse(bytes(code, "utf8")).root_node)
-        captures = [c for c in captures if c[1] == "funcdef"]
+        captures = [c for c in captures if c[1] == "funcdef" or c[1] == "return"]
         if len(captures) == 0:
             raise Exception(f"Function {function_name} not found")
         else:
-            return captures[0][0].end_point[0]+1
+            res = []
+            for capture in captures:
+                if capture[1] == "funcdef":
+                    res.append(capture[0].end_point[0] + 1)
+                if capture[1] == "return":
+                    res.append(capture[0].start_point[0] + 1)
+            return res
     
     def setup_runner_breakpoint(self):
         self.set_breakpoint(self.runner_path, [14])
@@ -162,14 +169,15 @@ class CLiveAgent(BaseLiveAgent):
         recorded_stackframe = Stackframe(line, column, height, variables)
         stackrecording.add_stackframe(recorded_stackframe)
     
-    def execute(self, source_file, method, args, max_steps=300):
+    def execute(self, source_file : str, method : str, args : list[str], max_steps : int=300) -> tuple[str, StackRecording]:
         self.set_function_breakpoint([method])
         command = f"-exec call {method}({','.join(args)})"
         frame_id = self.get_stackframes(thread_id=self.main_thread_id)[0]["id"]
         self.evaluate(command, frame_id)
         self.wait("event", event="stopped")
-        end_lines = [self.get_end_line(source_file, method)]
+        end_lines : list[int] = self.get_end_line(source_file, method)
         stackrecording = StackRecording()
+        return_value = ""
         self.initial_height = -1
         i = 0
         while True:
@@ -182,7 +190,7 @@ class CLiveAgent(BaseLiveAgent):
                 scope = self.get_scopes(stackframes[0]["id"])[0]
                 variables = self.get_variables(scope["variablesReference"])
                 if len(variables) == 0:
-                    return_value = None
+                    return_value = ""
                 else:
                     return_value = variables[0]["value"]
                 break

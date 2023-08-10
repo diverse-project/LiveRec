@@ -1,23 +1,28 @@
 import os
 import subprocess
-from debugpy.common.messaging import JsonIOStream
-from debugpy.common import sockets
+from typing import Any
+from debugpy.common.messaging import JsonIOStream # type: ignore
+from debugpy.common import sockets # type: ignore
 
 from livefromdap.utils.StackRecording import Stackframe, StackRecording
 from .BaseLiveAgent import BaseLiveAgent
 from .JavaParams import *
 
 class JavaLiveAgent(BaseLiveAgent):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.ls_server_path = kwargs.get("ls_server_path", os.path.join(os.path.dirname(__file__), "..", "bin", "jdt-language-server", "bin", "jdtls"))
+    def __init__(self, *args : str, **kwargs : str): 
+        super().__init__(*args, **kwargs) # type: ignore
+        self.ls_server_path : str = kwargs.get("ls_server_path", os.path.join(os.path.dirname(__file__), "..", "bin", "jdt-language-server", "bin", "jdtls"))
+        assert os.path.exists(self.ls_server_path), f"Could not find language server at {self.ls_server_path}"
         self.debug_jar_path = kwargs.get("debug_jar_path", os.path.join(os.path.dirname(__file__), "..", "bin", "com.microsoft.java.debug.plugin.jar"))
+        assert os.path.exists(self.debug_jar_path), f"Could not find debug jar at {self.debug_jar_path}"
         self.runner_path = kwargs.get("runner_path", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "runner")))
         self.runner_file = kwargs.get("runner_file", "Runner.java")
-        self.project_name = None
+        assert os.path.exists(os.path.join(self.runner_path, self.runner_file)), f"Could not find runner file at {os.path.join(self.runner_path, self.runner_file)}"
+        self.project_name = ""
         self.method_loaded= None
         self.loaded_classes = {}
         self.loaded_class_paths = []
+        self.last_args = None
 
     def start_ls_server(self):
         self.ls_server = subprocess.Popen(
@@ -26,7 +31,7 @@ class JavaLiveAgent(BaseLiveAgent):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
-        self.ls_capabilities = []
+        self.ls_capabilities : list[str] = []
         self.ls_io = JsonIOStream.from_process(self.ls_server)
         self.ls_io.write_json({
             "jsonrpc": "2.0",
@@ -138,7 +143,7 @@ class JavaLiveAgent(BaseLiveAgent):
             outputPath = response["result"]["org.eclipse.jdt.ls.core.outputPath"]
             self.project_name = outputPath.split("/")[-2]
         
-    def lsp_add_document(self, file_path):
+    def lsp_add_document(self, file_path : str):
         with open(file_path, "r") as f:
             file_code = f.read()
         self.ls_io.write_json({
@@ -349,13 +354,15 @@ class JavaLiveAgent(BaseLiveAgent):
         breakpoint = self.get_start_line(self.loaded_classes[clazz], clazz, method) + 1
         self.set_breakpoint(self.loaded_classes[clazz], [breakpoint])
 
-        frame_id = self.get_stackframes(self.thread_id)[0]["id"]
-        # We need to load the arguments into the target program
-        self.evaluate(f"runner.args = new Object[{len(args)}]", frame_id)
-        for i, arg in enumerate(args):
-            if arg.startswith('{') and arg.endswith('}'):
-                raise NotImplementedError("Array need to be created, for example replace {'a', 'b'} with new char[]{'a', 'b'}")
-            self.evaluate(f"runner.args[{i}] = {arg}", frame_id)
+        if self.last_args is None or self.last_args != args:
+            frame_id = self.get_stackframes(self.thread_id)[0]["id"]
+            # We need to load the arguments into the target program
+            self.evaluate(f"runner.args = new Object[{len(args)}]", frame_id)
+            for i, arg in enumerate(args):
+                if arg.startswith('{') and arg.endswith('}'):
+                    raise NotImplementedError("Array need to be created, for example replace {'a', 'b'} with new char[]{'a', 'b'}")
+                self.evaluate(f"runner.args[{i}] = {arg}", frame_id)
+            self.last_args = args
 
         self.next_breakpoint()
         self.wait("event", "stopped")
@@ -373,6 +380,7 @@ class JavaLiveAgent(BaseLiveAgent):
                 self.initialize()
                 self.loaded_classes = {}
                 self.loaded_class_paths = []
+                self.last_args = None
                 return "Interrupted", stacktrace
             if stop:
                 if variables[0]["name"].startswith(f"->{method}"):

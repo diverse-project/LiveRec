@@ -1,8 +1,15 @@
 # Live From DAP
 
-This package provides a set of tools for working with live data obtained from the [DAP]().
+This package provides a implementation of the Live Probes framework using the Debug Adapter Protocol (DAP).
 
 ## Installation
+
+To run this package, you need :
+- `python` (tested with 3.11, should work with 3.8+)
+- `gcc` (tested with 13.1.0)
+- `gdb` (tested with 13.2)
+- `node` (tested with 18)
+- `java` and `javac` (tested with OpenJDK 17 and 20)
 
 ```bash
 git clone https://github.com/cwi-swat/LiveProbes/
@@ -17,7 +24,8 @@ chmod +x install.sh
 
 ### Getting the debug servers
 
-The script `get_debug_servers.sh` can be used to download the debug servers for the different languages.
+The script `install.sh` can be used to download the debug servers for the different languages.
+It was tested for Linux (Arch Linux).
 
 #### Python
 

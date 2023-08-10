@@ -13,7 +13,7 @@ from livefromdap.utils.StackRecording import Stackframe
 from prettyprinter.CPrettyPrinter import CPrettyPrinter
 from pycparser import c_parser, parse_file, c_generator
 import ast as python_ast
-import javalang
+import javalang # type: ignore
 from prettyprinter.JavaPrettyPrinter import JavaPrettyPrinter
 from prettyprinter.JavascriptPrettyPrinter import JavascriptPrettyPrinter
 from prettyprinter.PythonPrettyPrinter import PythonPrettyPrinter
@@ -115,6 +115,7 @@ class AutoCLiveAgent(AutoLiveAgent):
     def construct_result_json(self, method, output):
         return_value, stacktrace = output
         if self.raw:
+            stacktrace.last_stackframe.variables.append({"name":"return", "value":return_value})
             return json.dumps({
                 "return_value": return_value,
                 "stacktrace": stacktrace.to_json()
@@ -190,6 +191,7 @@ class AutoJavaLiveAgent(AutoLiveAgent):
     def construct_result_json(self, method, output):
         return_value, stacktrace = output
         if self.raw:
+            stacktrace.last_stackframe.variables.append({"name":"return", "value":return_value})
             return json.dumps({
                 "return_value": return_value,
                 "stacktrace": stacktrace.to_json()
@@ -333,6 +335,7 @@ class AutoJavascriptLiveAgent(AutoLiveAgent):
     def construct_result_json(self, method, output):
         return_value, stacktrace = output
         if self.raw:
+            stacktrace.last_stackframe.variables.append({"name":"return", "value":return_value})
             return json.dumps({
                 "return_value": return_value,
                 "stacktrace": stacktrace.to_json()

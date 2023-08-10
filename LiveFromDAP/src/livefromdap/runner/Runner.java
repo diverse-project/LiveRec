@@ -53,7 +53,7 @@ public class Runner {
         Runner runner = new Runner();
         Object result;
         while (true) {
-            if (runner.method != null && runner.args != null) {
+            if (runner.method != null) {
                 try {
                     // check if static
                     if (Modifier.isStatic(runner.method.getModifiers())) {
@@ -81,7 +81,6 @@ public class Runner {
                         }
                         result = runner.method.invoke(classInstance, runner.args);
                     }
-                    runner.args = null;
                     runner.method = null;
                 } catch (Exception e) {
                     e.printStackTrace();

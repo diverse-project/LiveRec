@@ -1,6 +1,19 @@
 #!/bin/bash
 # This script will download and install the debug servers for LiveFromDAP
 
+
+echo "[Java Debug] Checking for Java"
+if ! java --version &> /dev/null; then
+    echo "You need to install java"
+    exit 1
+fi
+
+echo "[Java Debug] Checking for Javac"
+if ! javac --version &> /dev/null; then
+    echo "You need to install javac"
+    exit 1
+fi
+
 # JDT LS
 echo "[JDT LS] Checking for JDT LS..."
 # check if src/livefromdap/bin/jdt-language-server directory exists
@@ -39,13 +52,24 @@ else
 fi
 
 # GDB Debug
-echo "[C Debug] Checking for gdb"
+echo "[C Debug] Checking for GCC"
+# check if node is installed
+# if node -v exit with 0 then it is installed
+if ! gcc -v &> /dev/null; then
+    echo "You need to install GCC"
+    exit 1
+fi
+
+# GDB Debug
+echo "[C Debug] Checking for GDB"
 # check if node is installed
 # if node -v exit with 0 then it is installed
 if ! gdb -v &> /dev/null; then
     echo "You need to install GDB"
     exit 1
 fi
+
+
 
 # C Debug
 echo "[C Debug] Checking for C debug server..."
@@ -92,6 +116,14 @@ echo "[Node Debug] Checking for Node"
 # if node -v exit with 0 then it is installed
 if ! node -v &> /dev/null; then
     echo "You need to install Node.js"
+    exit 1
+fi
+
+echo "[Node Debug] Checking for NPM"
+# check if node is installed
+# if node -v exit with 0 then it is installed
+if ! npm --version &> /dev/null; then
+    echo "You need to install NPM"
     exit 1
 fi
 
@@ -148,7 +180,7 @@ fi
 # Make runner files executable
 echo "[Runner] Making runner files executable..."
 cd src/livefromdap
-make runner
+make all
 chmod +x runner/*
 cd ../..
 
