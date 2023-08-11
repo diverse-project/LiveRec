@@ -1,5 +1,8 @@
 package debugger;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.util.LinkedList;
 import java.util.List;
 
@@ -30,5 +33,17 @@ public class StackRecording{
 
     public StackFrame getStackFrame(int index){
         return stackFrames.get(index);
+    }
+
+    public JSONArray toJSON(){
+        JSONArray json = new JSONArray();
+        for (int i = 0; i < stackFrames.size(); i++) {
+            json.put(stackFrames.get(i).toJSON());
+        }
+        return json;
+    }
+
+    public void clear() {
+        stackFrames.clear();
     }
 }

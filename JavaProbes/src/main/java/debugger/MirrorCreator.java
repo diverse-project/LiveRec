@@ -115,6 +115,9 @@ public class MirrorCreator {
 
     public ClassType loadClass(String className) throws ClassNotLoadedException, InvalidTypeException, IncompatibleThreadStateException, InvocationException {
         ClassObjectReference classLoaded = (ClassObjectReference) debugAgent.invokeMethod(vm.allThreads().get(0), debugAgent.referenceType().methodsByName("loadClass").get(0), convert(className), ObjectReference.INVOKE_SINGLE_THREADED);
+        if (classLoaded == null) {
+            throw new ClassNotLoadedException(className);
+        }
         return (ClassType) classLoaded.reflectedType();
     }
 
@@ -127,6 +130,7 @@ public class MirrorCreator {
                 e.printStackTrace();
             }
         }
+        // get the last class loaded
         return (ClassType) classes.get(0);
     }
 

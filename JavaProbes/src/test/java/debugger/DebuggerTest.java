@@ -35,6 +35,8 @@ class DebuggerTest {
             } else {
                 assertEquals("-1", v.toString());
             }
+            // get length of the stack recording, and assert > 0
+            assertTrue(debuggerInstance.getCurrentStackRecording().length() > 0);
         }
         debuggerInstance.stop();
     }

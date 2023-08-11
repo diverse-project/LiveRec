@@ -153,6 +153,8 @@ else
 fi
 
 
+
+
 # Tree sitter
 echo "[Tree sitter] Checking for tree sitters ..."
 # check if src/livefromdap/bin/treesitter directory exists

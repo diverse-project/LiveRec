@@ -86,6 +86,12 @@ public class Debugger {
     public void loadClass(String classPath, String className) throws ClassNotLoadedException, InvalidTypeException, IncompatibleThreadStateException, InvocationException {
         assertVMReady();
         initializeContexts();
+        // check if classpath exists
+        File f = new File(classPath);
+        if (!f.exists()) {
+            throw new IllegalArgumentException("Classpath does not exist");
+        }
+
         if (this.currentClassPath == null || !this.currentClassPath.equals(classPath)) {
             mirrorCreator.get().addClassPath(classPath);
         }
@@ -94,6 +100,11 @@ public class Debugger {
             ObjectInvocationRequest objectInvocationRequest = new ObjectInvocationRequest(currentClass);
             debugObjectReference.set((ObjectReference) mirrorCreator.get().mirrorOf(objectInvocationRequest));
         }
+        EventRequestManager mgr = vm.get().eventRequestManager();
+        ClassPrepareRequest debugAgentRequest = mgr.createClassPrepareRequest();
+        debugAgentRequest.addClassFilter(className);
+        debugAgentRequest.enable();
+
         currentClassPath = classPath;
         currentClass = className; // Will be auto loaded when needed
     }
@@ -187,6 +198,12 @@ public class Debugger {
 
     public Value execute(String method, Object... arguments) {
         Value value = null;
+        if (currentStackRecording.get() == null) {
+            currentStackRecording.set(new StackRecording());
+        }
+        if (currentStackRecording.get().length() > 0) {
+            currentStackRecording.get().clear();
+        }
         currentMethod = method;
         while (value == null) {
             // if not the same vm from context, then we need to restart the vm
@@ -198,7 +215,7 @@ public class Debugger {
                 Thread.currentThread().interrupt();
             }
             catch (Exception e) {
-                e.printStackTrace();
+                currentStackRecording.set(new StackRecording());
             }
         }
         return value;
@@ -232,16 +249,19 @@ public class Debugger {
         List<Value> argsValues = stackFrame.getArgumentValues();
         Method method = stackFrame.location().method();
         HashMap<String, String> args = new HashMap<>();
-        List<String> argNames = method.arguments().stream().map(LocalVariable::name).toList();
-        for (int i = 0; i < argsValues.size(); i++) {
-            if (argsValues.get(i) instanceof ArrayReference arrayReference){
-                args.put(argNames.get(i), arrayReference.getValues().toString());
+        try {
+            List<String> argNames = method.arguments().stream().map(LocalVariable::name).toList();
+            for (int i = 0; i < argsValues.size(); i++) {
+                if (argsValues.get(i) instanceof ArrayReference arrayReference) {
+                    args.put(argNames.get(i), arrayReference.getValues().toString());
+                } else {
+                    args.put(argNames.get(i), argsValues.get(i).toString());
+                }
             }
-            else {
-                args.put(argNames.get(i), argsValues.get(i).toString());
-            }
+            addVariableMap(-1, args);
+        } catch (AbsentInformationException e) {
+            // do nothing, see https://docs.oracle.com/javase/8/docs/jdk/api/jpda/jdi/com/sun/jdi/Method.html#arguments
         }
-        addVariableMap(-1, args);
     }
 
     private void assertVMReady() {
@@ -367,8 +387,12 @@ public class Debugger {
         // print the current stack frame variables
         EventRequestManager mgr = vm.get().eventRequestManager();
         if (Objects.equals(methodEntryEvent.location().declaringType().name(), currentClass) && Objects.equals(methodEntryEvent.location().method().name(), currentMethod)) {
-            addMethodCallStackFrame(methodEntryEvent);
-            probeVariables(methodEntryEvent);
+            try{
+                addMethodCallStackFrame(methodEntryEvent);
+                probeVariables(methodEntryEvent);}
+            catch (Exception e){
+                // do nothing
+            }
             if (!mgr.stepRequests().isEmpty()) {
                 if (!mgr.stepRequests().get(0).isEnabled()) {
                     mgr.stepRequests().get(0).enable();

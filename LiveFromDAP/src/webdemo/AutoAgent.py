@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import json
 import os
 from threading import Thread
+import subprocess
 
 from tree_sitter import Language, Parser
 
@@ -353,6 +354,112 @@ class AutoJavascriptLiveAgent(AutoLiveAgent):
         # Get the output of the thread
         # Save the json result in a file
         return self.construct_result_json(method, output)
+    
+class AutoJavaJDILiveAgent(AutoLiveAgent):
+    
+    def __init__(self, raw=False):
+        self.raw = raw
+        # Execute the agent from the directory where the jar is
+        self.agent = subprocess.Popen(
+            ["java -cp target/LiveProbes-1.0-jar-with-dependencies.jar debugger.LiveAgent"], 
+            cwd=os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..","..","JavaProbes")),
+            stdin=subprocess.PIPE, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.STDOUT,
+            shell=True)
+        # read the first line
+        init = self.agent.stdout.readline()
+        print(init)
+        self.source_path = os.path.abspath("src/webdemo/tmp/Live.java")
+        with open(self.source_path, "w") as f:
+            f.write("")
+        self.compiled_classpath = os.path.abspath("src/webdemo/tmp/")
+        self.previous_ast = None
+    
+    def restart(self):
+        pass
+
+
+    def check_if_parsable(self, code):
+        parsable = False
+        changed = False
+        try:
+            ast = javalang.parse.parse(code)
+            parsable = True
+        except Exception as e:
+            return False, False
+        
+        if self.previous_ast is None:
+            self.previous_ast = ast
+            changed = True
+        elif ast != self.previous_ast:
+            self.previous_ast = ast
+            changed = True
+        return parsable, changed
+    
+    def compile_java(self):
+        command = f"javac -g -d {self.compiled_classpath} {self.source_path}"
+        res = os.system(command)
+        return res
+    
+    def update_code(self, code):
+        is_parsable, changed = self.check_if_parsable(code)
+        if not is_parsable:
+            return
+        if changed:
+            with open(self.source_path, "w") as f:
+                f.write(code)
+            if self.compile_java() != 0:
+                return
+            print(self.compiled_classpath)
+            payload = {
+                "command":"loadClass", 
+                "params":{
+                    "path":self.compiled_classpath,
+                    "className":"Live"
+                    }
+                }
+            payload_str = json.dumps(payload) + "\n"
+            print(payload_str)
+            self.agent.stdin.write(payload_str.encode("utf8"))
+            self.agent.stdin.flush()
+            line = self.agent.stdout.readline()
+
+        return changed
+        
+
+    def construct_result_json(self, method, output):
+        return_value, stacktrace = output
+        if self.raw:
+            stacktrace.last_stackframe.variables.append({"name":"return", "value":return_value})
+            return json.dumps({
+                "return_value": return_value,
+                "stacktrace": stacktrace.to_json()
+            })
+        printer = JavaPrettyPrinter(self.source_path,"Live",method)
+        output = printer.pretty_print(stacktrace, return_value=return_value)
+        return output
+
+    def execute(self, method, args):
+        print("execute")
+        payload = {
+            "command":"evaluate", 
+            "params":{
+                "method":method,
+                "args":args
+                }
+            }
+        payload_str = json.dumps(payload) + "\n"
+        print(payload_str)
+        self.agent.stdin.write(payload_str.encode("utf8"))
+        self.agent.stdin.flush()
+        line = self.agent.stdout.readline()
+        response = json.loads(line.strip())
+        print(response)
+        return json.dumps({
+            "return_value": response["result"],
+            "stacktrace": response["stack"]
+        })
 
 
     

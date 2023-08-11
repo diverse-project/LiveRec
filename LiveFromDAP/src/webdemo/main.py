@@ -5,7 +5,7 @@ import time
 import uuid
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, join_room, send
-from webdemo.AutoAgent import AutoCLiveAgent, AutoJavaLiveAgent, AutoPythonLiveAgent, AutoJavascriptLiveAgent
+from webdemo.AutoAgent import AutoCLiveAgent, AutoJavaLiveAgent, AutoPythonLiveAgent, AutoJavascriptLiveAgent, AutoJavaJDILiveAgent
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
