@@ -195,6 +195,9 @@ def handle_json(json_msg):
     sessions[session_id].queue.put(json_msg)
     
 def run():
+    # move the current path to this file's path
+    import os
+    os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
     socketio.run(app)
 
 

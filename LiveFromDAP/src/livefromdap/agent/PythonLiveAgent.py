@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 
 import debugpy
 from debugpy.common.messaging import JsonIOStream
@@ -74,9 +75,10 @@ class PythonLiveAgent(BaseLiveAgent):
                 "request": "launch",
                 "program": self.runner_path,
                 "console": "internalConsole",
-                "python": "/bin/python",
-                "debugAdapterPython": "/bin/python",
-                "debugLauncherPython": "/bin/python",
+                # get the current python interpreter
+                "python": sys.executable,
+                "debugAdapterPython": sys.executable,
+                "debugLauncherPython": sys.executable,
                 "clientOS": "unix",
                 "cwd": os.getcwd(),
                 "envFile": os.path.join(os.getcwd(), ".env"),
