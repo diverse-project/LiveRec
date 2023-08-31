@@ -147,34 +147,44 @@ commentstyle=\color{javagreen}}
   % What new facts were uncovered? If the research was not results oriented, what new capabilities are enabled by the work?
   \textit{Knowledge.}
   It turns out that debug protocols are rich enough for implementing live probes. Step-wise execution, hot code swapping, and stack frame inspection provide the right granularity and sufficient information to realize live probes, without modifying compilers or language runtimes. Furthermore, it turns out that the recently proposed Debugger Adapter Protocol (DAP)~\cite{DAP} provides an even more generic approach of implementing live probes, but, in some cases, at the cost of a significant performance penalty. 
+%vRozen: "It turns out" -- heavy 'it' at start of sentence -- repetitive 2x. Suggest rephrasing: This paper establishes that ...  or simply: We show that ...
 
   % What argument, feasibility proof, artifacts, or results and evaluation support this work?
   \textit{Grounding.}
-  We have applied \coolname to implement probes using stack recording natively for Java through the Java Debug Interface (JDI)~\cite{JDI}, and through the DAP for Java, Python, C, and Javascript, all requiring just reasonable amounts glue code. We evaluate the run-time performance of all four probes prototypes, decomposed into: compile-after-change, hotswap, single step overhead, and stack recording overhead. Our results show that live probes on top of native debug APIs are performant enough for interactive use. In the case of DAP, it depends on characteristics of the programming language. 
+  We have applied \coolname to implement probes using stack recording natively for Java through the Java Debug Interface (JDI)~\cite{JDI}, and through the DAP for Java, Python, C, and Javascript, all requiring just reasonable amounts glue code. We evaluate the run-time performance of all four probes prototypes, decomposed into: compile-after-change, hotswap, single step overhead, and stack recording overhead. Our results show that live probes on top of native debug APIs are performant enough for interactive use. In the case of DAP, it depends on characteristics of the programming language.
+  %vRozen: probes prototypes -- heavy alliteration -- try saying it three times fast. Suggested phrasing just 'prototypes'.
+  %vRozen: 'hotswap', 'hot swap' or 'hot-swap' ?
 
   % Why does this work matter?
   \textit{Importance.} Live programming improves the programmer experience by providing immediate feedback about a program's execution and eliminating disruptive edit-compile-restart sequences. Probes are one way to shorten the programmer feedback loop at the level of functions and methods. Although probes are not new, and have been implemented in (prototype) systems, \coolname's approach of building live probes on top of existing and generic debug protocols opens up probes for a host of mainstream programming languages, with minimum effort.
 \end{abstract}
 
-
 \section{Introduction}
 \label{sec:introduction}
 
-Live programming~\cite{TanimotoLevels,UsableLiveProgramming,ExampleCentric,Hancock03} promises a better programming experience by bringing the execution of a program closer to the abstractions of the source code. By erasing the distinction between a program on the one hand, and its execution on the other, programmers may enjoy a more fluid experience, with immediate dynamic feedback after every code change. 
+Live programming~\cite{TanimotoLevels,UsableLiveProgramming,ExampleCentric,Hancock03} promises a better programming experience by bringing the execution of a program closer to the abstractions of the source code. By erasing the distinction between a program on the one hand, and its execution on the other, programmers may enjoy a more fluid experience, with immediate dynamic feedback after every code change.
+%vRozen: 'may enjoy' ? -- Perhaps remove 'may' here.
 
 Live programming has a rich history, both in academia and industrial research\footnote{For brief and incomplete overview of some of the history of live programming, see~\cite{LiveProgHist13}}, originating in the original Lisp systems (e.g.,~\cite{Sandewall78,Masinter81}) and Smalltalk~\cite{Goldberg80} which allowed dynamic replacement of code units (hot swapping) and inspection of program structures at run-time (sometimes referred to as ``programming in the debugger''). However, live programming became center stage after Bret Victor's influential talk ``Inventing on Principle'', which went viral in 2012. 
 
 In that presentation Victor makes a compelling case that (paraphrasing) ``creators need to see what they are creating''. In the case of programming, this entails continuous inspection of the run-time behavior of a program, and immediate and seamless adaptation after a code change. While all the prototypes demonstrated by Victor are impressive, for the purpose of this paper we zoom in on one of them: a live editor for Javascript with a side pane showing the history of values of local function variables during an execution (see Figure~\ref{FIG:bret} below). Although not mentioned by Victor himself, this live programming features has become known as ``probes''~\cite{UsableLiveProgramming,ExampleBasedGraalVM}.
+%vRozen: Singular / plural mismatch. 'these features have' or 'this feature has'. I get that 'probes' invites using the plural.
+%vRozen: I'm missing a definition of probes. Probes are a specific live programming mechanism that adds immediate feedback to imperative languages, reminiscent of voltage probes, for relating the inputs of functions to their outputs.
 
 The question left unanswered in Victor's presentation is: how to build such probes? While there has been research showcasing implementation approaches~\cite{ExampleBasedGraalVM}, they depend on a specific runtime system (e.g., GraalVM), or employ language specific ``hacks''~\cite{LiveLiterals}, and hence cannot be easily transferred to other languages. So a more specific question is: how to  engineer probes \textit{generically}, without dedicated compiler or runtime support?
+%vRozen: ``hacks'' sounds a bit derogative. Let's stay friends with the reviewers :D
 
 In this paper we present \coolname, an approach to implement probes by reusing standard debugger protocols and APIs. Most languages support an API to facilitate the implementation of debuggers and other run-time tools (e.g., profilers, tracers, etc.). It turns out that such facilities are sufficiently powerful for implementing live probes. The key to the approach of \coolname is to (re)execute a function or method inside the debugger, step by step, and at each step record a snapshot of the current stack-frame. After the method has finished executing, the resulting stack recording is communicated back to the IDE and visualized alongside the code, matching stack recording entries to the source code using source location information.
+%vRozen: 'It turns out' -- heavy it.
+%vRozen: 'stack-frame' or 'stack frame' ?
+%vRozen: Long final sentence -- information-dense -- high mental load -- consider breaking into parts.
 
 We first detail how to implement probes using a native debugger interface, the Java Debug Interface (JDI). Then we generalize the approach to employ the recently proposed Debugger Adapter Protocol (DAP). 
 This implementation is showcased with probe implementations in Java (again), C, Python, and Javascript. 
 As a result, probes can be supported in any programming language that provides an implementation of the DAP, with only a limited amount of configuration code.  
 
 Since live programming (and hence probes) is all about immediate feedback, it is important that the performance overhead of \coolname's strategy does not impede practical use. We therefore provide a detailed analysis and measurement of the performance overhead of (re)compilation, hot-swapping, step-wise execution, and stack recording. To assess the overall usability of the approach, we furthermore decompose a full editing scenario (derived from Victor's presentation) in $19$ logical steps, replay it on every  probe implementation, and measure the performance of each edit step.
+%Rozen: Repeats 'hence' -- rephrase: therefore
 
 The contributions of this paper can be summarized as follows:
 \begin{itemize}
@@ -185,18 +195,27 @@ The contributions of this paper can be summarized as follows:
    \item We evaluate the feasibility of \coolname by implementing probes for Java, Python, C and Javascript on top the DAP, investigate the performance overhead of the individual steps, and reproduce an editing scenario to assess practicality (Section~\ref{sec:evaluation}).
 \end{itemize}
 We conclude the paper with a discussion of limitations and related work, and present concluding remarks with directions for further research. 
+%vRozen: To me the paper's scientific contributions and its structure are not the same thing. The paper contributes 'stack recording', a generic approach for probes. The paper is structured as follows: ...
 
 \section{Background and Overview}
 \label{sec:problem-overview}
 
-
 The basic concept of live probes is illustrated in Figure~\ref{FIG:bret}, showing two panes. 
+%vRozen: 'live probes' -- \coolname?
 The left pane shows an editor containing the source code of a possible implementation of binary search in Javascript. 
+%vRozen: The left pane shows an editor containing JavaScript sources of an example implementation of binary search.
 The right pane shows the values of variables matched up to the source line they were last updated.
-The top two rows specify example input data that the function is executed on. The consecutive values of variables that are updated in a loop (e.g. \lstinline{low}, \lstinline{high}, \lstinline{mid} and \lstinline{value}) are displayed adjacently. So for \lstinline{low}, the history of values is 0, 3, and 5. Note that the update of \lstinline{high} in the else-if branch (apparently) never executed, so there is no (redundant) value display in the right pane. Finally, the last line shows the final return value of the function: apparently the \lstinline{key} was not found in the \lstinline[language=c]{array}. 
+%vRozen: The right pane shows the values the variables have at the source lines they were last updated.
+The top two rows specify example input data that the function is executed on. 
+%vRozen: Bit passive -- sentence doesn't sing -- can't put my finger on it.
+The consecutive values of variables that are updated in a loop (e.g. \lstinline{low}, \lstinline{high}, \lstinline{mid} and \lstinline{value}) are displayed adjacently. 
+%vRozen: Bit passive -- sentence doesn't sing -- can't put my finger on it.
+So for \lstinline{low}, the history of values is 0, 3, and 5. Note that the update of \lstinline{high} in the else-if branch (apparently) never executed, so there is no (redundant) value display in the right pane. 
+%vRozen: Long sentence, rephrase, remove 'so'.
+Finally, the last line shows the final return value of the function: apparently the \lstinline{key} was not found in the \lstinline[language=c]{array}. 
 
 What makes this \textit{live} is that while the programmer is editing the program on the left (or the input arguments to the function), the value display on the right continuously updates so that it is apparent what is going on at run time. 
-
+%vRozen: Rephrase. What is 'this' ? Rephrase. This scenario exemplifies live programming. Specifically, the values displayed on the right continuously update while the programmer is editing the program on the left.
 
 Dissecting this example leads to the following technical requirements for implementing live probes:
 \begin{itemize}
@@ -205,15 +224,19 @@ Dissecting this example leads to the following technical requirements for implem
   \item during execution the values of variables needs to be recorded and linked to the source locations where they were updated.
   \item the resulting history list of values needs to be communicated to the IDE for display to the user.
 \end{itemize}
+%vRozen: consider starting the above sentences with a verb in simple present. Remember requirements have actors. Is that the case here? Maybe they are technical challenges.
 
 The basic intuition of our approach to meet these requirements is as follows: the editor starts a custom debugger (implemented against some debugger API), not on the user program, but on a driver program called the Keep Alive Agent (KAA). This program consists of a while-true-loop, halted on a breakpoint, and will be the verhicle for executing methods, without having to restart the debugger upon each request. 
+%vRozen: Long sentences. Consider breaking into parts. For instance: The basic intuition behind our approach is to meet these requirements as follows. Each editor starts a custom debugger, implemented against some debugger API. Instead of debugging the program directly, a this debugger runs a driver program called the Keep Alive Agent (KAA). ...
 
 When the code changes, the editor communicates to the debugger to hotswap the code, and execute it with the input arguments extracted from the source code (based on some kind of annotation). The debugger, however, does not simply execute it, but simulates execution by issuing step-over commands until the method completes. To keep stack recording local to the current method, the debugger never steps \textit{into} a call to another method.
+%vRozen: 'hotswap', 'hot swap' or 'hot-swap' ?
+%vRozen: 'some kind' -- vague -- a particular ?
 
 In between steps, the debugger takes snapshots of the current stack frame to record the values of local variables.  These snapshots are stored in a data structure, called \textit{stack recording}, which supports displaying the values in the IDE, for instance, like in Figure~\ref{FIG:bret}, inline~\cite{LiveLiterals,ExampleBasedGraalVM}, or using some dedicated UI affordance. 
-
-
-
+%vRozen: Long sentence. Consider breaking into parts. ", which supports displaying the values in the IDE." 
+%vRozen: For example, Figure ...
+%vRozen 'some dedicated' -- vague -- replace 'some' by 'a'
 
 \begin{figure}[t]
   \centering
@@ -224,6 +247,7 @@ In between steps, the debugger takes snapshots of the current stack frame to rec
 
 
 \section{Using the Debugger ?}
+%vRozen: todo fixme heading title
 
 \subsection{Architecture}
 
@@ -235,18 +259,28 @@ In between steps, the debugger takes snapshots of the current stack frame to rec
 \end{figure}
 
 A live environment must be able to react to two different events: a change in the code or a change in the test/input data. 
+%vRozen: 'live environment' -- 'live programming environment'
 If the code changes, we need to re-execute the code, and in the case of a compiled language, we need to compile the new code first. 
+%vRozen: who is 'we' ? Consider replacing 'we' by 'a programmer' Whenever a programmer changes the code, ...
 If the data changes, we need to be able to re-execute the programme with the new data. 
+%vRozen: Likewise, the program needs to re-execute immediately when the programmer adjusts the inputs.
 In addition, it is necessary to keep compilation and execution times low enough to maintain an interactive experience with the user.
+%vRozen: 'the user' -- suggest 'the programmer' or 'programmers'
 
 To meet these constraints, we propose the architecture shown in Figure \ref{fig:architecture} :
 \begin{itemize}
   \item The IDE or editor communicates with a server. The IDE sends changes to the code and function parameters, and the server sends back the stack trace of the method.
+%vRozen: 'or'. The editor is part of an IDE that ...
   \item The server initialises and communicates with the debugger to apply the changes received from the IDE, and generates a stack recording when the method is executed.
+%vRozen: US English: Initializes
+%vRozen: The server initializes the debugger, and continually applies the changes it receives from the IDE, generating a stack recording when a method is executed.
   \item The debugger runs an intermediate program, a keep alive agent. This keeps the debugger alive to reduce initialisation times.
+%vRozen: Note -- The acronym Keep Alive Agent (KAA) has been introduced already.
+%vRozen: The debugger runs the Keep Alive Agent, an intermediate program for reducing initialization times, which keeps the debugger alive between executions.
 \end{itemize}
 
 \label{sec:stack-recording}
+%vRozen: fixme dangling label
 
 \subsection{Stack Recording}
 
