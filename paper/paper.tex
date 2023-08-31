@@ -38,6 +38,8 @@
   commentstyle={\color{FireBrick}},%
 }
 
+\def\iC#1{\lstinline[language=C]{#1}\xspace}
+
 \newcommand*{\CTAN}[1]{\href{http://ctan.org/tex-archive/#1}{\nolinkurl{CTAN:#1}}}
 %%
 
@@ -257,6 +259,8 @@ In between steps, the debugger takes snapshots of the current stack frame to rec
   \caption{General architecture (placeholder)}
   \label{fig:architecture}
 \end{figure}
+%vRozen: todo fixme remove 'placeholder'
+%vRozen: perhaps a tikz image here
 
 A live environment must be able to react to two different events: a change in the code or a change in the test/input data. 
 %vRozen: 'live environment' -- 'live programming environment'
@@ -307,12 +311,55 @@ int foo(int n) {
   \caption{Stack Recording Example}
   \label{fig:stack-recording}
 \end{figure}
+%vRozen. The layout seems a bit off.
 
 \begin{table}[t]
   \centering
   \includegraphics[width=\textwidth]{img/matrix.pdf}
   \caption{Tracking variable values across time and space}
 \end{table}
+
+
+\begin{figure}
+  \centering
+  \scriptsize
+  \begin{tabularx}{\textwidth}{ l l X X X X X X X X X X X}
+  \toprule
+  %\textbf{line}
+  &
+  %\textbf{code} 
+  &
+  \textbf{$t_1$}&
+  \textbf{$t_2$}&
+  \textbf{$t_3$}&
+  \textbf{$t_4$}&
+  \textbf{$t_5$}&
+  \textbf{$t_6$}&
+  \textbf{$t_7$}&
+  \textbf{$t_8$}&
+  \textbf{$t_9$}\\
+  \midrule
+  1 & \iC{//foo(3)}\\
+  2 & \iC{int foo(int n)\{} \\
+  3 & \hspace{8pt}~\iC{int i = 0;}
+  & n=3 \\  
+  4 & \hspace{8pt}~\iC{while(i < n)\{} 
+  &
+  & n=3;~i=0 
+  &
+  & n=3;~i=1 \\
+  5 & \hspace{16pt}~\iC{i++;}\\
+  &
+  &
+  & n=3;~i=0;\\
+  6 & \hspace{8pt}~\iC{\}}\\
+  7 & \hspace{8pt}~\iC{return i;}\\
+  8 & \iC{\}}\\
+  \bottomrule
+  \end{tabularx}
+  \caption{Tracking variable values across time and space}
+\end{figure}
+
 
 
 % \begin{table}[ht]
