@@ -735,7 +735,9 @@ We therefore measured the performance of our approach in response to various que
   \item How long does it take to run the program, depending on the number of stack frames needed to make the stack recording?
   \item What is the average performance during a live programming session?
 \end{itemize}
-%vRozen: it helps to be precise on what is recorded, e.g., time in ms. How is 'performance' defined -- average duration of each entire case?
+%vRozen: it helps to be precise on what is recorded, e.g., time in ms. How is 'performance' defined -- the average duration of each entire case?
+%vRozen: My advise is to make the 'protocol' or 'steps' more precise, such that it because straightforward to reproduce and compare the results. 
+%vRozen: Which programs are assessed? Is this all about the binary search function or is it about more programs? 
 
 \subsubsection{How long does it take to compile and to load the code into the debugger, depending on the size of the programme?}
 %vRozen: todo fixme Replace heading by a descriptive title.
@@ -762,6 +764,7 @@ We therefore measured the performance of our approach in response to various que
 In our evaluation, we assessed the time required to compile and load code into the debugger memory for Python, C, Java and Javascript. 
 To accomplish this, we compiled and loaded programs ranging from 5 to 100 lines of code. 
 The summarized results can be found in Figure \ref{fig:compileload}.
+%vRozen: Paragrap is in past tense.
 
 In Sub-figure \ref{subfig:compile}, we present the compilation time for C and Java based on the number of lines of code. 
 The compilation process was executed from the command line using javac and gcc. 
@@ -772,6 +775,7 @@ The data shows that the loading time remains constant concerning the number of l
 %On average, Python takes 3 ms, Java takes 2.8 ms, and C takes 1 ms for loading.
 
 \subsubsection{How long does it need to run the program, depending on the number of steps to make the stack recording ?}
+%vRozen: todo fixme Replace heading by a descriptive title.
 
 \begin{figure}[htbp]
   \centering
@@ -788,9 +792,11 @@ The data shows that the loading time remains constant concerning the number of l
 \end{figure}
 
 Next, we evaluated the execution time as a function of the number of steps in the debugger. 
+%vRozen: Past tense.
 Figure \ref{fig:execute-time} shows the total time taken as a function of the number of steps during stack registration.
-Note that the execution time shows a linear relationship with the number of steps in the method. 
+Note that the execution time shows a linear relationship with the number of steps in the method.
 In fact, for each implementation we obtain a constant time for each stack frame recorded, corresponding to the time taken to obtain the state of the stack frame and the time taken for the debugger to perform a step. 
+%vRozen: Long sentence.
 The difference in time between the different DAP languages is explained by the implementation of the debug server. 
 With C, the debug server is a simple wrapper around gdb, which has very good performance.
 Figure \ref{fig:execute-java-jdi} shows Java execution times with DAP and JDI. 
@@ -801,8 +807,10 @@ By profiling the execution of the java debug server, we found two causes for thi
   \item The first is due to the "evaluate" request in the DAP protocol. To run the function and define the arguments in the DAP implementation, we use "evaluate" requests. These requests require an additional compilation step in the debug server compared with the version using JDI. In the JDI version, the arguments are actually copied into the debugger directly from the server coded in Java. To improve the performance of our DAP implementation, if the arguments are not changed between two executions, they are kept in the KAA.
   \item The second cause is the native performance of the debugger server. Our method automates debugger procedures, and the observed performance of these procedures is sufficient for human use. For example, obtaining the stacktrace takes an average of 40 ms. When used by a person, this delay is less than 0.1 seconds and is considered instantaneous. However, when we perform stack recording, this request will be executed a significant number of times (depending on the size of the code).
 \end{itemize}
+%vRozen: Consider using paragraphs instead of bullet points.
 
 \subsubsection{What is the average performance during a live programming session?}
+%vRozen: todo fixme Replace heading by a descriptive title.
 
 \begin{comment}
 \begin{table}[h]
@@ -870,6 +878,7 @@ The results are shown in table \ref{table:average-time}.
 
 
 To test the performance of our approach under real conditions, we recreated the live programming scenario presented in the video by bret victor. 
+%vRozen: I would expect to see this earlier, where i commented on the 'protocol'. The structure could have a more clear division between describing the method, taking measurements and analyzing the results.
 The scenario describes the programming of a function performing a binary search on an array of characters. It consists of 19 steps, including 10 steps where the source code is modified and 9 steps where the parameters are changed. 
 
 \begin{table}
