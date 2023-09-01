@@ -266,6 +266,7 @@ A live environment must be able to react to two different events: a change in th
 %vRozen: 'live environment' -- 'live programming environment'
 If the code changes, we need to re-execute the code, and in the case of a compiled language, we need to compile the new code first. 
 %vRozen: who is 'we' ? Consider replacing 'we' by 'a programmer' Whenever a programmer changes the code, ...
+%vRozen: alternatively, 'we' could be software language engineers who are implementing probes for language X.
 If the data changes, we need to be able to re-execute the programme with the new data. 
 %vRozen: Likewise, the program needs to re-execute immediately when the programmer adjusts the inputs.
 In addition, it is necessary to keep compilation and execution times low enough to maintain an interactive experience with the user.
@@ -312,6 +313,7 @@ int foo(int n) {
   \label{fig:stack-recording}
 \end{figure}
 %vRozen. The layout seems a bit off.
+%vRozen. I propose merging Figure 3 and Table 1 into a single figure, the tabularx version below.
 
 \begin{table}[t]
   \centering
@@ -320,6 +322,8 @@ int foo(int n) {
 \end{table}
 
 
+%vRozen: Perhaps removing the time/space arrows would be better. it seems a bit cluttered
+%vRozen: Perhaps we can still add boxes around the stack recordings to make it more similar to figure 4. It gives the feeling of having data structures, not just values.
 \begin{figure}
   \centering
   \large  
@@ -415,11 +419,16 @@ int foo(int n) {
 % \end{table}
 
 In order to generate the data needed to probe a variable, we need to be able to retrieve the state of the variable during execution. 
+%vRozen: Repeats 'need' -- consider rephrasing
 This information is contained in the stackframe at the time of execution. 
+%vRozen: passive -- 'contains' is more active
 However, we need to add spatial and temporal information to this: we need to associate each stackframe state with the location in the code at which it was retrieved, and we also need to know the order in which these stackframes were retrieved.
+%vRozen: Repeats 'we need' -- Long sentence. Consider breaking the sentence into parts.
+%vRozen: Probing a variable requires both spacial and temporal information. ...
 
 In this paper, we introduce a structure for representing this data: a \textit{stack recording}. 
 A stack record represents the different states of the stack frame during the execution of a method. The stack record is presented as a chain of recorded stack frames, to which information has been added about the source code's location and height in the stack.
+%vRozen: Repeats 'stack record' and repeats the part of 'we need' in different words.
 This representation allows us to maintain a link between the spatial location (the reference to the source code) and the temporal location (the order of these stackframes) of the execution.
 This representation has several advantages: it is easy to construct from debugger information, and it applies to most programming languages.
 Figure \ref{fig:stack-recording} shows an example of a stack recording. On the left is a C function and on the right is the stack recording of the execution of \code{foo(3)}. Each rectangle represents the state of the stackframe during execution, with the source code location (here simplified to the line number).
@@ -430,10 +439,16 @@ Figure \ref{fig:stack-recording} shows an example of a stack recording. On the l
   \caption{Record Stackrecording (placeholder)}
   \label{fig:stack-recording-impl}
 \end{figure}
+%vRozen: This is a UML sequence diagram.
+%vRozen: The loop may use an activation frame.
+%vRozen: The objects (or component instances) on the top of life lines appear in rectangular boxes.
 
 Figure \ref{fig:stack-recording-impl} shows how a stack recording is recorded.
-To obtain the different states of the stackframe during the execution of a method, we place a breakpoint at the start of the function. 
-Once this has been reached, the method is executed step by step, using the debugger's step instruction. 
+%vRozen: Repetitive 'stack recording' and 'recorded', consider rephrasing.
+To obtain the different states of the stackframe during the execution of a method, we place a breakpoint at the start of the function.
+%vRozen: method or function? -- pick one, at the beginning. Perhaps state that in this paper we can use these terms interchangeably.
+Once this has been reached, the method is executed step by step, using the debugger's step instruction.
+%vRozen: Repeats: step step step. Passive sentence. One the execution reaches this break point, it continues in a stepwise manner.
 Between each step, the state of the stackframe is recorded along with the source code's location information.
 
 
@@ -493,31 +508,49 @@ public class KeepAliveAgent {
 \end{figure}
 
 To enable stack recording, we developed a debugger leveraging the Java Debug Interface (JDI) library. 
+%vRozen: Past tense. Please use present tense whenever possible for simplicity. Use past perfect if necessary, stressing a solution has addressed a challenge.
 A simplified pseudo-code representation of this debugger is displayed in Figure \ref{fig:debugger-class}. 
-The class contains a method for starting the JVM (at line 2), a process to load or reload a class within the VM (at line 5), and a procedure for generating a method stack record (at line 10). Although in practice, the implementation involves multiple interacting threads, these details have been omitted from this overview in favor of clarity and simplicity.
+%vRozen. Passive. Suggest a more active sentence. Figure .. displays a simplified pseudo-code representation of this debugger.
+The class contains a method for starting the JVM (at line 2), a process to load or reload a class within the VM (at line 5), and a procedure for generating a method stack record (at line 10). 
+Although in practice, the implementation involves multiple interacting threads, these details have been omitted from this overview in favor of clarity and simplicity.
+%vRozen: High mental load for the reader. Suggest adding some signals to the text. For conciseness we omit <<thing>>. In practice, yada yada <<additional complexity>>.
 
 Initialization involves the launch of a JVM that features JDI instrumentation, utilizing the KeepAliveAgent class (in Figure \ref{fig:java-keep-alive-agent}). 
 Concurrently, a breakpoint is established at the infinite loop within the \code{main} function, visible at line 9. 
 This breakpoint's function is to maintain the debugger in a state of suspension. This waiting state is requisite for the use of JDI primitives such as \code{mirrorOf}, \code{newInstance}, and \code{invokeMethod}.
 
 Class loading is achieved using a dynamic ClassLoader, which gives us the ability to append class paths and load a class during execution. 
-Modifications to the code cause the class to be reloaded into the KeepAliveAgent. 
+%vRozen: passive sentence. A ClassLoader loads classes dynamically during the execution. By appending the class path ...
+
+Modifications to the code cause the class to be reloaded into the KeepAliveAgent.
+%vRozen: KAA, Keep Alive Agent or KeepAliveAgent?  
 However, there is a caveat to this procedure - it only works if the class signature remains consistent and only the method content is changed. 
 Any changes to the structure will require a restart of the KeepAliveAgent. 
 It is to be noted that specific JVM implementations can bypass this limitation \cite{}.
+%vRozen: heavy it. missing citation
 
-To execute a function (line 10 in Debugger class, Figure \ref{fig:debugger-class}), the debugger creates the values associated with the arguments locally. 
-It then transmits these values to the JVM containing the KAA using the \code{mirrorOf} and \code{newInstance} methods of JDI's Reflection API (line 11). 
+To execute a function (line 10 in Debugger class, Figure \ref{fig:debugger-class}), the debugger creates the values associated with the arguments locally.
+%vRozen: Whenever a probing session executes a function (line 10), the debugger creates ... 
+
+It then transmits these values to the JVM containing the KAA using the \code{mirrorOf} and \code{newInstance} methods of JDI's Reflection API (line 11).
+%vRozen: KAA, Keep Alive Agent or KeepAliveAgent? 
 The debugger then sets a breakpoint at the target method's input (line 12) and launches the target method using \code{invokeMethod}. 
 The debugger then registers the stack using the algorithm described in the previous paragraph.
 Until the method is completed, the debugger registers the stack frame and takes a step forward in debugging.
+%vRozen: The above paragraph starts with a 'heavy it' followed by 'the debugger' several times. Perhaps use a "First, the debugger ... Next, it ... Finally, ..." temporal structure. 
 
 \section{Generalizing Live Probes with Debugger Adapter Protocol}
 \label{sec:generalizing-live-probes}
 The Debug Adapter Protocol (DAP), developed by Microsoft, is a standard method of communicating with a programming language debugger. It is compatible with various editors, including VS Code, and provides a unified interface for all programming languages. 
+%vRozen: heavy it. Suggest rephrasing: DAP is ...
 
-By exploiting this protocol, we have created a new language parametric backend, which we have implemented for the C, Python, Java and Javascript programming languages. These languages are chosen to cover both compiled and interpreted languages. 
-This backend offers an interface common to all three languages, which includes methods for starting and initialising the debugging server, loading and reloading code in the debugger, and executing a method while performing stack recording. 
+By exploiting this protocol, we have created a new language parametric backend, which we have implemented for the C, Python, Java and Javascript programming languages.
+%vRozen: Only here it becomes clear 'us' is we the authors -- creators of generic language technology.
+%vRozen: Long sentence.
+These languages are chosen to cover both compiled and interpreted languages. 
+%vRozen: Passive. We choose, ...
+This backend offers an interface common to all three languages, which includes methods for starting and initialising the debugging server, loading and reloading code in the debugger, and executing a method while performing stack recording.
+%vRozen: Long sentence, consider breaking into parts. 
 Table \ref{tab:dap-req} contains a list of the requests from the DAP that we have used to implement the interface.
 
 \begin{table}[h]
@@ -546,10 +579,15 @@ Table \ref{tab:dap-req} contains a list of the requests from the DAP that we hav
 \end{table}
 
 These methods allow us to carry out stack recording independently of the chosen language and facilitate the future implementation of live programming interfaces. 
+%vRozen: Short paragraph. Consider merging.
 
 The implementation for each language includes a keep-alive agent and code to communicate with the debugger and keep-alive agent to provide the interface functionality.
-These methods depend on both the implementation of the debugging server and the keep-alive agent. The differences between the implementations are shown in the Table \ref{tab:implementation-differences}.
-
+%vRozen: Keep Alive Agent, KAA, KeepAliveAgent or keep-alive agent?
+These methods depend on both the implementation of the debugging server and the keep-alive agent. 
+%vRozen: These methods --> Specific details 
+The differences between the implementations are shown in the Table \ref{tab:implementation-differences}.
+%vRozen: Passive. Figure .. highlights the differences between the implementations.
+%vRozen: Some connective sentence. We explain ...
 
 \begin{table}[h]
     \centering
@@ -585,11 +623,12 @@ To do this, the KeepAliveAgent code in these languages has fields for referencin
 In C, as in Java with JDI, the method is called from the debugger console.
 
 \subsection{Implementation specifications}
+%vRozen: todo fixme -- chose different heading
 
 \begin{table}[!ht]
   %\centering
   \noindent\setlength\tabcolsep{4pt}%
-  \begin{tabular}{lrlrl}
+  \begin{tabularx}{\textwidth}{X r X r X}
       \toprule
       Implementation & \multicolumn{2}{l}{\#SLOC Probe Server} & \multicolumn{2}{l}{\#SLOC Keep-Alive Agent} \\
       \midrule
@@ -600,13 +639,14 @@ In C, as in Java with JDI, the method is called from the debugger console.
       DAP Javascript & 256 & Python & 24 & Javascript \\ 
       DAP C & 181 & Python & 14 & C \\
       \bottomrule
-  \end{tabular}
+  \end{tabularx}
   \caption{Size of the language specific components in SLOC and their implementation languages.}
   \label{tab:sloc}
 \end{table}
 
 The table \ref{tab:sloc} shows the number of lines of code for the server part and the KAA for each implementation, with the language in brackets. The DAP Base line corresponds to the common code used by the other DAP-based implementations.
 The tests were carried out with OpenJDK 20.0.2 for Java, Python 3.11.2 for Python and Node 18.16.1 for Javascript. The C code was compiled using GCC 13.1.1 and GDB 13.2 was used for stack recording. The machine used to carry out the evaluations has an AMD Ryzen 5 2500U CPU and 8Gb of RAM.
+%vRozen: Avoid complicated past perfect tense 'was compiled', e.g., 'has been compiled' or 'we have compiled'.
 
 \section{Evaluation}
 \label{sec:evaluation}
@@ -615,11 +655,16 @@ The tests were carried out with OpenJDK 20.0.2 for Java, Python 3.11.2 for Pytho
 
 
 We have developed a dynamic programming environment that integrates live probes via Java, C, Python and Javascript debugging servers. 
+%vRozen: Unnecessary switch between perfect tense and simple present tense. 
 
-Each time changes are made in the code editor, the code is sent to the server, which then checks for parseability and syntax errors. 
+Each time changes are made in the code editor, the code is sent to the server, which then checks for parseability and syntax errors.
+%vRozen: 'parseability' ? The server parses the code and checks for syntax errors.
 In addition, if the code contains a comment beginning with "@", followed by a function call, the server attempts to create a stack recording of that function, with the parameters provided. 
+%vRozen: Long sentence. Consider breaking into parts.
+%vRozen: Repeats 'the server'. Perhaps use 'it'.
 
 The user interface consists of a web page that interacts with a local server. The demo features two display methods. 
+%vRozen: Short paragraph. Consider merging.
 
 \subsubsection{Bret Victor's style}
 \label{sec:bret-victor-style}
@@ -631,15 +676,21 @@ The user interface consists of a web page that interacts with a local server. Th
 \end{figure}
 
 The first mode is inspired by Bret Victor's presentation. The screenshot in Figure \ref{fig:demo} shows a session with a C binary search function. 
-On the left side there is a code editor (based on CodeMirror 5), while on the right a panel displays live probes. The display on the right is generated from source code and stackrecording with a tree sitter to display probes in different locations: 
+%vRozen: Figure X depicts screenshot of a session that executes a binary search function written in C.
+On the left side there is a code editor (based on CodeMirror 5), while on the right a panel displays live probes. 
+%vRozen: Consider rephrasing the part after the comma, specifically 'while' and 'live probes'.
+The display on the right is generated from source code and stackrecording with a tree sitter to display probes in different locations: 
+%vRozen: Long sentence. Consider breakin into parts. 'stack recording'
 
 \begin{itemize}
   \item Display of input arguments and return values for each function call.
   \item Displays the value of each variable definition or assignment. In cases where the assignment is in a loop or is called several times, all the different values are displayed.
   \item Display comparison values for each loop (for and while).
 \end{itemize}
+%vRozen: repeats display(s). Consider saying it once, before the points.
 
 The use of the tree-sitter is not required to display probes. In fact, it could simply display the variables when they are modified. However, using the tree sitter also allows us to be able to display the state of variables where they are used, such as in comparisons in loops.
+%vRozen. The significance of tree-sitter (or tree sitter?) has not yet been established. What is it and why is it needed?
 
 \subsubsection{Stack explorer}
 
@@ -670,11 +721,13 @@ The use of the tree-sitter is not required to display probes. In fact, it could 
 \end{figure}
 
 The second mode, featured in Figure \ref{fig:demo-stack}, displays the stack recording in the form of a history. The screenshots show the different stack states recorded. The right-hand panel shows the stackframe state and a slider for exploring the different states. The location in the source code corresponding to the state where the stackframe has been registered is highlighted in yellow in the Codemirror editor on the left.
+%vRozen: stack frame or stackframe.
 
 \subsection{Performance}
 \label{sec:performance}
 
 In the context of a live programming environment, it is essential to have short response times after user interactions. 
+%vRozen: Short response times are essential for live programming environments.
 We therefore measured the performance of our approach in response to various questions:
 
 \begin{itemize}
@@ -682,8 +735,10 @@ We therefore measured the performance of our approach in response to various que
   \item How long does it take to run the program, depending on the number of stack frames needed to make the stack recording?
   \item What is the average performance during a live programming session?
 \end{itemize}
+%vRozen: it helps to be precise on what is recorded, e.g., time in ms. How is 'performance' defined -- average duration of each entire case?
 
 \subsubsection{How long does it take to compile and to load the code into the debugger, depending on the size of the programme?}
+%vRozen: todo fixme Replace heading by a descriptive title.
 
 \begin{figure}[htbp]
   \centering
