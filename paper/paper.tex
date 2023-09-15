@@ -922,6 +922,15 @@ At step 16, we also observe the case of an infinite loop in the scenario.
 
 \subsection{Discussion}
 
+%vRozen: Parking some ideas here about the relationship between stack recordings, cause-and-effect chains and different live programming features. It may be this fits better in related work or future work than the discussion.
+The LiveRec approach introduces the minimal data structure, the stack recording, for supporting probes.
+This live programming feature is limited to analyzing functions and methods.
+Of course, other liveness features exist that require a more elaborate structure and debugging instrumentation.
+In particular, omniscient debugging (also known as back in time debugging), supports exploratory programming with what-if scenarios through record, replay, undo and redo functionality.
+The modification of running programs requires an explicit representation of change that can augment and integrate with the stack recording for supporting these features.
+For instance, the Cascade framework represents change as cause-and-effect chains (based on edit operations) that can update both a live program's syntax and its run-time state.
+Future work can further investigate how the generic debugging instrumentation can be extended for supporting additional live programming features.
+
 While our approach to implement live probes on top of off-the-shelf debuggers provides a viable strategy to add live probes to many mainstream languages, some limitations and open questions remain. Below discuss these in more detail.
 
 ``All problems in computer science can be solved by another level of indirection,''\footnote{Attributed to David Wheeler (\url{https://en.wikipedia.org/wiki/David_Wheeler_(computer_scientist)})} yet that often creates other problems. This state of affairs can be recognized in some of the performance results of the DAP-based live probes discussed above. Layering another level of abstraction (the DAP) between the native debuggers and the live probe server, causes performance to degrade, in this case mostly because of the asynchronous nature of the DAP, and serializing data shipped back and forth over sockets (TO CHECK). 
