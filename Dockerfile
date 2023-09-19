@@ -13,4 +13,4 @@ RUN pip install -r requirements.txt
 RUN pip install -e .
 RUN ./install.sh
 
-CMD [ "flask", "-A", "/code/src/webdemo/main:app", "run" ]
+ENTRYPOINT [ "flask", "-A", "/code/src/webdemo/main:app", "run" ]

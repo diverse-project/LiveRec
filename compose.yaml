@@ -6,3 +6,8 @@ services:
       - ./LiveFromDAP:/code
     ports:
       - "8000:5000"
+    environment:
+      - PWD=/code
+      - HOME=/root
+      - TERM=xterm
+      - SHLVL=1

@@ -311,7 +311,7 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         """
         while True:
             output : dict = self.io.read_json() # type: ignore
-            if self.debug: print(output)
+            if self.debug: print(output, flush=True)
             if output["type"] == "request" and output["command"] == "runInTerminal":
                 if self._handleRunInTerminal(output):
                     continue
