@@ -7,7 +7,7 @@ def test_java_binary_search():
     agent.start_server()
     agent.initialize()
 
-    class_path = os.path.abspath("src/livefromdap/target/java")
+    class_path = os.path.join(os.path.dirname(__file__), "..", "src","livefromdap","target","java")
     class_name = "BinarySearch"
     source_path = os.path.join(class_path, f"{class_name}.java")
     compiled_path = os.path.join(class_path, f"{class_name}.class")
@@ -31,7 +31,7 @@ def test_java_bubblesort():
     agent.start_server()
     agent.initialize()
 
-    class_path = os.path.abspath("src/livefromdap/target/java")
+    class_path = os.path.join(os.path.dirname(__file__), "..", "src","livefromdap","target","java")
     class_name = "BubbleSort"
     source_path = os.path.join(class_path, f"{class_name}.java")
     compiled_path = os.path.join(class_path, f"{class_name}.class")
@@ -53,7 +53,7 @@ def test_java_fibonnaci():
 
     agent.start_server()
     agent.initialize()
-    class_path = os.path.abspath("src/livefromdap/target/java")
+    class_path = os.path.join(os.path.dirname(__file__), "..", "src","livefromdap","target","java")
     class_name = "Fibonnaci"
     source_path = os.path.join(class_path, f"{class_name}.java")
     compiled_path = os.path.join(class_path, f"{class_name}.class")
@@ -74,7 +74,7 @@ def test_java_prime():
 
     agent.start_server()
     agent.initialize()
-    class_path = os.path.abspath("src/livefromdap/target/java")
+    class_path = os.path.join(os.path.dirname(__file__), "..", "src","livefromdap","target","java")
     class_name = "Prime"
     source_path = os.path.join(class_path, f"{class_name}.java")
     compiled_path = os.path.join(class_path, f"{class_name}.class")

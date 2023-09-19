@@ -344,7 +344,7 @@ class JavaLiveAgent(BaseLiveAgent):
 
         return (not self.method_loaded in scope_name), line_number, column, height, variables
 
-    def execute(self, clazz, method, args, max_steps=100):
+    def execute(self, clazz, method, args, max_steps=100, bypass_arg_optim=True):
         """Execute a method with the given arguments"""
         if not clazz in self.loaded_classes.keys(): # error, class not loaded
             raise Exception(f"Class {clazz} not loaded")
@@ -354,7 +354,7 @@ class JavaLiveAgent(BaseLiveAgent):
         breakpoint = self.get_start_line(self.loaded_classes[clazz], clazz, method) + 1
         self.set_breakpoint(self.loaded_classes[clazz], [breakpoint])
 
-        if self.last_args is None or self.last_args != args:
+        if bypass_arg_optim or self.last_args is None or self.last_args != args:
             frame_id = self.get_stackframes(self.thread_id)[0]["id"]
             # We need to load the arguments into the target program
             self.evaluate(f"runner.args = new Object[{len(args)}]", frame_id)

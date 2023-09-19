@@ -6,9 +6,9 @@ def test_c_binary_search():
     agent = CLiveAgent(debug=True)
     agent.start_server()
     agent.initialize()
-
-    source_path = os.path.abspath("src/livefromdap/target/c/binary_search.c")
-    compiled_path = os.path.abspath("src/livefromdap/target/c/binary_search.so")
+    
+    source_path = os.path.join(os.path.dirname(__file__), "..", "src","livefromdap","target", "c", "binary_search.c")
+    compiled_path = os.path.join(os.path.dirname(__file__), "..", "src","livefromdap","target", "c", "binary_search.so")
     #Assert that the file exists
     assert os.path.exists(source_path), "Source file does not exist"
     assert os.path.exists(compiled_path), "Compiled file does not exist, please compile it first with the Makefile"
@@ -28,8 +28,9 @@ def test_c_bubblesort():
     agent.start_server()
     agent.initialize()
 
-    source_path = os.path.abspath("src/livefromdap/target/c/bubblesort.c")
-    compiled_path = os.path.abspath("src/livefromdap/target/c/bubblesort.so")
+    source_path = os.path.join(os.path.dirname(__file__), "..", "src","livefromdap","target", "c", "bubblesort.c")
+    compiled_path = os.path.join(os.path.dirname(__file__), "..", "src","livefromdap","target", "c", "bubblesort.so")
+    
     assert os.path.exists(source_path), "Source file does not exist"
     assert os.path.exists(compiled_path), "Compiled file does not exist, please compile it first with the Makefile"
 
@@ -46,8 +47,9 @@ def test_c_fibonnaci():
     agent.start_server()
     agent.initialize()
 
-    source_path = os.path.abspath("src/livefromdap/target/c/fibonnaci.c")
-    compiled_path = os.path.abspath("src/livefromdap/target/c/fibonnaci.so")
+    source_path = os.path.join(os.path.dirname(__file__), "..", "src","livefromdap","target", "c", "fibonnaci.c")
+    compiled_path = os.path.join(os.path.dirname(__file__), "..", "src","livefromdap","target", "c", "fibonnaci.so")
+
     assert os.path.exists(source_path), "Source file does not exist"
     assert os.path.exists(compiled_path), "Compiled file does not exist, please compile it first with the Makefile"
 
@@ -66,8 +68,9 @@ def test_c_prime():
     agent.start_server()
     agent.initialize()
 
-    source_path = os.path.abspath("src/livefromdap/target/c/prime.c")
-    compiled_path = os.path.abspath("src/livefromdap/target/c/prime.so")
+    source_path = os.path.join(os.path.dirname(__file__), "..", "src","livefromdap","target", "c", "prime.c")
+    compiled_path = os.path.join(os.path.dirname(__file__), "..", "src","livefromdap","target", "c", "prime.so")
+
     assert os.path.exists(source_path), "Source file does not exist"
     assert os.path.exists(compiled_path), "Compiled file does not exist, please compile it first with the Makefile"
 

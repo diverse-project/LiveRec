@@ -2,5 +2,7 @@ services:
   web:
     build: .
     container_name: liverec
+    volumes:
+      - ./LiveFromDAP:/code
     ports:
       - "8000:5000"
