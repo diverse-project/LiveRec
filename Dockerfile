@@ -3,7 +3,7 @@ WORKDIR /code
 ENV FLASK_RUN_HOST=0.0.0.0
 COPY LiveFromDAP/. .
 RUN pacman -Sy
-RUN pacman -S --noconfirm python-pip git jdk-openjdk gcc gdb nodejs-lts-hydrogen npm unzip make
+RUN pacman -S --noconfirm python-pip git jdk-openjdk gcc gdb nodejs-lts-hydrogen npm unzip make lsof
 
 ENV VIRTUAL_ENV=/opt/venv
 RUN python -m venv $VIRTUAL_ENV
@@ -13,4 +13,4 @@ RUN pip install -r requirements.txt
 RUN pip install -e .
 RUN ./install.sh
 
-ENTRYPOINT [ "flask", "-A", "/code/src/webdemo/main:app", "run" ]
+WORKDIR /code

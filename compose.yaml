@@ -5,9 +5,13 @@ services:
     volumes:
       - ./LiveFromDAP:/code
     ports:
-      - "8000:5000"
+      - "5000:5000"
     environment:
       - PWD=/code
       - HOME=/root
       - TERM=xterm
       - SHLVL=1
+      - _=/opt/venv/bin/python
+      - OLDPWD=/code/src
+    stdin_open: true
+    tty: true 

@@ -130,7 +130,7 @@ fi
 # Js DAP
 echo "[Js DAP] Checking for Js DAP..."
 # check if src/livefromdap/bin/js-dap directory exists
-if [ ! -d "src/livefromdap/bin/js-dap" ]; then
+if [ ! -f "src/livefromdap/bin/js-dap/dapDebugServer.js" ]; then
     echo "Downloading Js DAP..."
     mkdir -p src/livefromdap/bin/js-dap
     cd src/livefromdap/bin/js-dap
