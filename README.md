@@ -20,7 +20,7 @@ flask -A src/webdemo/main.py:app run
 ```
 
 The liverec server is available at `http://localhost:5000/`
-
+Currently, the web demo does not work properly with Javascript, but it works with C, Python and Java.
 
 
 
