@@ -248,44 +248,29 @@ In between steps, the debugger takes snapshots of the current stack frame to rec
 \end{figure}
 
 
-\section{Using the Debugger ?}
-%vRozen: todo fixme heading title
+\section{Framing Debug Protocols}
 
-\subsection{Architecture}
+\subsection{High-level Architecture}
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=0.8\linewidth]{img/architecture.png}
-  \caption{General architecture (placeholder)}
+  \includegraphics[width=0.9\linewidth]{img/architecture.png}
+  \caption{High-level architecture}
   \label{fig:architecture}
 \end{figure}
-%vRozen: todo fixme remove 'placeholder'
-%vRozen: perhaps a tikz image here
 
-A live environment must be able to react to two different events: a change in the code or a change in the test/input data. 
-%vRozen: 'live environment' -- 'live programming environment'
-If the code changes, we need to re-execute the code, and in the case of a compiled language, we need to compile the new code first. 
-%vRozen: who is 'we' ? Consider replacing 'we' by 'a programmer' Whenever a programmer changes the code, ...
-%vRozen: alternatively, 'we' could be software language engineers who are implementing probes for language X.
-If the data changes, we need to be able to re-execute the programme with the new data. 
-%vRozen: Likewise, the program needs to re-execute immediately when the programmer adjusts the inputs.
-In addition, it is necessary to keep compilation and execution times low enough to maintain an interactive experience with the user.
-%vRozen: 'the user' -- suggest 'the programmer' or 'programmers'
+A programming environment with probes must be able to react to two different events: a change in the code or a change in the input data to the method. 
+If the code changes, it needs to be reexecuted, possible preceded by a compilation step in the case of compiled languages.
+Likewise, if one or more input values change, the probed method needs to be reexecuted, but in this case no recompilation is required. 
+Both compilation (if any) and reexecution of the probed method needs to be fast enough to avoid noticable delays in updating the display values of the method's variables.
 
-To meet these constraints, we propose the architecture shown in Figure \ref{fig:architecture} :
-\begin{itemize}
-  \item The IDE or editor communicates with a server. The IDE sends changes to the code and function parameters, and the server sends back the stack trace of the method.
-%vRozen: 'or'. The editor is part of an IDE that ...
-  \item The server initialises and communicates with the debugger to apply the changes received from the IDE, and generates a stack recording when the method is executed.
-%vRozen: US English: Initializes
-%vRozen: The server initializes the debugger, and continually applies the changes it receives from the IDE, generating a stack recording when a method is executed.
-  \item The debugger runs an intermediate program, a keep alive agent. This keeps the debugger alive to reduce initialisation times.
-%vRozen: Note -- The acronym Keep Alive Agent (KAA) has been introduced already.
-%vRozen: The debugger runs the Keep Alive Agent, an intermediate program for reducing initialization times, which keeps the debugger alive between executions.
-\end{itemize}
+The high-level architecture of \coolname is shown in Figure \ref{fig:architecture}.
+The IDE is used by the programmer to edit source code. Since the programmer's focus (indicated by the cursor position) is always inside a single method\footnote{Of course, the cursor can be outside any method, but this is irrelevant to probes.}. If a method has been annotated with input values for its parameters (indicating that the programmer wants to probe the method), the code and the input values are sent to the Live Probes Server after every edit. 
 
-\label{sec:stack-recording}
-%vRozen: fixme dangling label
+The server communicates with a (custom) Debugger implementation through a debug protocol, such as JDI or DAP. 
+This debugger component has been initialized with a dummy program, called the Keep Alive Agent (KAA). The code for a probed method is dynamically loaded into the KAA, so that the method can be invoked through API calls of the debug protocol. By hotswapping the code into the KAA we avoid a significant performance penalty of restarting the Debugger itself every time a change is received by the Live Probes Server. 
+
+During execution of the probed method, the Live Probes Server collects all intermediate stack frames in a stack recording, which is sent back to the IDE for display to the programmer. 
 
 \subsection{Stack Recording}
 
