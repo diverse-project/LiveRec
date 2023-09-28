@@ -255,8 +255,8 @@ In between steps, the debugger takes snapshots of the current stack frame to rec
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=0.8\linewidth]{img/architecture.png}
-  \caption{General architecture (placeholder)}
+  \includegraphics[width=0.8\linewidth]{img/architecture_2.png}
+  \caption{General architecture}
   \label{fig:architecture}
 \end{figure}
 %vRozen: todo fixme remove 'placeholder'
@@ -433,12 +433,27 @@ This representation allows us to maintain a link between the spatial location (t
 This representation has several advantages: it is easy to construct from debugger information, and it applies to most programming languages.
 Figure \ref{fig:stack-recording} shows an example of a stack recording. On the left is a C function and on the right is the stack recording of the execution of \code{foo(3)}. Each rectangle represents the state of the stackframe during execution, with the source code location (here simplified to the line number).
 
+
 \begin{figure}[h]
   \centering
-  \includegraphics[width=0.6\linewidth]{img/stackrecording_impl.png}
-  \caption{Record Stackrecording (placeholder)}
+  \includegraphics[width=0.8\linewidth]{img/uml_sequence_record.png}
+  \caption{Record Stackrecording}
   \label{fig:stack-recording-impl}
 \end{figure}
+
+\begin{comment} %Mermaid
+sequenceDiagram
+    participant A as Live Probes server
+    participant B as Debugger (KAA)
+    A->>B: Execute method(args)
+    B->>A: Breakpoint at method entry
+    loop Until method end
+        A->>B: request stackframe
+        B->>A: stackframe
+        A->>B: request step
+        B->>A: hit breakpoint
+    end
+\end{comment}
 %vRozen: This is a UML sequence diagram.
 %vRozen: The loop may use an activation frame.
 %vRozen: The objects (or component instances) on the top of life lines appear in rectangular boxes.
