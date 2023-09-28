@@ -249,6 +249,7 @@ In between steps, the debugger takes snapshots of the current stack frame to rec
 
 
 \section{Framing Debug Protocols}
+\label{sec:stack-recording}
 
 \subsection{High-level Architecture}
 
@@ -274,12 +275,13 @@ During execution of the probed method, the Live Probes Server collects all inter
 
 \subsection{Stack Recording}
 
+
 \begin{figure}[h]
   \centering
   \begin{minipage}{0.25\textwidth}
     \centering
     \begin{lstlisting}[language=C]
-//foo(3)
+//@foo(3)
 int foo(int n) {
   int i = 0;
   while (i < n) {
@@ -300,26 +302,21 @@ int foo(int n) {
 %vRozen. The layout seems a bit off.
 %vRozen. I propose merging Figure 3 and Table 1 into a single figure, the tabularx version below.
 
-\begin{table}[t]
-  \centering
-  \includegraphics[width=\textwidth]{img/matrix.pdf}
-  \caption{Tracking variable values across time and space}
-\end{table}
+% \begin{table}[t]
+%   \centering
+%   \includegraphics[width=\textwidth]{img/matrix.pdf}
+%   \caption{Tracking variable values across time and space}
+% \end{table}
 
 
 %vRozen: Perhaps removing the time/space arrows would be better. it seems a bit cluttered
 %vRozen: Perhaps we can still add boxes around the stack recordings to make it more similar to figure 4. It gives the feeling of having data structures, not just values.
 \begin{figure}
   \centering
-  \large  
-  \hspace{8pt} \color{darkgray} \textsf{\textbf{time}}  \color{black} $\rightarrow$ \raggedright
-  \vspace{2pt}
-   
-  \rotatebox{90}{$\leftarrow$ \color{darkgray} \textsf{\textbf{space} \color{black}}}
   \small
   \begin{tabularx}{0.94\textwidth}{ l @{\hspace{4pt}} l @{\hspace{4pt}} X @{\hspace{4pt}} X @{\hspace{4pt}} X @{\hspace{4pt}} X @{\hspace{4pt}} X @{\hspace{4pt}} X @{\hspace{4pt}} X @{\hspace{4pt}} X @{\hspace{4pt}} X @{\hspace{4pt}} X @{\hspace{4pt}} l}  
   \toprule  
-  &
+  & \textsf{\textbf{time}} $\rightarrow$
   &
   \textbf{$t_1$}&
   \textbf{$t_2$}&
@@ -331,35 +328,23 @@ int foo(int n) {
   \textbf{$t_8$}&
   \textbf{$t_9$}\\
   \midrule
-  &
-  &
-  \iC{n; i} &
-  \iC{n; i} &
-  \iC{n; i} &
-  \iC{n; i} &
-  \iC{n; i} &
-  \iC{n; i} &
-  \iC{n; i} &
-  \iC{n; i} &
-  \iC{n; i} \\
-  \midrule
   1 & \iC{//foo(3)}\\
   2 & \iC{int foo(int n)\{} \\
   3 & \hspace{8pt}~\iC{int i = 0;}
-  & \iC{3; _} \\  
+  & \iC{n=3} \\  
   4 & \hspace{8pt}~\iC{while(i < n)\{} 
   &
-  & \iC{3; 0}
+  & \iC{n=3; i=0}
   &
-  & \iC{3; 1}
+  & \iC{n=3; i=1}
   & 
-  & \iC{3; 2}\\
+  & \iC{n=3; i=2}\\
   5 & \hspace{16pt}~\iC{i++;}
   &
   &
-  & \iC{3; 0}; 
+  & \iC{n=3; i=0}; 
   &
-  & \iC{3; 1}\\
+  & \iC{n=3; i=1}\\
   6 & \hspace{8pt}~\iC{\}}\\
   7 & \hspace{8pt}~\iC{return i;}
   &
@@ -370,7 +355,7 @@ int foo(int n) {
   &
   &
   &
-  \iC{3; 3}\\
+  \iC{n=3; n=3}\\
   8 & \iC{\}}
     &
   &
@@ -384,7 +369,7 @@ int foo(int n) {
   \iC{return 3}\\
   \bottomrule
   \end{tabularx}
-  \caption{Tracking variable values across time and space}
+  \caption{Tracking variable values across time and space (= source code)}
 \end{figure}
 
 
