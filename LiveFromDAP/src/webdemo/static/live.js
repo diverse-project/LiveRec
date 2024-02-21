@@ -10,7 +10,7 @@ if (language=="java"){
 if (language=="javascript"){
     CodeMirror_mode = "text/javascript";
 }
-if (language=="python"){
+if (language=="python" || language=="pyjs"){
     CodeMirror_mode = {name: "python",
         version: 3,
         singleLineStringErrors: false};
