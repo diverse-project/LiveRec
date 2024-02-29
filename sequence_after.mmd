@@ -1,0 +1,13 @@
+sequenceDiagram
+    actor User
+    User->>Session: select language
+    User->>Session: Types code
+    Session->>AutoAgent: update_code()
+    AutoAgent-->>Session: code has changed
+    Session->>AutoAgent: execute(full_code)
+    AutoAgent->>LiveJSAgent: evaluate(code)
+    LiveJSAgent-->>AutoAgent: evaluation result
+    AutoAgent->>LivePYAgent: execute(rewritten_code)
+    LivePYAgent-->>AutoAgent: return results
+    AutoAgent-->>Session: return results
+    Session-->>User: display results
