@@ -289,7 +289,7 @@ class JavascriptLiveAgent(BaseLiveAgent):
                 height = 0
             else:
                 height = len(stacktrace) - initial_height
-            if stacktrace[0]["name"] != method:
+            if stacktrace[0]["name"] != "global."+method:
                 break
             # We need to get local variables
             scope = self.get_scopes(stacktrace[0]["id"])[0]
