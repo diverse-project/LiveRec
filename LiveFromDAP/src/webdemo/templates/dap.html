@@ -29,8 +29,14 @@ public class Live{
 {% elif language == 'pyjs' %}
 #@foo(1,2)
 def foo(a, b):
-    t = polyglot.eval("js", "2+2")
+    t = polyglotEval("js", "var x = 1; x")
+    x = a + t
+    for i in range(0, 5):
+        t = polyglotEval("js", "x = x + 1; x")
     return a + b + t
+
+def polyglotEval(i, j):
+    return -1
 {% elif language == 'c' %}
 //@foo(1,2)
 int foo(int a, int b){

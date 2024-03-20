@@ -147,6 +147,21 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         }
         self.io.write_json(breakpoint_request)
 
+    def set_expression(self, var_expr: str, val_expr: str, frame_id: int):
+        setexpr_request = {
+            "seq": self.new_seq(),
+            "type": "request",
+            "command": "setExpression",
+            "arguments": {
+                "expression": var_expr,
+                "value": val_expr,
+                "frameId": frame_id
+            }
+        }
+        self.io.write_json(setexpr_request)
+        output = self.wait("response", command="setExpression")
+        return output["body"]["value"]
+
     def configuration_done(self):
         """Send the configurationDone request to the debuggee
         """
