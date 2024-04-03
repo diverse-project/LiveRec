@@ -1,9 +1,9 @@
 import os
 import subprocess
 import sys
+from time import sleep
 
-import debugpy
-from debugpy.common.messaging import JsonIOStream
+
 from livefromdap.utils.StackRecording import Stackframe, StackRecording
 
 from .BaseLiveAgent import BaseLiveAgent
@@ -41,9 +41,6 @@ class PyJSLiveAgent(BaseLiveAgent):
         self.py_agent.initialize()
         self.js_agent.initialize()
     
-    def setup_runner_breakpoint(self):
-        self.set_breakpoint(self.runner_path, [16])
-        self.configuration_done()
     
     def load_code(self, path: str):
         stacktrace = self.py_agent.get_stackframes()
@@ -70,8 +67,6 @@ class PyJSLiveAgent(BaseLiveAgent):
         # We are now in the function, we need to get all information, step, and check if we are still in the function
         scope = None
         initial_height = None
-        polyglot_var = None
-        polyglot_result = None
         i = 0
         while True:
             stacktrace = self.py_agent.get_stackframes()
@@ -95,27 +90,21 @@ class PyJSLiveAgent(BaseLiveAgent):
                 self.initialize()
                 return "Interrupted", stackrecording
             self.py_agent.step()
+
             # handle the polyglot (JS) case
-            if polyglot_var is not None and polyglot_result is not None:
-                try:
-                    self.py_agent.set_expression(polyglot_var, polyglot_result, stacktrace[0]["id"])
-                except:
-                    pass
-                polyglot_var = None
-                polyglot_result = None
-            if (l := stacktrace[0]["line"]) != 0 and (m := re.match(r".*?polyglotEval\((.*?),(.*?)\)", (stmt := self.source_code[l]))):
-                polyglot_node = python_ast.parse(stmt.strip())
-                visitor = IsAssignOrExpr()
-                visitor.generic_visit(polyglot_node)
-                if visitor.result is not None:
-                    polyglot_var = visitor.result
-                    polyglot_result = (self.js_agent.evaluate(
-                        m.group(2).strip().strip('"'), 
-                        self.js_agent.get_stackframes()[0]["id"])
-                                .get("body")
-                                .get("result")
-                                .strip("'")
-                    )
+            if (call_name := self.py_agent.get_stackframes()[0]["name"]) != method and call_name == "polyglotEval":
+                    # move to right before function returns
+                    self.py_agent.step()
+                    # we now need to have the JS agent evaluate the expression
+                    py_stackframes = self.py_agent.get_stackframes()
+                    js_stackframes = self.js_agent.get_stackframes()
+                    code = self.py_agent.evaluate("j", py_stackframes[0]["id"]).get("body").get("result").strip("'")
+                    polyglot_result = self.js_agent.evaluate(code, js_stackframes[0]["id"]).get("body").get("result")
+                    # set return value with the polyglot evaluation result, then exit polyglot call and resume normal execution
+                    self.py_agent.set_expression("ret", polyglot_result, py_stackframes[0]["id"])
+                    self.py_agent.step_out()
+                    # additional step to account for the live loop logic (i.e. not process the line twice)
+                    self.py_agent.step()
         # We are now out of the function, we need to get the return value
         self.py_agent.step()
         scope = self.py_agent.get_scopes(stacktrace[0]["id"])[0]
