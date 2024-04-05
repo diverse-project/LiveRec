@@ -6,5 +6,5 @@ def foo(a, b):
     return a + b + t
 
 def bar():
-    polyglotEval("js", "x = x + 1; x")
+    return polyglotEval("js", "x = x + 1; x")
 

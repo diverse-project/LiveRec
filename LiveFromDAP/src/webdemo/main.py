@@ -5,7 +5,7 @@ import time
 import uuid
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, join_room, send
-from webdemo.AutoAgent import AutoCLiveAgent, AutoJavaLiveAgent, AutoPyJSDynamicAgent, AutoPythonLiveAgent, AutoJavascriptLiveAgent, AutoJavaJDILiveAgent, AutoPyJSAgent
+from webdemo.AutoAgent import AutoCLiveAgent, AutoExecutionAgent, AutoJavaLiveAgent, AutoPyJSDynamicAgent, AutoPythonLiveAgent, AutoJavascriptLiveAgent, AutoJavaJDILiveAgent, AutoPyJSAgent
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -25,6 +25,8 @@ def create_agent(language, raw=False):
         return AutoJavascriptLiveAgent(raw=raw)
     elif language == "pyjs":
         return AutoPyJSDynamicAgent(raw=raw)
+    elif language == "pexec":
+        return AutoExecutionAgent(raw=raw)
     else:
         raise NotImplementedError() # TODO implement other languages
 
