@@ -4,5 +4,3 @@ def foo(a, b):
     t = polyglotEval("js", "var x = polyglotImport('b') + 3; x")
     return a + b + t
 
-def polyglotEval(i, j):
-    return -1

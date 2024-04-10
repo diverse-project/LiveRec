@@ -4,5 +4,3 @@ def foo(a, b):
     t = polyglotImport("x")
     return a + b + t
 
-def polyglotEval(i, j):
-    return -1
