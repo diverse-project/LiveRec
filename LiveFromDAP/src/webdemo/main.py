@@ -47,6 +47,7 @@ def clean_code(code, language="python"):
     return "\n".join(["" if line.strip().startswith(prefix) else line for line in code.split("\n") ])
 
 def extract_exec_request(code, language="python"):
+    result = []
     prefix = get_language_prefix(language)
     for line in code.split("\n"):
         line = line.strip()
@@ -58,8 +59,10 @@ def extract_exec_request(code, language="python"):
                 # magix regex to split the args
                 args = re.split(r',(?![^\[\]\(\)\{\}]*[\]\)\}])', args_str)
                 if not "" in map(lambda x: x.strip(), args):
-                    return method, list(map(lambda x: x.strip(), args))
-    return None
+                    result.append((method, list(map(lambda x: x.strip(), args))))
+    if len(result) == 0:
+        return None
+    return result
 
 class Session():
     """A session is a unique identifier for a user. 
@@ -107,13 +110,14 @@ class Session():
             code = clean_code(request["code"], self.language)
             
             exec_req = extract_exec_request(request["code"], self.language)
-
             if exec_req is not None:
                 changed = self.agent.update_code(code)
                 self.send_status("codeChange", session_id=session_id)
                 if changed or exec_req != self.last_execution_line:
                     try:
-                        result = self.agent.execute(*exec_req)
+                        result = ""
+                        for req in exec_req:
+                            result += self.agent.execute(*req)
                         self.send({
                             "event": "executeOutput",
                             "output": result,
