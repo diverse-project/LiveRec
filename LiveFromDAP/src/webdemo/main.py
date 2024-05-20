@@ -108,16 +108,24 @@ class Session():
         if request["event"] == "codeChange":
             session_id = request["session_id"]
             code = clean_code(request["code"], self.language)
-            
+            func_dic = find_function_start(request["code"])
             exec_req = extract_exec_request(request["code"], self.language)
+            result = ""
             if exec_req is not None:
                 changed = self.agent.update_code(code)
                 self.send_status("codeChange", session_id=session_id)
                 if changed or exec_req != self.last_execution_line:
                     try:
-                        result = ""
                         for req in exec_req:
-                            result += self.agent.execute(*req)
+                            #####
+                            print(req)
+                            #####
+
+                            if not result:
+                                result += self.agent.execute(*req)
+                            else:
+                                second = self.agent.execute(*req)
+                                result = superpose_strings(result, second)
                         self.send({
                             "event": "executeOutput",
                             "output": result,
@@ -207,6 +215,34 @@ def run():
     import os
     os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
     socketio.run(app)
+
+#helper
+def superpose_strings(first, second):
+    # Convert strings to lists to modify characters
+    first_list = first.split('\n')
+    second_list = second.split('\n')
+
+    # Iterate over the characters of both strings
+    for i in range(min(len(first_list), len(second_list))):
+        if second_list[i]:
+            first_list[i] = second_list[i] + '\n'
+        else:
+            first_list[i] = first_list[i] + '\n'
+
+    # Join the list back into a string
+    return ''.join(first_list)
+
+def find_function_start(code):
+    func_dic = {}
+    line_num = 0
+    for line in code.split("\n"):
+        line_num += 1
+        line = line.strip()
+        if line.startswith("def"):
+            exec_request = line[3:].strip()
+            method = exec_request.split("(")[0]
+            func_dic[method] = line_num
+    return func_dic
 
 
 if __name__ == '__main__':
