@@ -11,7 +11,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 sessions = {}
-
+currentInputs = None
 sessions_to_sid = {}
 
 def create_agent(language, raw=False):
@@ -105,27 +105,35 @@ class Session():
 
     
     def handle_request(self, request):
+        global currentInputs
+
         if request["event"] == "codeChange":
             session_id = request["session_id"]
             code = clean_code(request["code"], self.language)
-            func_dic = find_function_start(request["code"])
             exec_req = extract_exec_request(request["code"], self.language)
             result = ""
+
             if exec_req is not None:
+
                 changed = self.agent.update_code(code)
+
+                if currentInputs != request["outputSelected"]:
+                    currentInputs = request["outputSelected"]
+                    changed = True
+
                 self.send_status("codeChange", session_id=session_id)
+
                 if changed or exec_req != self.last_execution_line:
                     try:
                         for req in exec_req:
-                            #####
-                            print(req)
-                            #####
+                            if currentInputs:
+                                if req[0] in currentInputs.keys() and currentInputs.get(req[0]) == req[1]:
+                                    if not result:
+                                        result += self.agent.execute(*req)
+                                    else:
+                                        second = self.agent.execute(*req)
+                                        result = superpose_strings(result, second)
 
-                            if not result:
-                                result += self.agent.execute(*req)
-                            else:
-                                second = self.agent.execute(*req)
-                                result = superpose_strings(result, second)
                         self.send({
                             "event": "executeOutput",
                             "output": result,
@@ -231,19 +239,6 @@ def superpose_strings(first, second):
 
     # Join the list back into a string
     return ''.join(first_list)
-
-def find_function_start(code):
-    func_dic = {}
-    line_num = 0
-    for line in code.split("\n"):
-        line_num += 1
-        line = line.strip()
-        if line.startswith("def"):
-            exec_request = line[3:].strip()
-            method = exec_request.split("(")[0]
-            func_dic[method] = line_num
-    return func_dic
-
 
 if __name__ == '__main__':
     run()

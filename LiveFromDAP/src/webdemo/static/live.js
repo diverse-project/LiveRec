@@ -84,7 +84,8 @@ function sendCode() {
         event: 'codeChange',
         session_id: session_id,
         language: language,
-        code: code
+        code: code,
+        outputSelected: outputSelected
     };
     socket.emit('json', json);
 }
@@ -92,6 +93,48 @@ function sendCode() {
 CodeMirror.commands.save = function(insance) { 
     sendCode();
 };
+
+var highlightedLines = {};
+var outputSelected = {};
+
+editor.on('mousedown', function(instance, event) {
+    const lineNumber = editor.coordsChar({left: event.clientX, top: event.clientY}).line;
+    const lineContent = editor.getLine(lineNumber).trim();
+
+    if (lineContent.startsWith("#@")) {
+        const func = lineContent.replace(/^#@\s*/, '').replace(/\s*\(.*\)$/, '');
+        const argsStr = lineContent.split('(')[1].slice(0, -1);
+        const args = argsStr.match(/(?:[^,(){}[\]]+|\([^)]*\)|\{[^}]*\}|\[[^\]]*\])+/g) || [];
+
+        // Check if we are within the same function
+        if (highlightedLines[func] !== undefined && highlightedLines[func] !== lineNumber) {
+            // Clear previous highlights for the current function
+            clearMarkerAtLine(highlightedLines[func]);
+        }
+        // Update the highlighted line for the function
+        highlightedLines[func] = lineNumber;
+        outputSelected[func] = args;
+
+        // Highlight the selected line
+        editor.markText(
+            { line: lineNumber, ch: 0 },
+            { line: lineNumber, ch: lineContent.length },
+            { className: 'highlight-line' }
+        );
+        sendCode();
+    }
+});
+
+function clearMarkerAtLine(lineNumber) {
+    var marks = editor.findMarks(
+        { line: lineNumber, ch: 0 },
+        { line: lineNumber, ch: editor.getLine(lineNumber).length }
+    );
+
+    marks.forEach(function(mark) {
+        mark.clear();
+    });
+}
 
 // send code on evry change
 editor.on('change', function() {
