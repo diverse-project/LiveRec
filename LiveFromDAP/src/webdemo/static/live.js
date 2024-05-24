@@ -107,12 +107,12 @@ editor.on('mousedown', function(instance, event) {
         const args = argsStr.match(/(?:[^,(){}[\]]+|\([^)]*\)|\{[^}]*\}|\[[^\]]*\])+/g) || [];
 
         // Check if we are within the same function
-        if (highlightedLines[func] !== undefined && highlightedLines[func] !== lineNumber) {
+        if (highlightedLines[func] !== undefined && highlightedLines[func] !== lineContent) {
             // Clear previous highlights for the current function
-            clearMarkerAtLine(highlightedLines[func]);
+            clearMarkersByLineContent(highlightedLines[func]);
         }
         // Update the highlighted line for the function
-        highlightedLines[func] = lineNumber;
+        highlightedLines[func] = lineContent;
         outputSelected[func] = args;
 
         // Highlight the selected line
@@ -125,15 +125,20 @@ editor.on('mousedown', function(instance, event) {
     }
 });
 
-function clearMarkerAtLine(lineNumber) {
-    var marks = editor.findMarks(
-        { line: lineNumber, ch: 0 },
-        { line: lineNumber, ch: editor.getLine(lineNumber).length }
-    );
-
-    marks.forEach(function(mark) {
-        mark.clear();
-    });
+function clearMarkersByLineContent(lineContent) {
+    const lines = editor.lineCount();
+    for (let i = 0; i < lines; i++) {
+        const line = editor.getLine(i);
+        if (line.trim().startsWith(lineContent)) {
+            var marks = editor.findMarks(
+                { line: i, ch: 0 },
+                { line: i, ch: line.length }
+            );
+            marks.forEach(function(mark) {
+                mark.clear();
+            });
+        }
+    }
 }
 
 // send code on evry change
