@@ -40,7 +40,7 @@ socket.on('json', function(msg) {
         return;
     }
     if(msg.event == "addSlider"){
-        addSlider(msg.lineNumber, msg.length);
+        addSlider(msg.lineNumber, msg.length, msg.start, msg.end);
         document.getElementById("execution-spinner").style.display = "none";
         return;
     }
@@ -119,7 +119,6 @@ editor.on('mousedown', function(instance, event) {
         }else {
             slider = document.getElementById("slider");
             if (slider != undefined) {
-                console.log("delete slider");
                 slider.remove();
             }
             displayStackByLine(lineNumber+1);

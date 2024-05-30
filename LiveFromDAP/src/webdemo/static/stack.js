@@ -7,15 +7,16 @@ var curentStackRecord = {
     "stacktrace": []
 };
 
-function getStack(id){
-    return curentStackRecord["stacktrace"][id];
+function getStackByInterval(start, end){
+    var matchingFrames = curentStackRecord["stacktrace"].slice(start, end);
+    return matchingFrames;
 }
 function getStackByLine(line){
     var matchingFrames = curentStackRecord.stacktrace.filter(frame => frame.pos.line === line);
     return matchingFrames;
 }
-function displayStack(id) {
-    var stack = getStack(id);
+function displayStack(value, stacks) {
+    var stack = stacks[value];
     stackTitle.innerHTML = `StackFrame (l${stack["pos"]["line"]}:${stack["pos"]["column"]}, height ${stack["height"]})`;
     // stack var is a ul, create a li for each var
     stackVar.innerHTML = "";
@@ -64,18 +65,27 @@ function handle_executeOutput(msg) {
         return;
     }
     curentStackRecord = msg.output;
+    console.log(curentStackRecord);
 }
-function addSlider(lineNumber, value){
+function addSlider(lineNumber, value, start, end){
 
-    slider = document.createElement("input");
-    slider.max = value.toString();
-    slider.value = '0';
-    slider.min = '0';
-    slider.id = 'slider';
-    slider.type = 'range';
-    stackRange.appendChild(slider);
+    if(slider){
+        slider.max = value.toString();
+        slider.value = '0';
+        slider.min = '0';
+    }else{
+        slider = document.createElement("input");
+        slider.max = value.toString();
+        slider.value = '0';
+        slider.min = '0';
+        slider.id = 'slider';
+        slider.type = 'range';
+        stackRange.appendChild(slider);
+    }
+    var stacks = getStackByInterval(start, end+1);
     // on range change, display the stack
     slider.oninput = function() {
-        displayStack(parseInt(this.value) + lineNumber-1);
+        var stacks = getStackByInterval(start, end+1);
+        displayStack(parseInt(this.value), stacks);
     }
 }

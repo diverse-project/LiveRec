@@ -22,9 +22,12 @@
             <textarea id="editor" name="editor">{% if language == 'python' %}
 #@foo(1,3)
 def foo(a, b):
+    x = 1
     t = bar(a)
     for i in range(0, 5):
         t = t + 1
+        for j in range (0,2):
+            x = x + 1
     return a + b + t
 
 def bar(x):

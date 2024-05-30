@@ -163,6 +163,8 @@ class Session():
         self.send({
             "event": "addSlider",
             "lineNumber": line_number,
+            "start": first_occurrence,
+            "end": last_occurrence,
             "length": last_occurrence - first_occurrence
         }, json=True)
 
