@@ -37,6 +37,7 @@ socket.on('json', function(msg) {
     }
     if (msg.event == 'executeOutput') {
         handle_executeOutput(msg);
+        document.getElementById("execution-spinner").style.display = "none";
         return;
     }
     if(msg.event == "addSlider"){

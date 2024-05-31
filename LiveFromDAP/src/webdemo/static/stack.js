@@ -65,7 +65,7 @@ function handle_executeOutput(msg) {
         return;
     }
     curentStackRecord = msg.output;
-    console.log(curentStackRecord);
+
 }
 function addSlider(lineNumber, value, start, end){
 
