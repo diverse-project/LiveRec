@@ -31,7 +31,7 @@ def create_agent(language, raw=False):
         raise NotImplementedError() # TODO implement other languages
 
 def get_language_prefix(language):
-    if language == "python" or language == "pyjs":
+    if language == "python" or language == "pyjs" or language == "pexec":
         return "#@"
     elif language == "java":
         return "//@"

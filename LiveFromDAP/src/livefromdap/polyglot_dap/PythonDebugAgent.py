@@ -1,24 +1,26 @@
 import os
 import subprocess
 import sys
+import time
+from typing import override
 
 import debugpy
 from debugpy.common.messaging import JsonIOStream
 from livefromdap.utils.StackRecording import Stackframe, StackRecording
 
-from .BaseLiveAgent import BaseLiveAgent
+from .BaseDebugAgent import BaseDebugAgent
 
 
-class PythonLiveAgent(BaseLiveAgent):
+class PythonDebugAgent(BaseDebugAgent):
     """Communicate with the debugpy adapter to get stackframes of the execution of a method"""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.runner_path = kwargs.get("runner_path", os.path.join(os.path.dirname(__file__), "..", "runner", "py_runner.py"))
         self.debugpy_adapter_path = kwargs.get("debugpy_adapter_path", os.path.join(os.path.dirname(debugpy.__file__), "adapter"))
+        # self.debug = True
 
     def start_server(self):
         """Create a subprocess with the agent"""
-
         self.server = subprocess.Popen(
             ["python", self.debugpy_adapter_path],
             stdin=subprocess.PIPE,
@@ -86,7 +88,8 @@ class PythonLiveAgent(BaseLiveAgent):
                     "PYTHONIOENCODING": "UTF-8",
                     "PYTHONUNBUFFERED": "1"
                 },
-                "stopOnEntry": False,
+                # stop debug on entry to allow DAP manipulation
+                "stopOnEntry": True, 
                 "showReturnValue": True,
                 "internalConsoleOptions": "neverOpen",
                 "debugOptions": [
@@ -100,69 +103,64 @@ class PythonLiveAgent(BaseLiveAgent):
         self.io.write_json(launch_request)
         self.wait("event", "initialized")
         self.setup_runner_breakpoint()
-        self.wait("event", "stopped")
+        # self.wait("event", "stopped")
         return 5
     
     def setup_runner_breakpoint(self):
         self.set_breakpoint(self.runner_path, [26,39])
-        # self.set_function_breakpoint(["polyglotEval"])
+        self.set_function_breakpoint(["polyglotEval"])
         self.configuration_done()
+        
     
     def load_code(self, path: str):
         stacktrace = self.get_stackframes()
         frameId = stacktrace[0]["id"]
         self.evaluate(f"set_import('{os.path.abspath(path)}')", frameId)
         self.next_breakpoint()
-        self.wait("event", "stopped")
+    
+
+
+    def execute(self, filePath):
+        stackframe = self.get_stackframes()[0]
+        print(stackframe)
+        # self.set_breakpoint(os.path.join(os.path.dirname(__file__), "..", "runner", "test.py"), [3])
+        # self.set_breakpoint(os.path.join(os.path.dirname(__file__), "..", "runner", "test2.py"), [1])
+        self.next_breakpoint()
+        stackframe = self.get_stackframes()[0]
+        print(stackframe)
+        self.load_code(filePath)
+        stackframe = self.get_stackframes()[0]
+        if stackframe["source"]["path"] == "/code/src/livefromdap/runner/py_runner.py":
+            if stackframe["name"] == "<module>" and stackframe["line"] == 39:
+                # runner was on standby, we just need to load the code and resume execution
+                self.load_code(filePath)
+                self.next_breakpoint()
+      
+            elif stackframe["name"] == "polyglotEval" and stackframe["line"] == 19:
+                frameId = self.get_stackframes()[0]["id"]
+                self.evaluate(f"src_file = '{filePath}'", frameId)
+                self.next_breakpoint()
             
-    def execute(self, method, args, max_steps=50):
-        self.set_function_breakpoint([method])
-        stacktrace = self.get_stackframes()
-        frameId = stacktrace[0]["id"]
-        self.evaluate(f"set_method('{method}',[{','.join(args)}])", frameId)
-        # We need to run the debug agent loop until we are on a breakpoint in the target method
-        stackrecording = StackRecording()
-        while True:
-            stacktrace = self.get_stackframes()
-            if stacktrace[0]["name"] == method:
-                break
-            self.next_breakpoint()
-            self.wait("event", "stopped")
-        # We are now in the function, we need to get all information, step, and check if we are still in the function
-        scope = None
-        initial_height = None
-        i = 0
-        while True:
-            stacktrace = self.get_stackframes()
-            if initial_height is None:
-                initial_height = len(stacktrace)
-                height = 0
-            else:
-                height = len(stacktrace) - initial_height
-            if stacktrace[0]["name"] != method:
-                break
-            # We need to get local variables
-            if not scope:
-                scope = self.get_scopes(stacktrace[0]["id"])[0]
-            variables = self.get_variables(scope["variablesReference"])
-            stackframe = Stackframe(stacktrace[0]["line"], stacktrace[0]["column"], height, variables)
-            stackrecording.add_stackframe(stackframe)
-            i += 1
-            if i > max_steps:
-                # we need to pop the current frame
-                self.restart_server()
-                self.initialize()
-                return "Interrupted", stackrecording
-            self.step()
-        # We are now out of the function, we need to get the return value
-        scope = self.get_scopes(stacktrace[0]["id"])[0]
-        variables = self.get_variables(scope["variablesReference"])
-        return_value = None
-        for variable in variables:
-            if variable["name"] == f'(return) {method}':
-                return_value = variable["value"]
-        for i in range(2): # Needed to reset the debugger agent loop
-            self.next_breakpoint()
-            self.wait("event", "stopped")
-        return return_value, stackrecording
+        print(stackframe)
+        # print("while loop:", self.get_stackframes()[0])
+        # self.load_code(os.path.join(os.path.dirname(__file__), "..", "runner", "test.py"))
+        # print("normal breakpoint:", self.get_stackframes()[0])
+        # self.next_breakpoint()
+        # print("polyglot breakpoint:", self.get_stackframes()[0])
+        # self.step()
+        # self.step()
+        # print("inside polyg:", self.get_stackframes()[0])
+        # frameId = self.get_stackframes()[0]["id"]
+        # print(self.evaluate(f"src_file = '{os.path.join(os.path.dirname(__file__), "..", "runner", "test2.py")}'", frameId))
+        # self.next_breakpoint()
+        # print("inside test2:", self.get_stackframes()[0])
+        # self.next_breakpoint()
+        # print("peekaboo:", self.get_stackframes()[0])
+        # frameId = self.get_stackframes()[0]["id"]
+        # print(self.evaluate("intermediate_ret", frameId))
+        # self.next_breakpoint()
+        # print("while loop again:", self.get_stackframes()[0])
+        # frameId = self.get_stackframes()[0]["id"]
+        
+        return "execution reached!"
     

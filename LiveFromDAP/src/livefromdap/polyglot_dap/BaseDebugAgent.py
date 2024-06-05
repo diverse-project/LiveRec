@@ -11,7 +11,7 @@ class DebuggeeTerminatedError(Exception):
         super().__init__("Debuggee terminated")
     
 
-class DAPManager(ABC):
+class DAPAgent(ABC):
     """Interface for the LiveAgent
     This class define all methods that a LiveAgent should implement"""
 
@@ -42,11 +42,39 @@ class DAPManager(ABC):
         pass
     
     @abstractmethod
-    def execute(self, *args, **kwargs) -> StackRecording:
-        """Execute the method in the debuggee"""
+    def execute(self, filePath) -> None:
+        """Execute code"""
+        pass
+
+    @abstractmethod
+    def in_polyglot_call(self) -> bool:
+        """Determine if the DAP has reached a polyglot breakpoint"""
+        pass
+
+    @abstractmethod
+    def on_standby(self) -> bool:
+        """Determine if the DAP has reached a standby breakpoint"""
+        pass
+
+    @abstractmethod
+    def finished_exec(self) -> bool:
+        pass
+
+    @abstractmethod
+    def get_return(self) -> Any:
+        pass
+
+    @abstractmethod
+    def receive_return(self, return_value: Any) -> None:
         pass
     
-class BaseDAPManager(DAPManager):
+    @abstractmethod
+    def get_exec_request(self) -> tuple[str, str]:
+        """Get polyglot execution request for the next DAP"""
+        pass
+
+
+class BaseDebugAgent(DAPAgent):
     """Base class for the LiveAgent
     This class implements the common and utility methods for a LiveAgent
     This class should not be used directly, but should be inherited by a specific LiveAgent"""
@@ -146,6 +174,8 @@ class BaseDAPManager(DAPManager):
             }
         }
         self.io.write_json(breakpoint_request)
+        self.wait("response", command="setFunctionBreakpoints")
+        
 
     def set_expression(self, var_expr: str, val_expr: str, frame_id: int):
         setexpr_request = {
@@ -171,6 +201,7 @@ class BaseDAPManager(DAPManager):
             "command": "configurationDone"
         }
         self.io.write_json(complete_request)
+        self.wait(type="response", command="configurationDone")
     
     def get_stackframes(self, thread_id : int = 1, levels : int = 100) -> list:
         """Get the stackframes from the debuggee
@@ -194,6 +225,7 @@ class BaseDAPManager(DAPManager):
         }
         self.io.write_json(stackframe_request)
         output = self.wait("response", command="stackTrace")
+        # print("raw stackframe:", output)
         return output["body"]["stackFrames"]
             
     def next_breakpoint(self, thread_id : int = 1):
@@ -211,6 +243,7 @@ class BaseDAPManager(DAPManager):
             }
         }
         self.io.write_json(continue_request)
+        self.wait("event", "stopped")
     
     def step(self, thread_id : int = 1):
         """Send the step request to the debuggee

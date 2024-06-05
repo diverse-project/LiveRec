@@ -3,7 +3,7 @@ WORKDIR /code
 ENV FLASK_RUN_HOST=0.0.0.0
 
 RUN pacman -Sy
-RUN pacman -Su --noconfirm python-pip git jdk-openjdk gcc gdb nodejs-lts-hydrogen npm unzip make lsof
+RUN pacman -Su --noconfirm python-pip git jdk-openjdk gcc gdb nodejs-lts-hydrogen npm unzip make lsof 
 
 ENV VIRTUAL_ENV=/opt/venv
 RUN python -m venv $VIRTUAL_ENV

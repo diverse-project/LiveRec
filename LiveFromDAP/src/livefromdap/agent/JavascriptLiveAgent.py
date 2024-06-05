@@ -145,7 +145,7 @@ class JavascriptLiveAgent(BaseLiveAgent):
             pass
          
     def initialize(self):
-        """Send data to the agent"""   
+        """Send data to the agent"""  
         init_request = {
             "seq": self.new_seq(),
             "type": "request",
@@ -250,7 +250,7 @@ class JavascriptLiveAgent(BaseLiveAgent):
         self.server.close()
     
     def setup_runner_breakpoint(self):
-        self.set_breakpoint(self.runner_path, [21])
+        self.set_breakpoint(self.runner_path, [34])
         self.configuration_done()
 
 

@@ -1,133 +1,82 @@
 import os
 import subprocess
-import sys
-
-from livefromdap.agent.JavascriptLiveAgent import JavaScriptPreprocessor
-
-from .BaseExecutionAgent import BaseDAPManager
-import debugpy
 from debugpy.common.messaging import JsonIOStream
 from debugpy.common import sockets
 
 from livefromdap.utils.StackRecording import Stackframe, StackRecording
+from .BaseDebugAgent import BaseDebugAgent, DebuggeeTerminatedError
+from tree_sitter import Language, Parser
 
-import re
-import ast as python_ast
 
-class PyDAPManager(BaseDAPManager):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.runner_path = kwargs.get("runner_path", os.path.join(os.path.dirname(__file__), "..", "runner", "py_runner.py"))
-        self.debugpy_adapter_path = kwargs.get("debugpy_adapter_path", os.path.join(os.path.dirname(debugpy.__file__), "adapter"))
-
-    def start_server(self):
-        """Create a subprocess with the agent"""
-
-        self.server = subprocess.Popen(
-            ["python", self.debugpy_adapter_path],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            restore_signals=False,
-            start_new_session=True,
+class JavaScriptPreprocessor:
+    """Take a javascript file and preprocess it to be used by the agent
+    This is done by adding module.exports = {function_name: function_name} to the end of the file
+    """
+    
+    def __init__(self, input_path : str, output_path : str):
+        self.input_path = input_path
+        self.output_path = output_path
+        self.lang = Language(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "bin","treesitter","javascript.so")), 'javascript')
+        self.parser = Parser()
+        self.parser.set_language(self.lang)
+        with open(self.input_path, "r") as f:
+            source = f.read()
+        self.tree = self.parser.parse(bytes(source, "utf8"))
+        self.extract_function()
+        self.add_module_exports()
+        
+    def extract_function(self):
+        self.functions = {}
+        query = self.lang.query(
+            """
+            (function_declaration
+                name: (identifier) @function.name
+                body: (statement_block) @function.body)
+            """
         )
-
-        self.io = JsonIOStream.from_process(self.server)
+        
+        captures = query.captures(self.tree.root_node)
+        # The capture is a list of tuples (node, capture)
+        # for each function we have to consecutive captures, the first one is the name, the second one is the body
+        for i in range(0, len(captures), 2):
+            fun_def = captures[i]
+            body = captures[i+1]
+            if fun_def[1] == "function.name" and body[1] == "function.body": 
+                self.functions[fun_def[0].text.decode("utf8")] = int(body[0].children[1].start_point[0])+1
     
-    def restart_server(self):
-        self.server.kill()
-        self.start_server()
-
-    def stop_server(self):
-        """Kill the subprocess"""
-        self.server.kill()
-        if getattr(self, "debugee", None) is not None:
-            self.debugee.kill()
-    
-    def initialize(self):
-        """Send data to the agent"""
-        init_request = {
-            "seq": self.new_seq(),
-            "type": "request",
-            "command": "initialize",
-            "arguments": {
-                "clientID": "vscode",
-                "clientName": "Visual Studio Code",
-                "adapterID": "python",
-                "pathFormat": "path",
-                "linesStartAt1": True,
-                "columnsStartAt1": True,
-                "supportsVariableType": True,
-                "supportsVariablePaging": True,
-                "supportsRunInTerminalRequest": True,
-                "locale": "en",
-                "supportsProgressReporting": True,
-                "supportsInvalidatedEvent": True,
-                "supportsMemoryReferences": True,
-                "supportsArgsCanBeInterpretedByShell": True,
-                "supportsMemoryEvent": True,
-                "supportsStartDebuggingRequest": True
-            }
-        }
-        launch_request = {
-            "seq": self.new_seq(),
-            "type": "request",
-            "command": "launch",
-            "arguments": {
-                "name": f"Debug Python agent live",
-                "type": "python",
-                "request": "launch",
-                "program": self.runner_path,
-                "console": "internalConsole",
-                # get the current python interpreter
-                "python": sys.executable,
-                "debugAdapterPython": sys.executable,
-                "debugLauncherPython": sys.executable,
-                "clientOS": "unix",
-                "cwd": os.getcwd(),
-                "envFile": os.path.join(os.getcwd(), ".env"),
-                "env": {
-                    "PYTHONIOENCODING": "UTF-8",
-                    "PYTHONUNBUFFERED": "1"
-                },
-                "stopOnEntry": False,
-                "showReturnValue": True,
-                "internalConsoleOptions": "neverOpen",
-                "debugOptions": [
-                    "ShowReturnValue"
-                ],
-                "justMyCode": False,
-                "workspaceFolder": os.getcwd(),
-            }
-        }
-        self.io.write_json(init_request)
-        self.io.write_json(launch_request)
-        self.wait("event", "initialized")
-        self.setup_runner_breakpoint()
-        self.wait("event", "stopped")
-        return 5
-    
-    def setup_runner_breakpoint(self):
-        self.set_breakpoint(self.runner_path, [19])
-        self.configuration_done()
-    
-    def load_code(self, path: str):
-        stacktrace = self.get_stackframes()
-        frameId = stacktrace[0]["id"]
-        self.evaluate(f"set_import('{os.path.abspath(path)}')", frameId)
-        self.next_breakpoint()
-        self.wait("event", "stopped")
+    def add_module_exports(self):
+        with open(self.input_path, "r") as f:
+            source = f.read()
             
-    def execute(self, method, args, max_steps=50):
-        pass
+        query = self.lang.query(
+            """
+            (assignment_expression
+            left: (
+                member_expression
+                property: (property_identifier) @exports
+            ))
+            """
+        )
+        captures = query.captures(self.tree.root_node)
+        if any(c[0].text.decode("utf8") == "exports" for c in captures):
+            old = source.split("\n")
+            source = "\n".join(old[:captures[0][0].start_point[0]] + old[captures[0][0].end_point[0]+1:])
+            
+        source += "\nmodule.exports = {" + ",".join([name for name in self.functions.keys()]) + "}"
+        
+        with open(self.output_path, "w") as f:
+            f.write(source)
+            
+        
 
-class JSDAPManager(BaseDAPManager):
+class JavascriptDebugAgent(BaseDebugAgent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dap_adapter_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "bin", "js-dap", "dapDebugServer.js"))
         self.runner_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "runner"))
         self.runner_name = "js_runner.js"
         self.runner_path = os.path.abspath(os.path.join(self.runner_directory, self.runner_name))
+        # self.debug = True
         
     def start_server(self):
         self.server_process = subprocess.Popen(
@@ -302,7 +251,8 @@ class JSDAPManager(BaseDAPManager):
         self.server.close()
     
     def setup_runner_breakpoint(self):
-        self.set_breakpoint(self.runner_path, [21])
+        self.set_breakpoint(self.runner_path, [8,12,27])
+        # self.set_breakpoint(os.path.join(os.path.dirname(__file__), "..", "runner", "test.js"), [4])
         self.configuration_done()
 
 
@@ -312,23 +262,28 @@ class JSDAPManager(BaseDAPManager):
         self._entry_line[path] = jspp.functions
         frame_id = self.get_stackframes(self.thread_id)[0]["id"]
         self.evaluate(f'loadFile("{path}")', frame_id)
+        self.next_breakpoint()
 
 
-    def execute(self, path : str, method : str, args : list[str], max_steps : int =100) -> tuple[str, StackRecording]:
-        pass
-
-
-class PyJSExecutionAgent():
-    
-    def __init__(self):
-        self.py_dap = PyDAPManager()
-        self.js_dap = JSDAPManager()
-        self.py_dap.start_server()
-        self.js_dap.start_server()
-        self.py_dap.initialize()
-        self.js_dap.initialize()
-        self.py_dap.evaluate("print('test')", self.py_dap.get_stackframes()[0]["id"])
-
-    def load_code(self, path):
-        self.py_dap.load_code(path)
-
+    def execute(self, filePath) -> tuple[str, StackRecording]:
+        """Execute a method with the given arguments"""
+        stackframe = self.get_stackframes()[0]
+        self.next_breakpoint()
+        self.set_breakpoint("/code/src/livefromdap/runner/test2.js", [1])
+        self.load_code("/code/src/livefromdap/runner/test.js")
+        stackframe = self.get_stackframes()[0]
+        print("hi: ", stackframe)
+        if stackframe["source"]["path"] == "/code/src/livefromdap/runner/js_runner.js":
+            if stackframe["name"] == "<anonymous>" and stackframe["line"] == 27:
+                # runner was on standby, we just need to load the code and resume execution
+                self.load_code(filePath)
+                self.next_breakpoint()
+      
+            elif stackframe["name"] == "global.polyglotEval":
+                frameId = self.get_stackframes()[0]["id"]
+                self.evaluate(f"import_file = '{filePath}'", frameId)
+                self.next_breakpoint()
+        stackframe = self.get_stackframes()[0]
+        print(stackframe)
+        return "execution reached!"
+        
