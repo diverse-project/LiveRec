@@ -15,6 +15,8 @@ RUN pip install -r requirements.txt
 RUN pip install -e .
 
 COPY LiveFromDAP/install.sh install.sh
+COPY LiveFromDAP/src/livefromdap/runner/. ./src/livefromdap/runner/
+COPY LiveFromDAP/src/livefromdap/Makefile ./src/livefromdap/Makefile
 RUN ./install.sh
 
 COPY LiveFromDAP/. .

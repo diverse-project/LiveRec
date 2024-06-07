@@ -180,10 +180,15 @@ else
 fi
 
 # Make runner files executable
-echo "[Runner] Making runner files executable..."
-cd src/livefromdap
-make all
-chmod +x runner/*
-cd ../..
+if [ -d "src/livefromdap/runner" ] && [ -f "src/livefromdap/Makefile" ]; then
+    echo "[Runner] Making runner files executable..."
+    cd src/livefromdap
+    make all
+    chmod +x runner/*
+    cd ../..
+else
+    echo "Could not compile runners; either Makefile or runner directory was not found."
+    exit 1
+fi
 
 
