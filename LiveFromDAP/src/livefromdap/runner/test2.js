@@ -1,1 +1,1 @@
-t = 7
+module.exports = t = 7

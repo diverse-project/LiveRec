@@ -6,10 +6,11 @@ from debugpy.common.messaging import JsonIOStream
 
 from livefromdap.utils.StackRecording import StackRecording
 
+
 class DebuggeeTerminatedError(Exception):
     def __init__(self):
         super().__init__("Debuggee terminated")
-    
+
 
 class DAPAgent(ABC):
     """Interface for the LiveAgent
@@ -19,28 +20,28 @@ class DAPAgent(ABC):
     def start_server(self) -> None:
         """Start the Agent (start the DAP server)"""
         pass
-    
+
     @abstractmethod
     def stop_server(self) -> None:
         """Stop the Agent"""
         pass
-    
+
     @abstractmethod
     def restart_server(self) -> None:
         """Restart the Agent"""
         pass
-    
+
     @abstractmethod
     def initialize(self) -> None:
         """Initialize and launch the adapter"""
         pass
-    
+
     @abstractmethod
     def load_code(self, *args, **kwargs) -> None:
         """Load code in the debuggee
         If the piece of code is already loaded, it should be reloaded"""
         pass
-    
+
     @abstractmethod
     def execute(self, filePath) -> None:
         """Execute code"""
@@ -53,24 +54,27 @@ class DAPAgent(ABC):
 
     @abstractmethod
     def on_standby(self) -> bool:
-        """Determine if the DAP has reached a standby breakpoint"""
+        """Determine if the DAP is waiting on a standby breakpoint"""
         pass
 
     @abstractmethod
     def finished_exec(self) -> bool:
+        """Determine if the DAP has finished its current code execution"""
         pass
 
     @abstractmethod
     def get_return(self) -> Any:
+        """If the DAP has finished a code execution, get the resulting value for this execution"""
         pass
 
     @abstractmethod
     def receive_return(self, return_value: Any) -> None:
+        """Give a return value resulting from a polyglot execution request to the calling DAP"""
         pass
-    
+
     @abstractmethod
     def get_exec_request(self) -> tuple[str, str]:
-        """Get polyglot execution request for the next DAP"""
+        """Get polyglot execution request for the next DAP. This function assumes the DAP is within a polyglotEval call"""
         pass
 
 
@@ -79,15 +83,15 @@ class BaseDebugAgent(DAPAgent):
     This class implements the common and utility methods for a LiveAgent
     This class should not be used directly, but should be inherited by a specific LiveAgent"""
 
-    seq : int = 0
-    debug : bool = False
-    
-    io : JsonIOStream
+    seq: int = 0
+    debug: bool = False
 
-    def __init__(self, **kwargs : Any):
+    io: JsonIOStream
+
+    def __init__(self, **kwargs: Any):
         self.debug = kwargs.get("debug", False)
         self.seq = 0
-        
+
     def __del__(self):
         try:
             self.stop_server()
@@ -97,8 +101,15 @@ class BaseDebugAgent(DAPAgent):
     def new_seq(self):
         self.seq += 1
         return self.seq
-        
-    def _handleRunInTerminal(self, output : dict):
+    
+    def get_exec_request(self) -> tuple[str, str]:
+        frameId = self.get_stackframes()[0]["id"]
+        lang = self.evaluate("lang", frameId)["body"]["result"].strip("'")
+        frameId = self.get_stackframes()[0]["id"]
+        code = self.evaluate("exec_code", frameId)["body"]["result"].strip("'")
+        return lang, code
+
+    def _handleRunInTerminal(self, output: dict):
         """Handle the runInTerminal request from DAP"""
         if output["type"] == "request" and output["command"] == "runInTerminal":
             # if not exists, create the tmp folder
@@ -113,7 +124,7 @@ class BaseDebugAgent(DAPAgent):
             process_id = debuggee.pid
             self.debugee = debuggee
             # send the response
-            self.seq+=1
+            self.seq += 1
             response = {
                 "seq": int(output["seq"]) + 1,
                 "type": "response",
@@ -127,8 +138,8 @@ class BaseDebugAgent(DAPAgent):
             self.io.write_json(response)
             return True
         return False
-    
-    def set_breakpoint(self, path : str, lines : list):
+
+    def set_breakpoint(self, path: str, lines: list):
         """Set breakpoints in the debuggee for the given path and lines
 
         Args:
@@ -155,7 +166,7 @@ class BaseDebugAgent(DAPAgent):
         }
         self.io.write_json(breakpoint_request)
 
-    def set_function_breakpoint(self, names : list):
+    def set_function_breakpoint(self, names: list):
         """Set breakpoints in the debuggee for the given function names
 
         Args:
@@ -175,7 +186,6 @@ class BaseDebugAgent(DAPAgent):
         }
         self.io.write_json(breakpoint_request)
         self.wait("response", command="setFunctionBreakpoints")
-        
 
     def set_expression(self, var_expr: str, val_expr: str, frame_id: int):
         setexpr_request = {
@@ -202,8 +212,8 @@ class BaseDebugAgent(DAPAgent):
         }
         self.io.write_json(complete_request)
         self.wait(type="response", command="configurationDone")
-    
-    def get_stackframes(self, thread_id : int = 1, levels : int = 100) -> list:
+
+    def get_stackframes(self, thread_id: int = 1, levels: int = 100) -> list:
         """Get the stackframes from the debuggee
 
         Args:
@@ -227,8 +237,8 @@ class BaseDebugAgent(DAPAgent):
         output = self.wait("response", command="stackTrace")
         # print("raw stackframe:", output)
         return output["body"]["stackFrames"]
-            
-    def next_breakpoint(self, thread_id : int = 1):
+
+    def next_breakpoint(self, thread_id: int = 1):
         """Send the next request to the debuggee
 
         Args:
@@ -244,8 +254,8 @@ class BaseDebugAgent(DAPAgent):
         }
         self.io.write_json(continue_request)
         self.wait("event", "stopped")
-    
-    def step(self, thread_id : int = 1):
+
+    def step(self, thread_id: int = 1):
         """Send the step request to the debuggee
 
         Args:
@@ -261,7 +271,7 @@ class BaseDebugAgent(DAPAgent):
         }
         self.io.write_json(step_request)
 
-    def step_out(self, thread_id : int = 1):
+    def step_out(self, thread_id: int = 1):
         """Send the stepOut request to the debuggee
 
         Args:
@@ -277,7 +287,7 @@ class BaseDebugAgent(DAPAgent):
         }
         self.io.write_json(step_request)
 
-    def get_scopes(self, frame_id : int) -> list:
+    def get_scopes(self, frame_id: int) -> list:
         """Get the scopes from the debuggee for the given frame
 
         Args:
@@ -297,7 +307,7 @@ class BaseDebugAgent(DAPAgent):
         self.io.write_json(scopes_request)
         output = self.wait("response", command="scopes")
         return output["body"]["scopes"]
-            
+
     def get_variables(self, scope_id: int) -> list:
         """Get the variables from the debuggee for the given scope
 
@@ -319,7 +329,7 @@ class BaseDebugAgent(DAPAgent):
         output = self.wait("response", command="variables")
         return output["body"]["variables"]
 
-    def evaluate(self, expression : str, frame_id : int, context : str = "repl") -> dict:
+    def evaluate(self, expression: str, frame_id: int, context: str = "repl") -> dict:
         """Evaluate the given expression in the debuggee
 
         Args:
@@ -343,7 +353,7 @@ class BaseDebugAgent(DAPAgent):
         self.io.write_json(evaluate_request)
         return self.wait("response", command="evaluate")
 
-    def wait(self, type: str, event : str = "", command : str = "") -> dict:
+    def wait(self, type: str, event: str = "", command: str = "") -> dict:
         """Wait for a specific message from the debuggee
 
         Args:
@@ -358,8 +368,9 @@ class BaseDebugAgent(DAPAgent):
             dict: the message received
         """
         while True:
-            output : dict = self.io.read_json() # type: ignore
-            if self.debug: print(output, flush=True)
+            output: dict = self.io.read_json()  # type: ignore
+            if self.debug:
+                print(output, flush=True)
             if output["type"] == "request" and output["command"] == "runInTerminal":
                 if self._handleRunInTerminal(output):
                     continue
@@ -369,5 +380,3 @@ class BaseDebugAgent(DAPAgent):
                         return output
             if output["type"] == "event" and output["event"] == "terminated":
                 raise DebuggeeTerminatedError()
-
-    

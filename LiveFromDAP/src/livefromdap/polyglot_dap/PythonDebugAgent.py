@@ -2,7 +2,7 @@ import os
 import subprocess
 import sys
 import time
-from typing import override
+from typing import Any, override
 
 import debugpy
 from debugpy.common.messaging import JsonIOStream
@@ -13,10 +13,13 @@ from .BaseDebugAgent import BaseDebugAgent
 
 class PythonDebugAgent(BaseDebugAgent):
     """Communicate with the debugpy adapter to get stackframes of the execution of a method"""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.runner_path = kwargs.get("runner_path", os.path.join(os.path.dirname(__file__), "..", "runner", "py_runner.py"))
-        self.debugpy_adapter_path = kwargs.get("debugpy_adapter_path", os.path.join(os.path.dirname(debugpy.__file__), "adapter"))
+        self.runner_path = kwargs.get("runner_path", os.path.join(
+            os.path.dirname(__file__), "..", "runner", "py_runner.py"))
+        self.debugpy_adapter_path = kwargs.get("debugpy_adapter_path", os.path.join(
+            os.path.dirname(debugpy.__file__), "adapter"))
         # self.debug = True
 
     def start_server(self):
@@ -31,7 +34,7 @@ class PythonDebugAgent(BaseDebugAgent):
         )
 
         self.io = JsonIOStream.from_process(self.server)
-    
+
     def restart_server(self):
         self.server.kill()
         self.start_server()
@@ -41,7 +44,7 @@ class PythonDebugAgent(BaseDebugAgent):
         self.server.kill()
         if getattr(self, "debugee", None) is not None:
             self.debugee.kill()
-    
+
     def initialize(self):
         """Send data to the agent"""
         init_request = {
@@ -89,7 +92,7 @@ class PythonDebugAgent(BaseDebugAgent):
                     "PYTHONUNBUFFERED": "1"
                 },
                 # stop debug on entry to allow DAP manipulation
-                "stopOnEntry": True, 
+                "stopOnEntry": False,
                 "showReturnValue": True,
                 "internalConsoleOptions": "neverOpen",
                 "debugOptions": [
@@ -105,42 +108,73 @@ class PythonDebugAgent(BaseDebugAgent):
         self.setup_runner_breakpoint()
         # self.wait("event", "stopped")
         return 5
-    
+
     def setup_runner_breakpoint(self):
-        self.set_breakpoint(self.runner_path, [26,39])
+        self.set_breakpoint(self.runner_path, [26, 39, 44])
         self.set_function_breakpoint(["polyglotEval"])
         self.configuration_done()
-        
-    
+
     def load_code(self, path: str):
         stacktrace = self.get_stackframes()
         frameId = stacktrace[0]["id"]
         self.evaluate(f"set_import('{os.path.abspath(path)}')", frameId)
-        self.next_breakpoint()
-    
+        # self.next_breakpoint()
 
+    def in_polyglot_call(self) -> bool:
+        stackframe = self.get_stackframes()[0]
+        return stackframe["name"] == "polyglotEval"
+
+    def on_standby(self) -> bool:
+        stackframe = self.get_stackframes()[0]
+        return (stackframe["source"]["path"] == "/code/src/livefromdap/runner/py_runner.py"
+                and stackframe["name"] == "<module>"
+                and stackframe["line"] == 39)
+
+    def finished_exec(self) -> bool:
+        stackframe = self.get_stackframes()[0]
+        return (stackframe["source"]["path"] == "/code/src/livefromdap/runner/py_runner.py"
+                and ((stackframe["name"] == "polyglotEval"
+                     and stackframe["line"] == 26)
+                     or
+                     (stackframe["name"] == "<module>"
+                     and stackframe["line"] == 44)))
+
+    def get_return(self) -> Any:
+        stackframe = self.get_stackframes()[0]
+        frameId = stackframe["id"]
+        result = None
+        if stackframe["line"] == 26:
+            result = self.evaluate("intermediate_ret", frameId)["body"]["result"]
+        elif stackframe["line"] == 44:
+            result = self.evaluate("exec_result", frameId)["body"]["result"]
+        return result
+
+    def receive_return(self, return_value: Any) -> None:
+        stackframe = self.get_stackframes()[0]
+        frameId = stackframe["id"]
+        self.evaluate(f"ret = {return_value}", frameId)
 
     def execute(self, filePath):
         stackframe = self.get_stackframes()[0]
         print(stackframe)
         # self.set_breakpoint(os.path.join(os.path.dirname(__file__), "..", "runner", "test.py"), [3])
         # self.set_breakpoint(os.path.join(os.path.dirname(__file__), "..", "runner", "test2.py"), [1])
-        self.next_breakpoint()
-        stackframe = self.get_stackframes()[0]
-        print(stackframe)
-        self.load_code(filePath)
+        # self.next_breakpoint()
+        # stackframe = self.get_stackframes()[0]
+        # print(stackframe)
+        # self.load_code(filePath)
         stackframe = self.get_stackframes()[0]
         if stackframe["source"]["path"] == "/code/src/livefromdap/runner/py_runner.py":
             if stackframe["name"] == "<module>" and stackframe["line"] == 39:
                 # runner was on standby, we just need to load the code and resume execution
                 self.load_code(filePath)
-                self.next_breakpoint()
-      
+                # self.next_breakpoint()
+
             elif stackframe["name"] == "polyglotEval" and stackframe["line"] == 19:
                 frameId = self.get_stackframes()[0]["id"]
                 self.evaluate(f"src_file = '{filePath}'", frameId)
                 self.next_breakpoint()
-            
+
         print(stackframe)
         # print("while loop:", self.get_stackframes()[0])
         # self.load_code(os.path.join(os.path.dirname(__file__), "..", "runner", "test.py"))
@@ -161,6 +195,5 @@ class PythonDebugAgent(BaseDebugAgent):
         # self.next_breakpoint()
         # print("while loop again:", self.get_stackframes()[0])
         # frameId = self.get_stackframes()[0]["id"]
-        
+
         return "execution reached!"
-    

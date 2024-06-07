@@ -4,7 +4,7 @@ var target_args = null;
 var last_path = null;
 var import_file = null;
 
-polyglotEval = function (lang, code) {
+polyglotEval = function (lang, exec_code) {
     // src_file = undefined;
     ret = -1;
     while (import_file != null) {

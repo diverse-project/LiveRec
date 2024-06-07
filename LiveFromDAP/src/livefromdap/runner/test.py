@@ -2,9 +2,8 @@ x = 42
 
 a = 12
 
-y = polyglotEval("js", "foo()")
+y = polyglotEval("js", "/code/src/livefromdap/runner/test.js")
 
-def foo():
-    t = 7
+z = a + x
 
-z = y + x
+boom = y + z
