@@ -474,7 +474,7 @@ class AutoGoLangAgent(AutoLiveAgent):
         self.agent = GoLangLiveAgent(debug=False)
         self.agent.start_server()
         self.agent.initialize()
-        self.source_path = os.path.abspath("src/webdemo/tmp/tmp.py")
+        self.source_path = os.path.abspath("src/webdemo/tmp/tmp.go")
         with open(self.source_path, "w") as f:
             f.write("")
         self.previous_ast = None

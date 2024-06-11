@@ -4,6 +4,7 @@ services:
     container_name: liverec
     ports:
       - "5000:5000"
+      - "9000:9000"
     environment:
       - PWD=/code
       - HOME=/root

@@ -67,15 +67,15 @@ function foo(a, b){
 
 {% elif language == 'golang' %}
 func bar(a int) int {
-return a * 2
+    return a * 2
 }
 
 func foo(a, b int) int {
-t := bar(a)
-for i := 0; i < 5; i++ {
-t = t + 1
-}
-return a + b + t
+    t := bar(a)
+    for i := 0; i < 5; i++ {
+        t = t + 1
+    }
+    return a + b + t
 }
 {% endif %}
             </textarea>

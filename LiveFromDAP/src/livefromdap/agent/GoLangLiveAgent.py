@@ -15,28 +15,62 @@ class GoLangLiveAgent(BaseLiveAgent):
                                       os.path.join(os.path.dirname(__file__), "..", "runner", "golang_runner.go"))
 
     def start_server(self):
-        client_host = "127.0.0.1"  # Replace with actual client host
-        client_port = "9000"      # Replace with actual client port
-
         # Command to start the Delve DAP server
         command = [
             "dlv", "dap",
-            "--client-addr", f"{client_host}:{client_port}",
-            "--log"
+            "--listen=:9000",
+            "--log",
+            "--log-output=dap"
         ]
+        # Start the Delve server
+        self.server_process = subprocess.Popen(
+            command,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            restore_signals=False,
+            start_new_session=True,
+        )
+
+        # wait for the server to be ready
+        while True:
+            # check if the process returned an error
+            if self.server_process.poll() is not None:
+                error = self.server_process.stderr.readline() # type: ignore
+                # if address already in use
+                if b"Error: listen EADDRINUSE: address already in use" in error:
+                    # fidn the process that is using the port
+                    p = subprocess.Popen(["lsof", "-i", ":9000"], stdout=subprocess.PIPE)
+                    p.wait()
+                    lsof_output = p.stdout.readlines() # type: ignore
+                    pid = lsof_output[-1].split()[1]
+                    subprocess.Popen(["kill", pid])
+                    self.start_server()
+                    return
+            output = self.server_process.stdout.readline() # type: ignore
+            # wait for : DAP server listening at: [::]:9000
+            if b"DAP server listening at" in output:
+                break
+
         self.main_server = sockets.create_client()
         self.main_server.connect(("localhost", 9000))
         self.main_io = JsonIOStream.from_socket(self.main_server)
 
-        # Start the Delve server
-        self.server_process = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-
     def stop_server(self):
         self.stop_debugee()
-        self.server.kill()
+        try:
+            self.io.close()
+        except:
+            pass
+        try:
+            self.io = self.main_io
+            self.main_io.close()
+        except:
+            pass
+        try:
+            self.server_process.kill()
+        except:
+            pass
 
     def stop_debugee(self):
         disconnect_request = {
@@ -49,6 +83,7 @@ class GoLangLiveAgent(BaseLiveAgent):
             }
         }
         self.io.write_json(disconnect_request)
+        self.wait("response", command="disconnect")
         self.server.close()
 
     def restart_server(self):
@@ -86,15 +121,16 @@ class GoLangLiveAgent(BaseLiveAgent):
             "command": "launch",
             "arguments": {
                 "noDebug": True,
-                "name": "Launch"
+                "name": "Launch",
+                "program": self.runner_path
             }
         }
-        # self.io = self.main_io # we need to use the main io to initialize to create the target launch
-        # self.main_io.write_json(init_request)
-        # self.wait("event", "initialized")
-        # self.main_io.write_json(launch_request)
-        # debugging = self.wait("request", command="startDebugging")
-        # self.server = sockets.create_client()
+        self.io = self.main_io # we need to use the main io to initialize to create the target launch
+        self.main_io.write_json(init_request)
+        self.wait("response", command="initialize")
+        self.main_io.write_json(launch_request)
+        debugging = self.wait("response", command="launch")
+        self.server = sockets.create_client()
         # self.server.connect(("localhost", 9000))
         # self.io = JsonIOStream.from_socket(self.server)
 

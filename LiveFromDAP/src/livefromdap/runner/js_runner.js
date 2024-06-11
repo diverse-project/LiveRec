@@ -1,4 +1,3 @@
-
 var target_function = null;
 var target_args = null;
 var last_path = null;
