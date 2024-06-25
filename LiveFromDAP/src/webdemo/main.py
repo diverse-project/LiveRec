@@ -5,7 +5,7 @@ import time
 import uuid
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, join_room, send
-from webdemo.AutoAgent import AutoCLiveAgent, AutoExecutionAgent, AutoJavaLiveAgent, AutoPyJSDynamicAgent, AutoPythonLiveAgent, AutoJavascriptLiveAgent, AutoJavaJDILiveAgent, AutoPyJSAgent, AutoGoLangAgent
+from webdemo.AutoAgent import AutoCLiveAgent, AutoExecutionAgent, AutoJavaLiveAgent, AutoPyJSDynamicAgent, AutoPythonLiveAgent, AutoJavascriptLiveAgent, AutoJavaJDILiveAgent, AutoPyJSAgent, AutoGoAgent
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -27,15 +27,15 @@ def create_agent(language, raw=False):
         return AutoPyJSDynamicAgent(raw=raw)
     elif language == "pexec":
         return AutoExecutionAgent(raw=raw)
-    elif language == "golang":
-        return AutoGoLangAgent(raw=raw)
+    elif language == "go":
+        return AutoGoAgent(raw=raw)
     else:
         raise NotImplementedError() # TODO implement other languages
 
 def get_language_prefix(language):
     if language == "python" or language == "pyjs" or language == "pexec":
         return "#@"
-    elif language == "java" or language == "golang":
+    elif language == "java" or language == "go":
         return "//@"
     elif language == "c":
         return "//@"
@@ -110,7 +110,6 @@ class Session():
         if request["event"] == "codeChange":
             session_id = request["session_id"]
             code = clean_code(request["code"], self.language)
-            
             exec_req = extract_exec_request(request["code"], self.language)
             if exec_req is not None:
                 changed = self.agent.update_code(code)

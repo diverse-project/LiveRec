@@ -153,17 +153,20 @@ else
     echo "Js DAP already installed."
 fi
 
-# golang Debug
-echo "[Golang Debug] Checking for Golang debug server..."
+# Go Debug
+echo "[Go Debug] Checking for Go debug server..."
 #if [ ! command dlv version &> /dev/null ]; then
     echo "Installing Delve..."
     cd src/livefromdap/bin
     git clone https://github.com/go-delve/delve
     cd delve
     go install github.com/go-delve/delve/cmd/dlv
+#    echo "Creating go.mod file"
+#    cd ../runner
+#    go mod init runner
     cd ../../../..
 #else
-#    echo "Golang debug server already installed."
+#    echo "Go debug server already installed."
 #fi
 
 
