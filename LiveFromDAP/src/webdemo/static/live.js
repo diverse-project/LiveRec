@@ -15,6 +15,10 @@ if (language=="python" || language=="pyjs"){
         version: 3,
         singleLineStringErrors: false};
 }
+if(language=="go"){
+    console.log(language);
+    CodeMirror_mode = "text/x-go";
+}
 
 var editor = CodeMirror.fromTextArea(editorArea, {
     lineNumbers: true,

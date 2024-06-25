@@ -10,6 +10,9 @@ RUNNER_C_TARGETS = $(RUNNER_C_SOURCES:runner/%.c=runner/%)
 RUNNER_JAVA_SOURCES = $(wildcard runner/Runner.java)
 RUNNER_JAVA_TARGETS = $(RUNNER_JAVA_SOURCES:runner/%.java=runner/bin/%.class)
 
+# RUNNER_GO_SOURCES = $(wildcard runner/go_runner.go)
+# RUNNER_GO_TARGETS = $(RUNNER_GO_SOURCES:runner/%.go=runner/%)
+
 .PHONY: all examples runner clean
 
 examples: $(EXAMPLES_C_TARGETS) $(EXAMPLES_JAVA_TARGETS)
@@ -36,6 +39,8 @@ runner/bin/DynamicClassLoader.class: runner/DynamicClassLoader.java
 runner/bin/DynamicClassLoaderFactory.class: runner/DynamicClassLoaderFactory.java runner/bin/DynamicClassLoader.class
 	javac -g -d runner/bin -cp runner/bin runner/DynamicClassLoaderFactory.java
 
+# runner/%: runner/%.go
+# 	go build -o $@ $<
 
 clean:
 	rm -f $(EXAMPLES_C_TARGETS) $(EXAMPLES_JAVA_TARGETS) runner/c_runner runner/bin/*.class
