@@ -173,7 +173,7 @@ class AutoGoAgent(AutoLiveAgent):
         if self.previous_ast is None:
             self.previous_ast = ast
             changed = True
-        elif python_ast.dump(ast) != python_ast.dump(self.previous_ast):
+        elif ast != self.previous_ast:
             self.previous_ast = ast
             changed = True
         return parsable, changed

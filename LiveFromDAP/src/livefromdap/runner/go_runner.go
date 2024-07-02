@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"plugin"
+	"reflect"
 )
 var importFile *plugin.Plugin
 
@@ -17,12 +18,23 @@ func LoadPlugin(path string) error {
 }
 
 // LookupSymbol looks up a symbol (function) in the loaded plugin.
-func LookupSymbol(symbolName string) (plugin.Symbol, error) {
-	function, err := importFile.Lookup(symbolName)
+func callPluginFunction(funcName string, args ...interface{}) ([]reflect.Value, error) {
+	// Lookup the symbol
+	symbol, err := importFile.Lookup(funcName)
 	if err != nil {
 		return nil, err
 	}
-	return function, nil
+
+	symbolValue := reflect.ValueOf(symbol)
+
+	reflectArgs := make([]reflect.Value, len(args))
+	for i, arg := range args {
+		reflectArgs[i] = reflect.ValueOf(arg)
+	}
+
+	result := symbolValue.Call(reflectArgs)
+
+	return result, nil
 }
 func main() {
 	pluginPath := "/code/src/webdemo/tmp/tmp.so"
@@ -33,18 +45,9 @@ func main() {
 		return
 	}
 
-	function, err := LookupSymbol("Foo")
+	fooResult, err := callPluginFunction("Foo", 3, 4)
 	if err != nil {
-		fmt.Println("Error looking up symbol:", err)
-		return
+		panic(err)
 	}
-
-	fooFunc, ok := function.(func(int, int) int)
-	if !ok {
-		fmt.Println("Symbol is not of type func(int, int) int")
-		return
-	}
-
-	result := fooFunc(1, 2)
-	fmt.Println("Function returned:", result)
+	fmt.Printf("Foo(3, 4) = %v\n", fooResult[0].Interface())
 }
