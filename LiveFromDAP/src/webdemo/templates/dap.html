@@ -71,13 +71,13 @@ function foo(a, b){
 package main
 
 import "fmt"
-//@Foo(1,2)
-func Foo(a int, b int) int {
-    return a + b
+//@Foo(2)
+func Foo(a int) int {
+    return a*2
 }
 
 func main() {
-    result := Foo(3, 4)
+    result := Foo(2)
     fmt.Println(result)
 }
 
