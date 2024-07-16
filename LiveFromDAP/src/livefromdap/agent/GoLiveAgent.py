@@ -100,7 +100,7 @@ class GoLiveAgent(BaseLiveAgent):
         self.start_server()
 
     def setup_runner_breakpoint(self):
-        self.set_breakpoint(self.runner_path, [36])
+        self.set_breakpoint(self.runner_path, [43])
         self.configuration_done()
 
     def initialize(self):
@@ -151,12 +151,6 @@ class GoLiveAgent(BaseLiveAgent):
         self.setup_runner_breakpoint()
         brk = self.wait("event", "stopped")
         self.thread_id = brk["body"]["threadId"]
-
-    def compile(self, input_file=None, output_file=None):
-        """Compile the target file"""
-        compilation = subprocess.run(self.compile_command.format(target_input=input_file, target_output=output_file),
-                                     shell=True, check=True)
-        return compilation.returncode
 
     def get_param_and_return_type(self, node, source_code) -> (list[str], list[str]):
         params = node.child_by_field_name('parameters')
@@ -226,26 +220,25 @@ class GoLiveAgent(BaseLiveAgent):
         stackrecording.add_stackframe(recorded_stackframe)
 
     def load_code(self, path: str):
-        # if not path.endswith(".so"):
-        #     # change the extension to .so
-        #     compiled_path = path[:-3] + ".so"
-        #     # compile the file
-        #     self.compile(input_file=os.path.abspath(path), output_file=os.path.abspath(compiled_path))
-        #     path = compiled_path
         frame_id = self.get_stackframes(thread_id=self.thread_id)[0]["id"]
         self.evaluate(f"call loadPlugin(\"{path}\")", frame_id)
 
     def execute(self, source_file: str, method: str, args: list[str], max_steps: int = 300) -> tuple[
         str, StackRecording]:
-        breakpoint()
         frame_id = self.get_stackframes(thread_id=self.thread_id)[0]["id"]
-        command = f"call callPluginFunction(\"{method}\", {args[0]})"
+        breakpoint()
+        command = f"call setParam(\"{method}\", {args[0]})"
         self.evaluate(command, frame_id)
+        command = f"call callPluginFunction()"
+        result = self.evaluate(command, frame_id)['body']['result']
+        return_value = result.split(', ')[0]
 
         self.set_function_breakpoint([method])
         end_lines: list[int] = self.get_end_line(source_file, method)
 
         self.next_breakpoint(thread_id=self.thread_id)
+        self.wait("event", "stopped")
+        self.step_in(thread_id=self.thread_id)
         self.wait("event", "stopped")
 
         stackrecording = StackRecording()
@@ -256,26 +249,22 @@ class GoLiveAgent(BaseLiveAgent):
             if self.initial_height == -1:
                 self.initial_height = len(stackframes)
             frame_id = stackframes[0]["id"]
-            if stackframes[0]["name"] == "main()":
-                return_value = None
-                scope = self.get_scopes(stackframes[0]["id"])[0]
-                variables = self.get_variables(scope["variablesReference"])
-                if len(variables) == 0:
-                    return_value = ""
-                else:
-                    return_value = variables[0]["value"]
+            if stackframes[0]["name"] == "main.main":
                 break
-
             self.add_variable(frame_id, stackframes, stackrecording)
             i += 1
             if i > max_steps:
                 self.restart_server()
                 self.initialize()
-                self.current_loaded_shared_libraries = None
                 return "Interrupted", stackrecording
             if stackframes[0]["line"] in end_lines:
-                self.evaluate("-exec fin", frame_id)
+                self.step_out(thread_id=self.thread_id)
                 self.wait("event", event="stopped")
+                breakpoint()
+
+                self.step_out(thread_id=self.thread_id)
+                self.wait("event", event="stopped")
+                breakpoint()
             else:
                 self.step(thread_id=self.thread_id)
                 self.wait("event", event="stopped")

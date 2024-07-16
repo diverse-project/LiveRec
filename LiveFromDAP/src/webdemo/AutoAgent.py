@@ -23,6 +23,7 @@ from gopygo import parser
 from prettyprinter.JavaPrettyPrinter import JavaPrettyPrinter
 from prettyprinter.JavascriptPrettyPrinter import JavascriptPrettyPrinter
 from prettyprinter.PythonPrettyPrinter import PythonPrettyPrinter
+from prettyprinter.GoPrettyPrinter import GoPrettyPrinter
 
 
 class ThreadWithReturnValue(Thread):
@@ -64,7 +65,7 @@ class AutoCLiveAgent(AutoLiveAgent):
 
     def __init__(self, raw=False):
         self.raw = raw
-        self.agent = CLiveAgent(debug=False)
+        self.agent = CLiveAgent(debug=True)
         self.agent.start_server()
         self.agent.initialize()
         self.buzy = False
@@ -190,6 +191,7 @@ class AutoGoAgent(AutoLiveAgent):
             self.agent.load_code(self.compiled_path)
         return changed
 
+
     def compile_go(self):
         command = f'go build -buildmode=plugin -gcflags="all=-N -l" -o {self.compiled_path} {self.source_path}'
         res = os.system(command)
@@ -204,7 +206,7 @@ class AutoGoAgent(AutoLiveAgent):
                 "return_value": return_value,
                 "stacktrace": stacktrace.to_json()
             })
-        printer = PythonPrettyPrinter(self.source_path, method)
+        printer = GoPrettyPrinter(self.source_path, method)
         output = printer.pretty_print(stacktrace, return_value=return_value)
         return output
 
@@ -362,7 +364,7 @@ class AutoJavascriptLiveAgent(AutoLiveAgent):
     def __init__(self, raw=False):
         print("bim")
         self.raw = raw
-        self.agent = JavascriptLiveAgent(debug=False)
+        self.agent = JavascriptLiveAgent(debug=True)
         self.agent.start_server()
         self.agent.initialize()
         print("inited")
