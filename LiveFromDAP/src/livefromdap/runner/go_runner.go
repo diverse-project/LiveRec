@@ -5,6 +5,8 @@ import (
 	"plugin"
 )
 var importFile *plugin.Plugin
+var funcName string
+var arg int
 
 // LoadPlugin loads the specified shared library and assigns it to importFile
 func loadPlugin(path string) error {
@@ -15,9 +17,13 @@ func loadPlugin(path string) error {
 	}
 	return nil
 }
+func setParam(name string, argument int){
+	funcName = name
+	arg = argument
+}
 
 // LookupSymbol looks up a symbol (function) in the loaded plugin.
-func callPluginFunction(funcName string, arg int) (int, error) {
+func callPluginFunction() (int, error) {
 	// Lookup the symbol
 	symbol, err := importFile.Lookup(funcName)
 	if err != nil {
@@ -33,6 +39,7 @@ func callPluginFunction(funcName string, arg int) (int, error) {
 	return result, nil
 }
 func main() {
+	setParam("Foo",1)
 	for {
 		pluginPath := "/code/src/webdemo/tmp/tmp.so"
 		err := loadPlugin(pluginPath)
@@ -40,7 +47,7 @@ func main() {
 			fmt.Println("Error loading plugin:", err)
 			return
 		}
-		fooResult, err := callPluginFunction("Foo", 1)
+		fooResult, err := callPluginFunction()
 		if err != nil {
 			panic(err)
 		}
