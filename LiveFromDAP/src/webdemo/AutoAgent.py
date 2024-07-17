@@ -211,7 +211,7 @@ class AutoGoAgent(AutoLiveAgent):
         return output
 
     def execute(self, method, args):
-        output = self.agent.execute(self.source_path, method, args)
+        output = self.agent.execute(self.compiled_path, self.source_path, method, args)
         if output[0] == "Interrupted":
             self.agent.load_code(self.source_path)
         # Get the output of the thread
