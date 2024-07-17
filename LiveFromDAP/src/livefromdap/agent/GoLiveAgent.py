@@ -127,7 +127,8 @@ class GoLiveAgent(BaseLiveAgent):
                 "supportsArgsCanBeInterpretedByShell": True,
                 "supportsStartDebuggingRequest": True,
                 "supportsConfigurationDoneRequest": True,
-                "supportsSetExpression": True
+                "supportsSetExpression": True,
+                "supportsRestartRequest": True
             }
         }
         launch_request = {
@@ -223,10 +224,9 @@ class GoLiveAgent(BaseLiveAgent):
         frame_id = self.get_stackframes(thread_id=self.thread_id)[0]["id"]
         self.evaluate(f"call loadPlugin(\"{path}\")", frame_id)
 
-    def execute(self, source_file: str, method: str, args: list[str], max_steps: int = 300) -> tuple[
+    def execute(self, compiled_path: str, source_file: str, method: str, args: list[str], max_steps: int = 300) -> tuple[
         str, StackRecording]:
         frame_id = self.get_stackframes(thread_id=self.thread_id)[0]["id"]
-        breakpoint()
         command = f"call setParam(\"{method}\", {args[0]})"
         self.evaluate(command, frame_id)
         command = f"call callPluginFunction()"
@@ -260,12 +260,12 @@ class GoLiveAgent(BaseLiveAgent):
             if stackframes[0]["line"] in end_lines:
                 self.step_out(thread_id=self.thread_id)
                 self.wait("event", event="stopped")
-                breakpoint()
-
                 self.step_out(thread_id=self.thread_id)
                 self.wait("event", event="stopped")
-                breakpoint()
             else:
                 self.step(thread_id=self.thread_id)
                 self.wait("event", event="stopped")
+        self.restart_server()
+        self.initialize()
+        self.load_code(compiled_path)
         return return_value, stackrecording

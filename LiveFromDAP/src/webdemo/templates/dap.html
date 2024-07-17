@@ -67,9 +67,10 @@ package main
 
 import "fmt"
 //@Foo(5)
-//@Foo(10)
 func Foo(a int) int {
-    return a*2
+    b := 3
+    r := b + a
+    return r
 }
 
 func main() {
