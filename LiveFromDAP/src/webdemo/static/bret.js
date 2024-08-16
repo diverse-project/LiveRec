@@ -10,11 +10,6 @@ var output = CodeMirror.fromTextArea(outputArea, {
 var oldText = output.getValue();
 
 function handle_executeOutput(msg) {
-    // var code = editor.getValue();
-    // let codeOutput = [];
-    // codeOutput = String((msg.output)).split(/\n+/);
-    // console.log(codeOutput);
-
     let old = oldText;
     let diffs = Diff.diffLines(old, msg.output);
     let line = 0;
@@ -43,8 +38,5 @@ function handle_executeOutput(msg) {
     lines_red.forEach(function(line){
         output.markText({line: line, ch: 0}, {line: line, ch: 1000}, {className: "red-text"});
     });
-    // console.log(code);
-    // console.log(oldText);
-    // console.log(msg.output);
     oldText = msg.output;
 }
