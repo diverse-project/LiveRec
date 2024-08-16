@@ -27,23 +27,6 @@ class GoPrettyPrinter(TreeSitterPrettyPrinter):
         )
     """
 
-    # for_query = """
-    #     (for_statement
-    #         initializer: (short_var_declaration
-    #             left: (identifier) @forvar
-    #             right: (int_literal) @forvar
-    #         )?
-    #         condition: (binary_expression
-    #             left: (identifier) @forvar
-    #             right: (int_literal) @forvar
-    #         )?
-    #         update: (unary_expression
-    #             argument: (identifier) @forvar
-    #         )?
-    #     )@for-loop
-    # """
-
-
     def __init__(self, file, method):
         self.tree_sitter_path = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "..", "livefromdap", "bin", "treesitter", "go.so"))
