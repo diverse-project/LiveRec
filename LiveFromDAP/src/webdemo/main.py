@@ -5,7 +5,7 @@ import time
 import uuid
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, join_room, send
-from webdemo.AutoAgent import AutoCLiveAgent, AutoExecutionAgent, AutoJavaLiveAgent, AutoPyJSDynamicAgent, AutoPythonLiveAgent, AutoJavascriptLiveAgent, AutoJavaJDILiveAgent, AutoPyJSAgent, AutoGoAgent
+from webdemo.AutoAgent import AutoCLiveAgent, AutoExecutionAgent, AutoJavaLiveAgent, AutoPyJSDynamicAgent, AutoPythonLiveAgent, AutoJavascriptLiveAgent, AutoJavaJDILiveAgent, AutoPyJSAgent, AutoGoAgent, AutoKotlinAgent
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -29,6 +29,8 @@ def create_agent(language, raw=False):
         return AutoExecutionAgent(raw=raw)
     elif language == "go":
         return AutoGoAgent(raw=raw)
+    elif language == "kotlin":
+        return AutoKotlinAgent(raw=raw)
     else:
         raise NotImplementedError() # TODO implement other languages
 
@@ -40,6 +42,8 @@ def get_language_prefix(language):
     elif language == "c":
         return "//@"
     elif language == "javascript":
+        return "//@"
+    elif language == "kotlin":
         return "//@"
     else:
         raise NotImplementedError()

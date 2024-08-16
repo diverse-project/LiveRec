@@ -19,6 +19,10 @@ if(language=="go"){
     console.log(language);
     CodeMirror_mode = "text/x-go";
 }
+if(language=="kotlin"){
+    console.log(language);
+    CodeMirror_mode = "text/x-kotlin";
+}
 
 var editor = CodeMirror.fromTextArea(editorArea, {
     lineNumbers: true,

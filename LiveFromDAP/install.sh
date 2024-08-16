@@ -155,20 +155,21 @@ fi
 
 # Go Debug
 echo "[Go Debug] Checking for Go debug server..."
-#if [ ! command dlv version &> /dev/null ]; then
     echo "Installing Delve..."
     cd src/livefromdap/bin
     git clone https://github.com/go-delve/delve
     cd delve
     go install github.com/go-delve/delve/cmd/dlv
-#    echo "Creating go.mod file"
-#    cd ../runner
-#    go mod init runner
     cd ../../../..
-#else
-#    echo "Go debug server already installed."
-#fi
 
+echo "[Kotlin Debug] Checking for Kotlin debug server..."
+    echo "Installing Kotlin DAP..."
+    cd src/livefromdap/bin
+    git clone https://github.com/fwcd/kotlin-debug-adapter.git
+    cd kotlin-debug-adapter
+    chmod +x kotlin-debug-adapter/*
+    ./gradlew :adapter:installDist
+    cd ../../../..
 
 # Tree sitter
 echo "[Tree sitter] Checking for tree sitters ..."
@@ -182,16 +183,19 @@ if [ ! -d "src/livefromdap/bin/treesitter" ]; then
     git clone https://github.com/tree-sitter/tree-sitter-java
     git clone https://github.com/tree-sitter/tree-sitter-c
     git clone https://github.com/tree-sitter/tree-sitter-go
+    git clone https://github.com/fwcd/tree-sitter-kotlin
     python -c "from tree_sitter import Language;Language.build_library('javascript.so', ['tree-sitter-javascript'])"
     python -c "from tree_sitter import Language;Language.build_library('python.so', ['tree-sitter-python'])"
     python -c "from tree_sitter import Language;Language.build_library('java.so', ['tree-sitter-java'])"
     python -c "from tree_sitter import Language;Language.build_library('c.so', ['tree-sitter-c'])"
     python -c "from tree_sitter import Language;Language.build_library('go.so', ['tree-sitter-go'])"
+    python -c "from tree_sitter import Language;Language.build_library('go.so', ['tree-sitter-kotlin'])"
     rm -rf tree-sitter-javascript
     rm -rf tree-sitter-python
     rm -rf tree-sitter-java
     rm -rf tree-sitter-c
     rm -rf tree-sitter-go
+    rm -rf tree-sitter-kotlin
     cd ../../../..
 else
     echo "Js tree sitter already installed."

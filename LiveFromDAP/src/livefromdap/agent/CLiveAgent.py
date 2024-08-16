@@ -12,6 +12,7 @@ class CLiveAgent(BaseLiveAgent):
         self.compile_command = kwargs.get("compile_command", "gcc -g -fPIC -shared -o {target_input} {target_output}")
         self.runner_path = kwargs.get("runner_path", os.path.join(os.path.dirname(__file__), "..", "runner", "c_runner.c"))
         self.runner_path_exec = kwargs.pop("runner_path_exec", os.path.join(os.path.dirname(__file__), "..", "runner", "c_runner"))
+        breakpoint()
         self.dap_server_path = kwargs.get("dap_server_path", os.path.join(os.path.dirname(__file__), "..", "bin", "OpenDebugAD7", "OpenDebugAD7"))
         self.lang = Language(kwargs.get("tree_sitter_path", os.path.join(os.path.dirname(__file__), "..", "bin", "treesitter", "c.so")), 'c')
         self.parser = Parser()
@@ -48,7 +49,7 @@ class CLiveAgent(BaseLiveAgent):
          
     def initialize(self):
         """Send data to the agent"""
-        init_request = init_request = {
+        init_request = {
             "seq": self.new_seq(),
             "type": "request",
             "command": "initialize",

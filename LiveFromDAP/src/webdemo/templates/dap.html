@@ -66,18 +66,23 @@ function foo(a, b){
 package main
 
 import "fmt"
-//@Foo(5)
+//@Foo(0)
 func Foo(a int) int {
-    b := 3
-    r := b + a
-    return r
+    for i := 1; i < 5; i++ {
+        a += i
+    }
+    return a
 }
 
 func main() {
     result := Foo(2)
     fmt.Println(result)
 }
-
+{% elif language == 'kotlin' %}
+//@foo(1,2)
+fun foo(a: Int, b: Int): Int {
+    return
+}
 {% endif %}
             </textarea>
             <div id="editor-resizer"></div>

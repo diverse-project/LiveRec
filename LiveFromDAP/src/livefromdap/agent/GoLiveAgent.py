@@ -3,7 +3,7 @@ import subprocess
 
 from debugpy.common.messaging import JsonIOStream
 from debugpy.common import sockets
-from .BaseLiveAgent import BaseLiveAgent, DebuggeeTerminatedError
+from .BaseLiveAgent import BaseLiveAgent
 from tree_sitter import Language, Parser
 from livefromdap.utils.StackRecording import Stackframe, StackRecording
 
@@ -11,7 +11,6 @@ from livefromdap.utils.StackRecording import Stackframe, StackRecording
 class GoLiveAgent(BaseLiveAgent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.debug = True
         self.compile_command = kwargs.get("compile_command", 'go build -gcflags="all=-N -l" -o {target_output} {'
                                                              'target_input}')
         self.runner_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "runner"))
@@ -81,20 +80,6 @@ class GoLiveAgent(BaseLiveAgent):
     def stop_server(self):
         self.server_process.kill()
 
-    def stop_debugee(self):
-        disconnect_request = {
-            "seq": self.new_seq(),
-            "type": "request",
-            "command": "disconnect",
-            "arguments": {
-                "restart": False,
-                "terminateDebuggee": True
-            }
-        }
-        self.io.write_json(disconnect_request)
-        self.wait("response", command="disconnect")
-        self.server_process.close()
-
     def restart_server(self):
         self.server_process.kill()
         self.start_server()
@@ -127,7 +112,6 @@ class GoLiveAgent(BaseLiveAgent):
                 "supportsArgsCanBeInterpretedByShell": True,
                 "supportsStartDebuggingRequest": True,
                 "supportsConfigurationDoneRequest": True,
-                "supportsSetExpression": True,
                 "supportsRestartRequest": True
             }
         }
@@ -141,7 +125,6 @@ class GoLiveAgent(BaseLiveAgent):
                 "program": self.runner_path,
                 "rootPath": self.runner_directory,
                 "cwd": self.runner_directory,
-                "showGlobalVariables": True,
             }
         }
         self.io = self.main_io

@@ -13,6 +13,7 @@ from livefromdap.agent.JavascriptLiveAgent import JavascriptLiveAgent
 from livefromdap.agent.PythonLiveAgent import PythonLiveAgent
 from livefromdap.agent.PyJSLiveAgent import PyJSLiveAgent
 from livefromdap.agent.GoLiveAgent import GoLiveAgent
+from livefromdap.agent.KotlinLiveAgent import KotlinLiveAgent
 from livefromdap.utils.StackRecording import Stackframe
 from prettyprinter.CPrettyPrinter import CPrettyPrinter
 from pycparser import c_parser, parse_file, c_generator
@@ -543,6 +544,75 @@ class AutoJavaJDILiveAgent(AutoLiveAgent):
             "return_value": response["result"],
             "stacktrace": response["stack"]
         })
+
+class AutoKotlinAgent(AutoLiveAgent):
+    def __init__(self, raw=False):
+        breakpoint()
+        self.raw = raw
+        self.agent = KotlinLiveAgent(debug=True)
+        self.agent.start_server()
+        self.agent.initialize()
+        self.source_path = os.path.abspath("src/webdemo/tmp/tmp.kt")
+        with open(self.source_path, "w") as f:
+            f.write("")
+        self.lang = Language(
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "livefromdap", "bin", "treesitter", "kotlin.so")),
+            'kotlin')
+        self.parser = Parser()
+        self.parser.set_language(self.lang)
+        self.previous_ast = None
+
+    def restart(self):
+        self.agent.stop_server()
+        self.agent.start_server()
+        self.agent.initialize()
+
+    def check_if_parsable(self, code):
+        parsable = False
+        changed = False
+        try:
+            ast = parser.parse(code)
+            parsable = True
+        except Exception as e:
+            return False, False
+
+        if self.previous_ast is None:
+            self.previous_ast = ast
+            changed = True
+        elif ast != self.previous_ast:
+            self.previous_ast = ast
+            changed = True
+        return parsable, changed
+
+    def update_code(self, code):
+        is_parsable, changed = self.check_if_parsable(code)
+        if not is_parsable:
+            return
+        if changed:
+            with open(self.source_path, "w") as f:
+                f.write(code)
+            self.agent.load_code(self.source_path)
+        return changed
+
+    def construct_result_json(self, method, output):
+        return_value, stacktrace = output
+        if self.raw:
+            stacktrace.last_stackframe.variables.append({"name": "return", "value": return_value})
+            return json.dumps({
+                "return_value": return_value,
+                "stacktrace": stacktrace.to_json()
+            })
+        printer = GoPrettyPrinter(self.source_path, method)
+        output = printer.pretty_print(stacktrace, return_value=return_value)
+        return output
+
+    def execute(self, method, args):
+        output = self.agent.execute(self.compiled_path, self.source_path, method, args)
+        if output[0] == "Interrupted":
+            self.agent.load_code(self.source_path)
+        # Get the output of the thread
+        # Save the json result in a file
+        return self.construct_result_json(method, output)
 
 class AutoPyJSAgent(AutoLiveAgent):
     def __init__(self, raw=False):

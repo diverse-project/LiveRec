@@ -113,8 +113,7 @@ class JavascriptLiveAgent(BaseLiveAgent):
     def restart_server(self):
         self.stop_server()
         self.start_server()
-    
-    
+
     def stop_server(self):
         """Stop the target program"""
         # Send a stop request
@@ -235,19 +234,6 @@ class JavascriptLiveAgent(BaseLiveAgent):
         })
         brk = self.wait("event", "stopped")
         self.thread_id = brk["body"]["threadId"]
-    
-    def stop_debugee(self):
-        terminate_request = {
-            "seq": self.new_seq(),
-            "type": "request",
-            "command": "disconnect",
-            "arguments": {
-                "restart": False,
-                "terminateDebuggee": True
-            }
-        }
-        self.io.write_json(terminate_request)
-        self.server.close()
     
     def setup_runner_breakpoint(self):
         self.set_breakpoint(self.runner_path, [34])
