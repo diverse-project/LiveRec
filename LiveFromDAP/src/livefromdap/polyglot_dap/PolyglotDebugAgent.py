@@ -6,6 +6,7 @@ from typing import Any, override
 
 from livefromdap.polyglot_dap.JavascriptDebugAgent import JavascriptDebugAgent
 from livefromdap.polyglot_dap.PythonDebugAgent import PythonDebugAgent
+from livefromdap.polyglot_dap.CDebugAgent import CDebugAgent
 import debugpy
 from debugpy.common.messaging import JsonIOStream
 from livefromdap.utils.StackRecording import Stackframe, StackRecording
@@ -19,10 +20,11 @@ class PolyglotDebugAgent(BaseDebugAgent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.debuggers: dict[str, BaseDebugAgent] = {
-            "py": PythonDebugAgent(), "js": JavascriptDebugAgent()}
+            "py": PythonDebugAgent(), "js": JavascriptDebugAgent(), "c": CDebugAgent()}
         self.active_dap: BaseDebugAgent = self.debuggers["py"]
         self.call_stack: list[BaseDebugAgent] = []
         # self.debug = True
+        # self.time_since = time.time()
         for agent in self.debuggers.values():
             agent.debug = self.debug
 
@@ -50,7 +52,12 @@ class PolyglotDebugAgent(BaseDebugAgent):
             agent.setup_runner_breakpoint()
 
     def load_code(self, path: str):
-        self.active_dap.load_code(path)
+        lang_ext = path.split(".").pop()
+        self.active_dap = self.debuggers[lang_ext]
+        if lang_ext == "c":
+            self.active_dap.start_execute(path)
+        else:
+            self.active_dap.load_code(path)
 
     @override
     def set_breakpoint(self, path: str, lines: list):
@@ -67,7 +74,13 @@ class PolyglotDebugAgent(BaseDebugAgent):
 
     @override
     def get_stackframes(self, thread_id: int = 1, levels: int = 100) -> list:
-        return self.active_dap.get_stackframes(thread_id, levels)
+        return self.active_dap.get_stackframes(self._handle_thread_id(thread_id), levels)
+
+    def _handle_thread_id(self, thread_id: int = 1) -> int:
+        try:
+            return self.active_dap.main_thread_id
+        except AttributeError:
+            return thread_id
 
     @override
     def get_scopes(self, frame_id: int) -> list:
@@ -88,35 +101,58 @@ class PolyglotDebugAgent(BaseDebugAgent):
 
     def _handle_polyglot(self):
         while True:
+            # print("handling stack:", self.get_stackframes()[0])
+            # start = time.time()
             if self.active_dap.in_polyglot_call():
+                # end = time.time()
+                # print("Time to check if polyglot call:", end - start)
+                # start = time.time()
                 lang, filePath = self.active_dap.get_exec_request()
-                print("polyglot call at", lang, filePath)
+                # print("\033[31m" + "{0}".format("polyglot call at") + '\033[0m', lang, filePath)
+                # self.time_since = time.time() - self.time_since
+                # print("time?", self.time_since)
+
                 self.call_stack.append(self.active_dap)
                 self.active_dap = self.debuggers[lang]
+                # print(self.active_dap)
+                # end = time.time()
+                # print("Polyglot call time:", end - start)
                 self.active_dap.execute(filePath)
-                self.next_breakpoint()
+                # self.next_breakpoint()
             elif self.active_dap.finished_exec():
+                # end = time.time()
+                # print("Time to check if execution finished:", end - start)
+                # start = time.time()
                 return_value = self.active_dap.get_return()
-                self.active_dap = self.call_stack.pop()
+                self.active_dap.next_breakpoint(self._handle_thread_id())
+                try:
+                    self.active_dap = self.call_stack.pop()
+                except IndexError:
+                    break
                 self.active_dap.receive_return(return_value)
-                self.next_breakpoint()
+                # end = time.time()
+                # print("Polyglot return receive time:", end - start)
+                self.active_dap.next_breakpoint(self._handle_thread_id())
             else:
+                # print(3)
                 break
 
 
     @override
     def next_breakpoint(self, thread_id: int = 1):
-        self.active_dap.next_breakpoint(thread_id)
+        # print("\033[31m" + "Continuing" + '\033[0m')
+        self.active_dap.next_breakpoint(self._handle_thread_id(thread_id))
         self._handle_polyglot()
+        
 
     @override
     def step(self, thread_id: int = 1):
-        self.active_dap.step(thread_id)
+        self.active_dap.step(self._handle_thread_id(thread_id))
         self._handle_polyglot()
 
     @override
     def step_out(self, thread_id: int = 1):
-        self.active_dap.step_out(thread_id)
+        self.active_dap.step_out(self._handle_thread_id(thread_id))
         self._handle_polyglot()
 
     def execute(self, filePath):

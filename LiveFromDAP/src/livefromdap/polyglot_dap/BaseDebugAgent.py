@@ -211,7 +211,7 @@ class BaseDebugAgent(DAPAgent):
             "command": "configurationDone"
         }
         self.io.write_json(complete_request)
-        self.wait(type="response", command="configurationDone")
+        # self.wait(type="response", command="configurationDone")
 
     def get_stackframes(self, thread_id: int = 1, levels: int = 100) -> list:
         """Get the stackframes from the debuggee

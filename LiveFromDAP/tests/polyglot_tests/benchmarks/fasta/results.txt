@@ -1,0 +1,17 @@
+pure c DAP: 0.0285 
+pure py DAP: 0.167
+pure js DAP: 0.113
+
+gdb breakpoint = +0.02
+node breakpoint = +0.07~0.1
+debugpy breakpoint = +0.08~0.1
+
+n=25000000
+pure C DAP: 72.1719
+pure js DAP: 127.6021
+pure py DAP: 623.3406
+
+n=10000000
+pure C DAP: 30.53
+pure js DAP: 53.61
+pure py DAP: 282.16

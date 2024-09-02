@@ -8,13 +8,13 @@ import_file = None
 def exec_then_eval(code, _src_file, _globals = {}, _locals = {}):
     block = ast.parse(code, mode='exec')
     last = block.body.pop()
-    exec(compile(block, _src_file, mode="exec"), _globals, _locals)
+    exec(compile(block, _src_file, mode="exec"), _globals)
 
     try:
         result_node = ast.Expression(last.value)
-        return eval(compile(result_node, _src_file, mode='eval'), _globals, _locals)
+        return eval(compile(result_node, _src_file, mode='eval'), _globals)
     except:
-        return eval(compile(last, _src_file, mode='eval'), _globals, _locals)
+        return eval(compile(last, _src_file, mode='eval'), _globals)
 
 def polyglotEval(lang, exec_code):
     src_file = None

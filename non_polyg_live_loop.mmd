@@ -1,0 +1,7 @@
+sequenceDiagram
+    loop Stack recording loop
+    LiveAgent->>Debugger: step
+    Debugger-->>LiveAgent: stopped - step
+    LiveAgent->>Debugger: request stackframe
+    Debugger-->>LiveAgent: stackframe
+    end

@@ -1,0 +1,54 @@
+c[js, py, c]: 0.6852
+c[py, js, c]: 0.6998 
+c[py, py, py]: 1.107
+c[js, js, js]: 0.4031
+py[c, c, c]: 2.353
+py[js, js, js]: 1.9903
+py[js, py, c]: 1.6528
+py[c, js, py]: 1.6607
+js[js, py, c]: 1.5446
+js[c, c, c]: 1.9489
+js[py, py, py]: 2.1724
+c[js, c, c]: 0.2852
+c[js, js, c]: 0.3361
+c[py, c, c]: 0.4717
+c[py, py, c]: 0.8237
+
+
+
+pure c: 0.0285
+pure py: 0.167
+pure js: 0.113
+
+
+c-js call: 0.12
+c-py call: 0.234
+
+
+n=10000000
+pure C DAP: 30.53
+pure js DAP: 53.61
+pure py DAP: 282.16
+
+
+n=10000000
+c[js,js,js]: 58.07
+c[js,c,c]: 35.34
+c[js,js,c]: 40.87
+c[py,py,py]: 229.87
+c[py,py,c]: 99.136
+c[py,c,c]:30.85
+
+js[py,py,py]: 237.15
+js[py,py,js]:114.48
+js[py,js,js]: 49.30
+js[c,c,c]: 32.50
+js[c,c,js]: 42.92
+js[c,js,js]: 48.21
+
+py[js,js,js]: 59.10
+py[c,c,c]: 37.07
+py[js,py,py]: 246.38
+py[js,js,py]: 182.30
+py[c,py,py]: 249.66
+py[c,c,py]: 169.91

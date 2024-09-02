@@ -106,7 +106,7 @@ class PythonDebugAgent(BaseDebugAgent):
         self.io.write_json(launch_request)
         self.wait("event", "initialized")
         self.setup_runner_breakpoint()
-        # self.wait("event", "stopped")
+        self.get_stackframes()
         return 5
 
     def setup_runner_breakpoint(self):
@@ -151,12 +151,18 @@ class PythonDebugAgent(BaseDebugAgent):
 
     def receive_return(self, return_value: Any) -> None:
         stackframe = self.get_stackframes()[0]
+        if stackframe["line"] == 19:
+            self.step()
+            self.step()
+            self.step()
+        stackframe = self.get_stackframes()[0]
         frameId = stackframe["id"]
         self.evaluate(f"ret = {return_value}", frameId)
 
     def execute(self, filePath):
+        # start = time.time()
         stackframe = self.get_stackframes()[0]
-        print(stackframe)
+        # print(stackframe)
         # self.set_breakpoint(os.path.join(os.path.dirname(__file__), "..", "runner", "test.py"), [3])
         # self.set_breakpoint(os.path.join(os.path.dirname(__file__), "..", "runner", "test2.py"), [1])
         # self.next_breakpoint()
@@ -168,14 +174,18 @@ class PythonDebugAgent(BaseDebugAgent):
             if stackframe["name"] == "<module>" and stackframe["line"] == 39:
                 # runner was on standby, we just need to load the code and resume execution
                 self.load_code(filePath)
-                # self.next_breakpoint()
+                # end = time.time()
+                # print("Time to load python code:", end - start)
+                self.next_breakpoint()
 
             elif stackframe["name"] == "polyglotEval" and stackframe["line"] == 19:
                 frameId = self.get_stackframes()[0]["id"]
                 self.evaluate(f"src_file = '{filePath}'", frameId)
+                # end = time.time()
+                # print("Time to load polyglot python code:", end - start)
                 self.next_breakpoint()
 
-        print(stackframe)
+        # print(stackframe)
         # print("while loop:", self.get_stackframes()[0])
         # self.load_code(os.path.join(os.path.dirname(__file__), "..", "runner", "test.py"))
         # print("normal breakpoint:", self.get_stackframes()[0])

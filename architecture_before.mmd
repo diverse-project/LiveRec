@@ -1,41 +1,10 @@
 classDiagram
-    AutoAgent --o Session
-    BaseLiveAgent --|> LiveAgent
-    PythonLiveAgent --|> BaseLiveAgent
-    JavascriptLiveAgent --|> BaseLiveAgent
-    PythonAutoAgent --|> AutoAgent
-    JavascriptAutoAgent --|> AutoAgent
-    PythonAutoAgent o-- PythonLiveAgent
-    JavascriptAutoAgent o-- JavascriptLiveAgent
+
     PythonLiveAgent --> debugpy
     JavascriptLiveAgent --> js_dap
-    <<interface>> LiveAgent
-    <<interface>> AutoAgent
-    class LiveAgent {
-        +start_server()*
-        +stop_server()*
-        +restart_server()*
-        +initialize()*
-        +load_code()*
-        +execute()*
-    }
-    class BaseLiveAgent {
-        -io JsonIOStream
-        +set_breakpoint(path, lines)
-        +set_function_breakpoint(names)
-        +get_stackframes()
-        +next_breakpoint()
-        +step()
-        +step_out()
-        +evaluate(expression)
-        +wait(type)
-    }
-    class AutoAgent {
-        +execute()*
-        +restart()*
-        +update_code()*
-    }
-    class Session {
-        String code
-    }
-    
+
+
+    class PythonLiveAgent
+    class JavascriptLiveAgent
+
+

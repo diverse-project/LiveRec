@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
 import json
 import os
+import time
 from threading import Thread
 import subprocess
 
 from tree_sitter import Language, Parser
 
 from livefromdap.polyglot_dap.PolyglotDebugAgent import PolyglotDebugAgent
+from livefromdap.polyglot_dap.JavascriptDebugAgent import JavascriptDebugAgent
 from livefromdap.agent.CLiveAgent import CLiveAgent
 from livefromdap.agent.JavaLiveAgent import JavaLiveAgent
 from livefromdap.agent.JavascriptLiveAgent import JavascriptLiveAgent
@@ -17,10 +19,11 @@ from prettyprinter.CPrettyPrinter import CPrettyPrinter
 from pycparser import c_parser, parse_file, c_generator
 import ast as python_ast
 from ast import BinOp, Constant, NodeTransformer, Call, Add, fix_missing_locations
-import javalang # type: ignore
+import javalang  # type: ignore
 from prettyprinter.JavaPrettyPrinter import JavaPrettyPrinter
 from prettyprinter.JavascriptPrettyPrinter import JavascriptPrettyPrinter
 from prettyprinter.PythonPrettyPrinter import PythonPrettyPrinter
+
 
 class ThreadWithReturnValue(Thread):
     def __init__(self, group=None, target=None, name=None,
@@ -29,12 +32,13 @@ class ThreadWithReturnValue(Thread):
         self._return = None
 
     def run(self):
-        if self._target is not None: # type: ignore
-            self._return = self._target(*self._args, **self._kwargs) # type: ignore
+        if self._target is not None:  # type: ignore
+            self._return = self._target(
+                *self._args, **self._kwargs)  # type: ignore
+
     def join(self, *args):
         Thread.join(self, *args)
         return self._return
-    
 
 
 class AutoLiveAgent(ABC):
@@ -58,7 +62,7 @@ class AutoLiveAgent(ABC):
 
 
 class AutoCLiveAgent(AutoLiveAgent):
-    
+
     def __init__(self, raw=False):
         self.raw = raw
         self.agent = CLiveAgent(debug=False)
@@ -85,11 +89,12 @@ class AutoCLiveAgent(AutoLiveAgent):
         try:
             with open("src/webdemo/tmp/_tmp.c", "w") as f:
                 f.write(code)
-            ast = parse_file("src/webdemo/tmp/_tmp.c", use_cpp=True, parser=self.c_parser)
+            ast = parse_file("src/webdemo/tmp/_tmp.c",
+                             use_cpp=True, parser=self.c_parser)
             parsable = True
         except Exception as e:
             return False, False
-        
+
         if self.previous_ast is None:
             self.previous_ast = ast
             changed = True
@@ -97,12 +102,13 @@ class AutoCLiveAgent(AutoLiveAgent):
             self.previous_ast = ast
             changed = True
         return parsable, changed
-    
+
     def compile_c(self):
-        command = f"gcc -g -fPIC -shared -o {self.compiled_path} {self.source_path}"
+        command = f"gcc -g -fPIC -shared -o {
+            self.compiled_path} {self.source_path}"
         res = os.system(command)
         return res
-    
+
     def update_code(self, code):
         is_parsable, changed = self.check_if_parsable(code)
         if not is_parsable:
@@ -114,19 +120,20 @@ class AutoCLiveAgent(AutoLiveAgent):
                 return
             self.agent.load_code(self.compiled_path)
         return changed
-        
 
     def construct_result_json(self, method, output):
         return_value, stacktrace = output
         if self.raw:
-            stacktrace.last_stackframe.variables.append({"name":"return", "value":return_value})
+            stacktrace.last_stackframe.variables.append(
+                {"name": "return", "value": return_value})
             return json.dumps({
                 "return_value": return_value,
                 "stacktrace": stacktrace.to_json()
             })
         else:
-            printer = CPrettyPrinter(self.source_path,method)
-            output = printer.pretty_print(stacktrace, return_value=return_value)
+            printer = CPrettyPrinter(self.source_path, method)
+            output = printer.pretty_print(
+                stacktrace, return_value=return_value)
             return output
 
     def execute(self, method, args):
@@ -135,10 +142,11 @@ class AutoCLiveAgent(AutoLiveAgent):
             self.agent.load_code(self.compiled_path)
         # Get the output of the thread
         # Save the json result in a file
-        return self.construct_result_json(method, output)    
+        return self.construct_result_json(method, output)
+
 
 class AutoJavaLiveAgent(AutoLiveAgent):
-    
+
     def __init__(self, raw=False):
         self.raw = raw
         self.agent = JavaLiveAgent(debug=False)
@@ -149,12 +157,11 @@ class AutoJavaLiveAgent(AutoLiveAgent):
             f.write("")
         self.compiled_classpath = os.path.abspath("src/webdemo/tmp/")
         self.previous_ast = None
-    
+
     def restart(self):
         self.agent.stop_server()
         self.agent.start_server()
         self.agent.initialize()
-
 
     def check_if_parsable(self, code):
         parsable = False
@@ -164,7 +171,7 @@ class AutoJavaLiveAgent(AutoLiveAgent):
             parsable = True
         except Exception as e:
             return False, False
-        
+
         if self.previous_ast is None:
             self.previous_ast = ast
             changed = True
@@ -172,12 +179,12 @@ class AutoJavaLiveAgent(AutoLiveAgent):
             self.previous_ast = ast
             changed = True
         return parsable, changed
-    
+
     def compile_java(self):
         command = f"javac -g -d {self.compiled_classpath} {self.source_path}"
         res = os.system(command)
         return res
-    
+
     def update_code(self, code):
         is_parsable, changed = self.check_if_parsable(code)
         if not is_parsable:
@@ -190,17 +197,17 @@ class AutoJavaLiveAgent(AutoLiveAgent):
             self.agent.load_code(self.compiled_classpath, "Live")
 
         return changed
-        
 
     def construct_result_json(self, method, output):
         return_value, stacktrace = output
         if self.raw:
-            stacktrace.last_stackframe.variables.append({"name":"return", "value":return_value})
+            stacktrace.last_stackframe.variables.append(
+                {"name": "return", "value": return_value})
             return json.dumps({
                 "return_value": return_value,
                 "stacktrace": stacktrace.to_json()
             })
-        printer = JavaPrettyPrinter(self.source_path,"Live",method)
+        printer = JavaPrettyPrinter(self.source_path, "Live", method)
         output = printer.pretty_print(stacktrace, return_value=return_value)
         return output
 
@@ -211,10 +218,10 @@ class AutoJavaLiveAgent(AutoLiveAgent):
         if output[0] == "Interrupted":
             self.agent.load_code(self.compiled_classpath, "Live")
         return self.construct_result_json(method, output)
-        
-    
+
+
 class AutoPythonLiveAgent(AutoLiveAgent):
-    
+
     def __init__(self, raw=False):
         self.raw = raw
         self.agent = PythonLiveAgent(debug=False)
@@ -224,12 +231,11 @@ class AutoPythonLiveAgent(AutoLiveAgent):
         with open(self.source_path, "w") as f:
             f.write("")
         self.previous_ast = None
-    
+
     def restart(self):
         self.agent.stop_server()
         self.agent.start_server()
         self.agent.initialize()
-
 
     def check_if_parsable(self, code):
         parsable = False
@@ -239,7 +245,7 @@ class AutoPythonLiveAgent(AutoLiveAgent):
             parsable = True
         except Exception as e:
             return False, False
-        
+
         if self.previous_ast is None:
             self.previous_ast = ast
             changed = True
@@ -247,7 +253,7 @@ class AutoPythonLiveAgent(AutoLiveAgent):
             self.previous_ast = ast
             changed = True
         return parsable, changed
-    
+
     def update_code(self, code):
         is_parsable, changed = self.check_if_parsable(code)
         if not is_parsable:
@@ -258,17 +264,17 @@ class AutoPythonLiveAgent(AutoLiveAgent):
             self.agent.load_code(self.source_path)
 
         return changed
-        
 
     def construct_result_json(self, method, output):
         return_value, stacktrace = output
         if self.raw:
-            stacktrace.last_stackframe.variables.append({"name":"return", "value":return_value})
+            stacktrace.last_stackframe.variables.append(
+                {"name": "return", "value": return_value})
             return json.dumps({
                 "return_value": return_value,
                 "stacktrace": stacktrace.to_json()
             })
-        printer = PythonPrettyPrinter(self.source_path,method)
+        printer = PythonPrettyPrinter(self.source_path, method)
         output = printer.pretty_print(stacktrace, return_value=return_value)
         return output
 
@@ -279,31 +285,28 @@ class AutoPythonLiveAgent(AutoLiveAgent):
         # Get the output of the thread
         # Save the json result in a file
         return self.construct_result_json(method, output)
-    
-    
+
+
 class AutoJavascriptLiveAgent(AutoLiveAgent):
-    
+
     def __init__(self, raw=False):
-        print("bim")
         self.raw = raw
         self.agent = JavascriptLiveAgent(debug=False)
         self.agent.start_server()
         self.agent.initialize()
-        print("inited")
         self.source_path = os.path.abspath("src/webdemo/tmp/tmp.js")
         with open(self.source_path, "w") as f:
             f.write("")
-        self.lang = Language(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "livefromdap", "bin","treesitter","javascript.so")), 'javascript')
+        self.lang = Language(os.path.abspath(os.path.join(os.path.dirname(
+            __file__), "..", "livefromdap", "bin", "treesitter", "javascript.so")), 'javascript')
         self.parser = Parser()
         self.parser.set_language(self.lang)
         self.previous_ast = None
-        print("ouais!!")
-    
+
     def restart(self):
         self.agent.stop_server()
         self.agent.start_server()
         self.agent.initialize()
-
 
     def check_if_parsable(self, code):
         parsable = False
@@ -318,7 +321,7 @@ class AutoJavascriptLiveAgent(AutoLiveAgent):
             parsable = len(captures) == 0
         except Exception as e:
             return False, False
-        
+
         if self.previous_ast is None:
             self.previous_ast = ast
             changed = True
@@ -326,7 +329,7 @@ class AutoJavascriptLiveAgent(AutoLiveAgent):
             self.previous_ast = ast
             changed = True
         return parsable, changed
-    
+
     def update_code(self, code):
         is_parsable, changed = self.check_if_parsable(code)
         if not is_parsable:
@@ -337,17 +340,17 @@ class AutoJavascriptLiveAgent(AutoLiveAgent):
             self.agent.load_code(self.source_path)
 
         return changed
-        
 
     def construct_result_json(self, method, output):
         return_value, stacktrace = output
         if self.raw:
-            stacktrace.last_stackframe.variables.append({"name":"return", "value":return_value})
+            stacktrace.last_stackframe.variables.append(
+                {"name": "return", "value": return_value})
             return json.dumps({
                 "return_value": return_value,
                 "stacktrace": stacktrace.to_json()
             })
-        printer = JavascriptPrettyPrinter(self.source_path,method)
+        printer = JavascriptPrettyPrinter(self.source_path, method)
         output = printer.pretty_print(stacktrace, return_value=return_value)
         return output
 
@@ -360,17 +363,19 @@ class AutoJavascriptLiveAgent(AutoLiveAgent):
         # Get the output of the thread
         # Save the json result in a file
         return self.construct_result_json(method, output)
-    
+
+
 class AutoJavaJDILiveAgent(AutoLiveAgent):
-    
+
     def __init__(self, raw=False):
         self.raw = raw
         # Execute the agent from the directory where the jar is
         self.agent = subprocess.Popen(
-            ["java -cp target/LiveProbes-1.0-jar-with-dependencies.jar debugger.LiveAgent"], 
-            cwd=os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..","..","JavaProbes")),
-            stdin=subprocess.PIPE, 
-            stdout=subprocess.PIPE, 
+            ["java -cp target/LiveProbes-1.0-jar-with-dependencies.jar debugger.LiveAgent"],
+            cwd=os.path.abspath(os.path.join(os.path.dirname(
+                __file__), "..", "..", "..", "JavaProbes")),
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True)
         # read the first line
@@ -381,10 +386,9 @@ class AutoJavaJDILiveAgent(AutoLiveAgent):
             f.write("")
         self.compiled_classpath = os.path.abspath("src/webdemo/tmp/")
         self.previous_ast = None
-    
+
     def restart(self):
         pass
-
 
     def check_if_parsable(self, code):
         parsable = False
@@ -394,7 +398,7 @@ class AutoJavaJDILiveAgent(AutoLiveAgent):
             parsable = True
         except Exception as e:
             return False, False
-        
+
         if self.previous_ast is None:
             self.previous_ast = ast
             changed = True
@@ -402,12 +406,12 @@ class AutoJavaJDILiveAgent(AutoLiveAgent):
             self.previous_ast = ast
             changed = True
         return parsable, changed
-    
+
     def compile_java(self):
         command = f"javac -g -d {self.compiled_classpath} {self.source_path}"
         res = os.system(command)
         return res
-    
+
     def update_code(self, code):
         is_parsable, changed = self.check_if_parsable(code)
         if not is_parsable:
@@ -419,12 +423,12 @@ class AutoJavaJDILiveAgent(AutoLiveAgent):
                 return
             print(self.compiled_classpath)
             payload = {
-                "command":"loadClass", 
-                "params":{
-                    "path":self.compiled_classpath,
-                    "className":"Live"
-                    }
+                "command": "loadClass",
+                "params": {
+                    "path": self.compiled_classpath,
+                    "className": "Live"
                 }
+            }
             payload_str = json.dumps(payload) + "\n"
             print(payload_str)
             self.agent.stdin.write(payload_str.encode("utf8"))
@@ -432,29 +436,29 @@ class AutoJavaJDILiveAgent(AutoLiveAgent):
             line = self.agent.stdout.readline()
 
         return changed
-        
 
     def construct_result_json(self, method, output):
         return_value, stacktrace = output
         if self.raw:
-            stacktrace.last_stackframe.variables.append({"name":"return", "value":return_value})
+            stacktrace.last_stackframe.variables.append(
+                {"name": "return", "value": return_value})
             return json.dumps({
                 "return_value": return_value,
                 "stacktrace": stacktrace.to_json()
             })
-        printer = JavaPrettyPrinter(self.source_path,"Live",method)
+        printer = JavaPrettyPrinter(self.source_path, "Live", method)
         output = printer.pretty_print(stacktrace, return_value=return_value)
         return output
 
     def execute(self, method, args):
         print("execute")
         payload = {
-            "command":"evaluate", 
-            "params":{
-                "method":method,
-                "args":args
-                }
+            "command": "evaluate",
+            "params": {
+                "method": method,
+                "args": args
             }
+        }
         payload_str = json.dumps(payload) + "\n"
         print(payload_str)
         self.agent.stdin.write(payload_str.encode("utf8"))
@@ -468,7 +472,6 @@ class AutoJavaJDILiveAgent(AutoLiveAgent):
         })
 
 
-    
 class AutoPyJSAgent(AutoLiveAgent):
     def __init__(self, raw=False):
         self.raw = raw
@@ -485,7 +488,7 @@ class AutoPyJSAgent(AutoLiveAgent):
         with open(self.js_path, "w") as f:
             f.write("")
         self.previous_ast = None
-    
+
     def restart(self):
         self.agent.stop_server()
         self.js_agent.stop_server()
@@ -494,7 +497,6 @@ class AutoPyJSAgent(AutoLiveAgent):
         self.agent.initialize()
         self.js_agent.initialize()
 
-
     def check_if_parsable(self, code):
         parsable = False
         changed = False
@@ -502,10 +504,11 @@ class AutoPyJSAgent(AutoLiveAgent):
         try:
             ast = python_ast.parse(code)
             parsable = True
-            remapped_code = python_ast.unparse(fix_missing_locations(PolyglotJSRemap(self.js_agent).visit(ast)))
+            remapped_code = python_ast.unparse(fix_missing_locations(
+                PolyglotJSRemap(self.js_agent).visit(ast)))
         except Exception as e:
             return False, False, None
-        
+
         if self.previous_ast is None:
             self.previous_ast = ast
             changed = True
@@ -513,7 +516,7 @@ class AutoPyJSAgent(AutoLiveAgent):
             self.previous_ast = ast
             changed = True
         return parsable, changed, remapped_code
-    
+
     def update_code(self, code):
         is_parsable, changed, remapped_code = self.check_if_parsable(code)
         if not is_parsable:
@@ -526,17 +529,17 @@ class AutoPyJSAgent(AutoLiveAgent):
             self.agent.load_code(self.source_path)
 
         return changed
-        
 
     def construct_result_json(self, method, output):
         return_value, stacktrace = output
         if self.raw:
-            stacktrace.last_stackframe.variables.append({"name":"return", "value":return_value})
+            stacktrace.last_stackframe.variables.append(
+                {"name": "return", "value": return_value})
             return json.dumps({
                 "return_value": return_value,
                 "stacktrace": stacktrace.to_json()
             })
-        printer = PythonPrettyPrinter(self.source_path,method)
+        printer = PythonPrettyPrinter(self.source_path, method)
         output = printer.pretty_print(stacktrace, return_value=return_value)
         return output
 
@@ -547,6 +550,7 @@ class AutoPyJSAgent(AutoLiveAgent):
         # Get the output of the thread
         # Save the json result in a file
         return self.construct_result_json(method, output)
+
 
 class PolyglotJSRemap(NodeTransformer):
 
@@ -559,16 +563,17 @@ class PolyglotJSRemap(NodeTransformer):
         if python_ast.unparse(node.func) == "polyglot.eval":
             js_code = python_ast.unparse(node.args[1]).strip("'")
             result = int(
-                self.js_agent.evaluate(js_code, 
+                self.js_agent.evaluate(js_code,
                                        self.js_agent.get_stackframes()[0]["id"])
                 .get("body")
                 .get("result")
                 .strip("'"))
             return Constant(value=result)
         return node
-    
+
+
 class AutoPyJSDynamicAgent(AutoLiveAgent):
-    
+
     def __init__(self, raw=False):
         self.raw = raw
         self.agent = PyJSLiveAgent(debug=False)
@@ -578,12 +583,11 @@ class AutoPyJSDynamicAgent(AutoLiveAgent):
         with open(self.source_path, "w") as f:
             f.write("")
         self.previous_ast = None
-    
+
     def restart(self):
         self.agent.stop_server()
         self.agent.start_server()
         self.agent.initialize()
-
 
     def check_if_parsable(self, code):
         parsable = False
@@ -593,7 +597,7 @@ class AutoPyJSDynamicAgent(AutoLiveAgent):
             parsable = True
         except Exception as e:
             return False, False
-        
+
         if self.previous_ast is None:
             self.previous_ast = ast
             changed = True
@@ -601,7 +605,7 @@ class AutoPyJSDynamicAgent(AutoLiveAgent):
             self.previous_ast = ast
             changed = True
         return parsable, changed
-    
+
     def update_code(self, code):
         is_parsable, changed = self.check_if_parsable(code)
         if not is_parsable:
@@ -612,17 +616,17 @@ class AutoPyJSDynamicAgent(AutoLiveAgent):
             self.agent.load_code(self.source_path)
 
         return changed
-        
 
     def construct_result_json(self, method, output):
         return_value, stacktrace = output
         if self.raw:
-            stacktrace.last_stackframe.variables.append({"name":"return", "value":return_value})
+            stacktrace.last_stackframe.variables.append(
+                {"name": "return", "value": return_value})
             return json.dumps({
                 "return_value": return_value,
                 "stacktrace": stacktrace.to_json()
             })
-        printer = PythonPrettyPrinter(self.source_path,method)
+        printer = PythonPrettyPrinter(self.source_path, method)
         output = printer.pretty_print(stacktrace, return_value=return_value)
         return output
 
@@ -633,26 +637,23 @@ class AutoPyJSDynamicAgent(AutoLiveAgent):
         # Get the output of the thread
         # Save the json result in a file
         return self.construct_result_json(method, output)
-    
+
+
 class AutoExecutionAgent(AutoLiveAgent):
     def __init__(self, raw=False):
         self.raw = raw
         self.agent = PolyglotDebugAgent()
         self.agent.start_server()
         self.agent.initialize()
-        
-        print("oui")
-        
+
     def restart(self):
         pass
 
-
     def check_if_parsable(self, code):
         pass
-    
+
     def update_code(self, code):
         pass
-        
 
     def construct_result_json(self, method, output):
         pass
@@ -661,12 +662,223 @@ class AutoExecutionAgent(AutoLiveAgent):
         # print("foo", self.agent.get_stackframes()[0])
         # self.agent.next_breakpoint()
         # print("bar", self.agent.get_stackframes()[0])
-        self.agent.load_code("/code/src/livefromdap/runner/test.py")
-        self.agent.set_breakpoint("/code/src/livefromdap/runner/test.py", [7])
-        self.agent.set_breakpoint("/code/src/livefromdap/runner/test.js", [2])
-        self.agent.next_breakpoint()
-        print("autoagent test1:", self.agent.get_stackframes()[0])
+        # self.agent.load_code("/code/src/livefromdap/runner/test.js")
+        # self.agent.set_breakpoint("/code/src/livefromdap/runner/test.js", [5])
+        self.measure_pure_perf_py()
+        # self.agent.load_code(
+        #     "/code/tests/polyglot_tests/benchmarks/eval_measure/eval_measure.py")
+        # # js: 89, c: 155, py: 86
+        # self.agent.set_breakpoint(
+        #     "/code/tests/polyglot_tests/benchmarks/eval_measure/eval_measure.py", [6])
+        # # self.agent.load_code("/code/tests/polyglot_tests/benchmarks/fasta/fasta.js")
+        # # self.agent.set_breakpoint("/code/tests/polyglot_tests/benchmarks/fasta/fasta_replace/IUB.js", [90])
+        # print("start", self.agent.get_stackframes()[0])
+        # start = time.time()
+        # self.agent.next_breakpoint()
+        # end = time.time()
+        # print("Time: ", end - start)
+        # print("end", self.agent.get_stackframes()[0])
+        # self.agent.load_code("/code/tests/polyglot_tests/benchmarks/pidigits/pidigits_test2.c")
+        # self.agent.set_breakpoint("/code/tests/polyglot_tests/benchmarks/pidigits/pidigits_test2.c", [64]) # js: 89, c: 155, py: 86
+        # self.agent.load_code("/code/tests/polyglot_tests/benchmarks/pidigits/loop_replace/entry.py")
+        # self.agent.set_breakpoint("/code/tests/polyglot_tests/benchmarks/pidigits/loop_replace/entry.py", [73])
+        # print("start", self.agent.get_stackframes()[0])
+        # start = time.time()
+        # self.agent.next_breakpoint()
+        # end = time.time()
+        # print("Time:", end - start)
+        # print("end", self.agent.get_stackframes()[0])
+        # self.agent.set_breakpoint("/code/tests/polyglot_tests/test.py", [7])
+        # print("\033[31m" + "{0}".format("hi hi:") +
+        #       '\033[0m', self.agent.get_stackframes()[0])
+        # self.agent.next_breakpoint()
+        # print("\033[31m" + "{0}".format("autoagent test1:") +
+        #       '\033[0m', self.agent.get_stackframes()[0])
         # print(self.agent.evaluate("import_file", self.agent.get_stackframes()[0]["id"]))
-        self.agent.next_breakpoint()
-        print("autoagent test2:", self.agent.get_stackframes()[0])
+        # self.agent.next_breakpoint()
+        # print("\033[31m" + "autoagent test2:" +
+        #       '\033[0m', self.agent.get_stackframes()[0])
+        # frameId = self.agent.get_stackframes()[0]["id"]
+        # scope = self.agent.get_scopes(frameId)[0]
+        # print("variables:", self.agent.get_variables(
+        #     scope["variablesReference"]))
+        # self.agent.execute("/code/src/livefromdap/runner/test2.js")
         return "success"
+
+
+    def measure_pure_perf_py(self):
+        n_values = [1, 10, 50, 100, 500, 1000, 1500, 2000]
+        path = "/code/tests/polyglot_tests/benchmarks/eval_measure/pure.py"
+        results = []
+        for n_value in n_values:
+            print("Evaluating with iteration count", n_value)
+            with open(path, "r") as f:
+                lines = f.readlines()
+            lines[0] = f"n = {n_value}\n"
+            with open(path, "w") as f:
+                f.writelines(lines)
+
+            self.agent.load_code(
+                path)
+            self.agent.set_breakpoint(
+                path, [6])
+
+            start = time.time()
+            self.agent.next_breakpoint()
+            end = time.time()
+            print("Time: ", end - start)
+            results.append(end - start)
+            self.agent.next_breakpoint()
+        print("Results:", results)
+
+    def measure_eval_perf_py(self):
+        n_values = [1, 10, 50, 100, 500, 1000, 1500, 2000]
+        path = "/code/tests/polyglot_tests/benchmarks/eval_measure/eval_measure.py"
+        results = []
+        for n_value in n_values:
+            print("Evaluating with iteration count", n_value)
+            with open(path, "r") as f:
+                lines = f.readlines()
+            lines[0] = f"n = {n_value}\n"
+            with open(path, "w") as f:
+                f.writelines(lines)
+
+            self.agent.load_code(
+                path)
+            self.agent.set_breakpoint(
+                path, [6])
+
+            start = time.time()
+            self.agent.next_breakpoint()
+            end = time.time()
+            print("Time: ", end - start)
+            results.append(end - start)
+            self.agent.next_breakpoint()
+        print("Results:", results)
+
+    def measure_pure_perf_js(self):
+        n_values = [1, 10, 50, 100, 500, 1000, 1500, 2000]
+        path = "/code/tests/polyglot_tests/benchmarks/eval_measure/pure.js"
+        results = []
+        for n_value in n_values:
+            print("Evaluating with iteration count", n_value)
+            with open(path, "r") as f:
+                lines = f.readlines()
+            lines[0] = f"const n = {n_value};\n"
+            with open(path, "w") as f:
+                f.writelines(lines)
+
+            self.agent.load_code(
+                path)
+            self.agent.set_breakpoint(
+                path, [6])
+
+            start = time.time()
+            self.agent.next_breakpoint()
+            end = time.time()
+            print("Time: ", end - start)
+            results.append(end - start)
+            self.agent.next_breakpoint()
+        print("Results:", results)
+
+    def measure_eval_perf_js(self):
+        n_values = [1, 10, 50, 100, 500, 1000, 1500, 2000]
+        path = "/code/tests/polyglot_tests/benchmarks/eval_measure/eval_measure.js"
+        results = []
+        for n_value in n_values:
+            print("Evaluating with iteration count", n_value)
+            with open(path, "r") as f:
+                lines = f.readlines()
+            lines[0] = f"const n = {n_value};\n"
+            with open(path, "w") as f:
+                f.writelines(lines)
+
+            self.agent.load_code(
+                path)
+            self.agent.set_breakpoint(
+                path, [6])
+
+            start = time.time()
+            self.agent.next_breakpoint()
+            end = time.time()
+            print("Time: ", end - start)
+            results.append(end - start)
+            self.agent.next_breakpoint()
+        print("Results:", results)
+
+    def measure_pure_perf_c(self):
+        n_values = [1, 10, 50, 100, 500, 1000, 1500, 2000]
+        path = "/code/tests/polyglot_tests/benchmarks/eval_measure/pure.c"
+        alt_path = "/code/tests/polyglot_tests/benchmarks/eval_measure/pure.c"
+        results = []
+        for n_value in n_values:
+            tmp = path
+            path = alt_path
+            alt_path = tmp
+            content = f"int n = {n_value};" + """
+
+int main()
+{
+    for (int i = 0; i < n; i++)
+    {
+        int x = 42;
+    }
+    return 0;
+}"""
+            print("Evaluating with iteration count", n_value)
+
+            with open(path, "w") as f:
+                f.write(content)
+
+            self.agent.load_code(
+                path)
+            self.agent.set_breakpoint(
+                path, [9])
+
+            start = time.time()
+            self.agent.next_breakpoint()
+            end = time.time()
+            print("Time: ", end - start)
+            results.append(end - start)
+            self.agent.next_breakpoint()
+            self.agent.active_dap.loaded_files = []
+        print("Results:", results)
+
+
+    def measure_eval_perf_c(self):
+        n_values = [1, 10, 50, 100, 500, 1000, 1500, 2000]
+        path = "/code/tests/polyglot_tests/benchmarks/eval_measure/eval_measure.c"
+        alt_path = "/code/tests/polyglot_tests/benchmarks/eval_measure/eval_measure_alt.c"
+        results = []
+        for n_value in n_values:
+            tmp = path
+            path = alt_path
+            alt_path = tmp
+            content = f"int n = {n_value};" + """
+
+int main()
+{
+    for (int i = 0; i < n; i++)
+    {
+        polyglotEval("js", "/code/tests/polyglot_tests/benchmarks/eval_measure/simple.js");
+    }
+    return 0;
+}"""
+            print("Evaluating with iteration count", n_value)
+
+            with open(path, "w") as f:
+                f.write(content)
+
+            self.agent.load_code(
+                path)
+            self.agent.set_breakpoint(
+                path, [9])
+
+            start = time.time()
+            self.agent.next_breakpoint()
+            end = time.time()
+            print("Time: ", end - start)
+            results.append(end - start)
+            self.agent.next_breakpoint()
+            self.agent.active_dap.loaded_files = []
+        print("Results:", results)

@@ -5,7 +5,7 @@ var last_path = null;
 var import_file = null;
 
 polyglotEval = function (lang, exec_code) {
-    // src_file = undefined;
+    let import_file = null;
     ret = -1;
     while (import_file != null) {
         var intermediate_ret = require(import_file);
@@ -26,7 +26,7 @@ var loadFile = function (filename) {
 while (true) {
     if (import_file != null) {
         let content = require(import_file);
-        console.log(content);
+        console.log("content");
         // add content to global
         for (let key in content) {
             global[key] = content[key];

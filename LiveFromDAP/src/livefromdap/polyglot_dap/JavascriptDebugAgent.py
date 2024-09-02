@@ -1,5 +1,6 @@
 import os
 import subprocess
+import time
 from debugpy.common.messaging import JsonIOStream
 from debugpy.common import sockets
 from typing import Any
@@ -265,8 +266,8 @@ class JavascriptDebugAgent(BaseDebugAgent):
 
     def load_code(self, path: str):
         """For this agent, loading code is loading a class in the runner"""
-        jspp = JavaScriptPreprocessor(path, path)
-        self._entry_line[path] = jspp.functions
+        # jspp = JavaScriptPreprocessor(path, path)
+        # self._entry_line[path] = jspp.functions
         frame_id = self.get_stackframes(self.thread_id)[0]["id"]
         self.evaluate(f'loadFile("{path}")', frame_id)
         # self.next_breakpoint()
@@ -288,43 +289,62 @@ class JavascriptDebugAgent(BaseDebugAgent):
         return stackframe["source"]["path"] == "/code/src/livefromdap/runner/js_runner.js" and stackframe["line"] == 27
 
     def get_return(self) -> Any:
-        stackframe = self.get_stackframes()[0]
+        stackframe = self.get_stackframes(self.thread_id)[0]
         frameId = stackframe["id"]
         result = None
         if stackframe["line"] == 12:
-            result = self.evaluate("intermediate_ret", frameId)["body"]["result"]
+            result = self.evaluate(f"intermediate_ret", frameId)["body"]["result"]
         elif stackframe["line"] == 29:
-            result = self.evaluate("content", frameId)["body"]["result"]
+            result = self.evaluate(f"content", frameId)["body"]["result"]
         return result
 
     def receive_return(self, return_value: Any) -> None:
         stackframe = self.get_stackframes()[0]
         frameId = stackframe["id"]
+        self.evaluate("import_file = null", frameId)
+        if stackframe["line"] == 8:
+            self.step()
+            self.wait("event", "stopped")
+            self.step()
+            self.wait("event", "stopped")
+        stackframe = self.get_stackframes()[0]
+        frameId = stackframe["id"]
         self.evaluate(f"ret = {return_value}", frameId)
 
-    def execute(self, filePath) -> tuple[str, StackRecording]:
+    def execute(self, filePath: str) -> tuple[str, StackRecording]:
+        # start = time.time()
         """Execute a method with the given arguments"""
-        # stackframe = self.get_stackframes()[0]
+        stackframe = self.get_stackframes()[0]
+        # print("JS exec frame:", stackframe)
         # self.next_breakpoint()
         # self.set_breakpoint("/code/src/livefromdap/runner/test2.js", [1])
         # self.load_code("/code/src/livefromdap/runner/test.js")
-        stackframe = self.get_stackframes()[0]
+        # cleaned_filePath = "./" + filePath.split("/").pop()
+        # print(cleaned_filePath)
+        # stackframe = self.get_stackframes()[0]
         # print("hi: ", stackframe, filePath)
         if stackframe["source"]["path"] == "/code/src/livefromdap/runner/js_runner.js":
             if stackframe["name"] == "<anonymous>" and stackframe["line"] == 27:
                 # runner was on standby, we just need to load the code and resume execution
                 self.load_code(filePath)
-                # self.next_breakpoint()
+                # end = time.time()
+                # print("Time to load JS code:", end - start)
+                self.next_breakpoint()
 
             elif stackframe["name"] == "global.polyglotEval":
                 frameId = self.get_stackframes()[0]["id"]
                 self.evaluate(f"import_file = '{filePath}'", frameId)
-                # self.next_breakpoint()
-        stackframe = self.get_stackframes()[0]
+                # end = time.time()
+                # print("Time to load polyglot JS code:", end - start)
+                self.next_breakpoint()
+        # stackframe = self.get_stackframes()[0]
         # print("hallo", stackframe)
         # self.next_breakpoint()
         # stackframe = self.get_stackframes()[0]
         # print(stackframe)
+        # self.next_breakpoint()
+        # stackframe = self.get_stackframes()[0]
+        # print(stackframe)
         # frameId = stackframe["id"]
-        # print(self.evaluate(f"intermediate_ret", frameId))
+        # print(self.evaluate(f"content", frameId))
         return "execution reached!"
