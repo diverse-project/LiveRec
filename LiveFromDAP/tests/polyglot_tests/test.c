@@ -1,5 +1,5 @@
 double foo() {
-    return polyglotEval("py", "/code/src/livefromdap/runner/test.py");
+    return polyglotEval("py", "/code/tests/polyglot_tests/test2.py");
 }
 
 

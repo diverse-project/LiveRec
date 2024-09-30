@@ -2,7 +2,7 @@ x = 42
 
 a = 12
 
-y = polyglotEval("c", "/code/src/livefromdap/runner/test2.c")
+y = polyglotEval("js", "/code/tests/polyglot_tests/test2.js")
 
 z = a + x
 
