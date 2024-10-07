@@ -271,6 +271,22 @@ class BaseDebugAgent(DAPAgent):
         }
         self.io.write_json(step_request)
 
+    def step_in(self, thread_id: int = 1):
+        """Send the stepIn request to the debuggee
+
+        Args:
+            thread_id (int, optional): Defaults to 1.
+        """
+        step_request = {
+            "seq": self.new_seq(),
+            "type": "request",
+            "command": "stepIn",
+            "arguments": {
+                "threadId": thread_id
+            }
+        }
+        self.io.write_json(step_request)
+
     def step_out(self, thread_id: int = 1):
         """Send the stepOut request to the debuggee
 

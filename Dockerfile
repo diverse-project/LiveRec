@@ -21,3 +21,4 @@ RUN ./install.sh
 
 COPY LiveFromDAP/. .
 WORKDIR /code
+ENTRYPOINT [ "python", "src/main.py" ]

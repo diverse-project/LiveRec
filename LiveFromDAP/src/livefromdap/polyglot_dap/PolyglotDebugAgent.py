@@ -25,6 +25,10 @@ class PolyglotDebugAgent(BaseDebugAgent):
         self.call_stack: list[BaseDebugAgent] = []
         # self.debug = True
         # self.time_since = time.time()
+        
+
+    def set_debug_mode(self, dbg: bool):
+        self.debug = dbg
         for agent in self.debuggers.values():
             agent.debug = self.debug
 
@@ -74,6 +78,7 @@ class PolyglotDebugAgent(BaseDebugAgent):
 
     @override
     def get_stackframes(self, thread_id: int = 1, levels: int = 100) -> list:
+        print("stackframe")
         return self.active_dap.get_stackframes(self._handle_thread_id(thread_id), levels)
 
     def _handle_thread_id(self, thread_id: int = 1) -> int:
@@ -84,10 +89,12 @@ class PolyglotDebugAgent(BaseDebugAgent):
 
     @override
     def get_scopes(self, frame_id: int) -> list:
+        print("scopes")
         return self.active_dap.get_scopes(frame_id)
 
     @override
     def get_variables(self, scope_id: int) -> list:
+        print("variables")
         return self.active_dap.get_variables(scope_id)
 
     @override
@@ -143,17 +150,26 @@ class PolyglotDebugAgent(BaseDebugAgent):
         # print("\033[31m" + "Continuing" + '\033[0m')
         self.active_dap.next_breakpoint(self._handle_thread_id(thread_id))
         self._handle_polyglot()
+        return "stopped breakpoint"
         
 
     @override
     def step(self, thread_id: int = 1):
         self.active_dap.step(self._handle_thread_id(thread_id))
         self._handle_polyglot()
+        return "stopped step"
+    
+    @override
+    def step_in(self, thread_id: int = 1):
+        self.active_dap.step_in(self._handle_thread_id(thread_id))
+        self._handle_polyglot()
+        return "stopped step"
 
     @override
     def step_out(self, thread_id: int = 1):
         self.active_dap.step_out(self._handle_thread_id(thread_id))
         self._handle_polyglot()
+        return "stopped step"
 
     def execute(self, filePath):
         pass
