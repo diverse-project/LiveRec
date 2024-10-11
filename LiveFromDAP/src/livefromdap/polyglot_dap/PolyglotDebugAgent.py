@@ -28,10 +28,13 @@ class PolyglotDebugAgent(BaseDebugAgent):
         # self.time_since = time.time()
         
 
-    def set_debug_mode(self, dbg: bool):
-        self.debug = dbg
-        for agent in self.debuggers.values():
-            agent.debug = self.debug
+    def set_debug_mode(self, dbg: bool, target:str = ""):
+        if target == "":
+            self.debug = dbg
+            for agent in self.debuggers.values():
+                agent.debug = self.debug
+        else:
+            self.debuggers[target].debug = dbg
 
     def start_server(self):
         """Create a subprocess with the agent"""
@@ -144,7 +147,6 @@ class PolyglotDebugAgent(BaseDebugAgent):
                 # print("Polyglot return receive time:", end - start)
                 self.active_dap.next_breakpoint(self._handle_thread_id())
             else:
-                # print(3)
                 break
 
     def _convert_data(self, origin, target, data):
