@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import time
+import re
 from typing import Any, override
 
 from livefromdap.polyglot_dap.JavascriptDebugAgent import JavascriptDebugAgent
@@ -132,8 +133,10 @@ class PolyglotDebugAgent(BaseDebugAgent):
                 # start = time.time()
                 return_value = self.active_dap.get_return()
                 self.active_dap.next_breakpoint(self._handle_thread_id())
+                old_dap = self.active_dap
                 try:
                     self.active_dap = self.call_stack.pop()
+                    return_value = self._convert_data(old_dap, self.active_dap, return_value)
                 except IndexError:
                     break
                 self.active_dap.receive_return(return_value)
@@ -143,6 +146,16 @@ class PolyglotDebugAgent(BaseDebugAgent):
             else:
                 # print(3)
                 break
+
+    def _convert_data(self, origin, target, data):
+        if isinstance(origin, JavascriptDebugAgent) and isinstance(target, PythonDebugAgent):
+            array_parse = re.fullmatch(r"\([0-9]*\) (\[([0-9]+, )*[0-9]+\])", data)
+            if array_parse is not None:
+                arr = array_parse.group(1)
+                # print("Successfully converted JS array to Python array: ", arr)
+                return arr
+        return data
+
 
 
     @override
