@@ -269,6 +269,8 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         }
         self.io.write_json(variables_request)
         output = self.wait("response", command="variables")
+        if "body" not in output:
+            return None
         return output["body"]["variables"]
 
     def evaluate(self, expression : str, frame_id : int, context : str = "repl") -> dict:
@@ -322,4 +324,67 @@ class BaseLiveAgent(BaseLiveAgentInterface):
             if output["type"] == "event" and output["event"] == "terminated":
                 raise DebuggeeTerminatedError()
 
-    
+    def step_in(self, thread_id: int = 1, target_id: int | None = None):
+        """Send the stepIn request to the debuggee
+
+        Args:
+            thread_id (int, optional): Thread ID to step into. Defaults to 1.
+            target_id (int, optional): Specific target ID to step into. If provided, 
+                                     will step into that specific target. Defaults to None.
+        """
+        step_request = {
+            "seq": self.new_seq(),
+            "type": "request",
+            "command": "stepIn",
+            "arguments": {
+                "threadId": thread_id
+            }
+        }
+        if target_id is not None:
+            step_request["arguments"]["targetId"] = target_id
+        self.io.write_json(step_request)
+
+    def set_variable(self, variable_reference: int, name: str, value: str) -> dict:
+        """Set a new value for the specified variable
+
+        Args:
+            variable_reference (int): Reference ID for the variable's container (scope or variable)
+            name (str): Name of the variable to set
+            value (str): New value to set for the variable
+
+        Returns:
+            dict: Response from the debugger containing the updated variable information
+        """
+        set_variable_request = {
+            "seq": self.new_seq(),
+            "type": "request", 
+            "command": "setVariable",
+            "arguments": {
+                "variablesReference": variable_reference,
+                "name": name,
+                "value": value
+            }
+        }
+        self.io.write_json(set_variable_request)
+        return self.wait("response", command="setVariable")
+
+    def get_step_in_targets(self, frame_id: int) -> list:
+        """Get possible step-in targets for the given stack frame
+
+        Args:
+            frame_id (int): ID of the stack frame to get step-in targets for
+
+        Returns:
+            list: List of possible step-in targets, each containing target info like id and label
+        """
+        step_targets_request = {
+            "seq": self.new_seq(),
+            "type": "request",
+            "command": "stepInTargets",
+            "arguments": {
+                "frameId": frame_id
+            }
+        }
+        self.io.write_json(step_targets_request)
+        response = self.wait("response", command="stepInTargets")
+        return response["body"]["targets"]

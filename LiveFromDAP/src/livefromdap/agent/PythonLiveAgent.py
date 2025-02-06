@@ -121,12 +121,16 @@ class PythonLiveAgent(BaseLiveAgent):
         self.evaluate(f"set_method('{method}',[{','.join(args)}])", frameId)
         # We need to run the debug agent loop until we are on a breakpoint in the target method
         stackrecording = StackRecording()
+        i = 0
         while True:
             stacktrace = self.get_stackframes()
             if stacktrace[0]["name"] == method:
                 break
             self.next_breakpoint()
             self.wait("event", "stopped")
+            i += 1
+            if i > 10: # Maybe code was not loaded
+                return "Interrupted", stackrecording
         # We are now in the function, we need to get all information, step, and check if we are still in the function
         scope = None
         initial_height = None
@@ -153,9 +157,12 @@ class PythonLiveAgent(BaseLiveAgent):
                 self.initialize()
                 return "Interrupted", stackrecording
             self.step()
+        print("out of func")
         # We are now out of the function, we need to get the return value
         scope = self.get_scopes(stacktrace[0]["id"])[0]
         variables = self.get_variables(scope["variablesReference"])
+        if variables is None:
+            return None, stackrecording
         return_value = None
         for variable in variables:
             if variable["name"] == f'(return) {method}':

@@ -15,9 +15,12 @@ def set_method(import_methodp, method_argsp):
 if "__main__" in __name__:
     while True:
         if import_file is not None:
-            with open(import_file, "rb") as source_file:
-                code = compile(source_file.read(), import_file, "exec")
-            exec(code)
+            try:
+                with open(import_file, "rb") as source_file:
+                    code = compile(source_file.read(), import_file, "exec")
+                exec(code)
+            except Exception as e:
+                pass
             import_file = None     
         if method_name is not None and method_args is not None:
             try:

@@ -214,7 +214,7 @@ class AutoPythonLiveAgent(AutoLiveAgent):
     
     def __init__(self, raw=False):
         self.raw = raw
-        self.agent = PythonLiveAgent(debug=False)
+        self.agent = PythonLiveAgent(debug=True)
         self.agent.start_server()
         self.agent.initialize()
         self.source_path = os.path.abspath("src/webdemo/tmp/tmp.py")
@@ -367,6 +367,10 @@ class AutoJavaJDILiveAgent(AutoLiveAgent):
             stdout=subprocess.PIPE, 
             stderr=subprocess.STDOUT,
             shell=True)
+        # Ensure the agent is initialized correctly
+        if self.agent is None or self.agent.stdout is None or self.agent.stdin is None:
+            raise RuntimeError("Failed to start the Java agent subprocess.")
+        
         # read the first line
         init = self.agent.stdout.readline()
         print(init)
@@ -421,9 +425,9 @@ class AutoJavaJDILiveAgent(AutoLiveAgent):
                 }
             payload_str = json.dumps(payload) + "\n"
             print(payload_str)
-            self.agent.stdin.write(payload_str.encode("utf8"))
-            self.agent.stdin.flush()
-            line = self.agent.stdout.readline()
+            self.agent.stdin.write(payload_str.encode("utf8")) # type: ignore
+            self.agent.stdin.flush() # type: ignore
+            line = self.agent.stdout.readline() # type: ignore
 
         return changed
         
@@ -451,9 +455,9 @@ class AutoJavaJDILiveAgent(AutoLiveAgent):
             }
         payload_str = json.dumps(payload) + "\n"
         print(payload_str)
-        self.agent.stdin.write(payload_str.encode("utf8"))
-        self.agent.stdin.flush()
-        line = self.agent.stdout.readline()
+        self.agent.stdin.write(payload_str.encode("utf8")) # type: ignore
+        self.agent.stdin.flush() # type: ignore
+        line = self.agent.stdout.readline() # type: ignore
         response = json.loads(line.strip())
         print(response)
         return json.dumps({

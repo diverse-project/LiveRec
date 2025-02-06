@@ -3,7 +3,7 @@ import re
 from threading import Thread
 import time
 import uuid
-from flask import Flask, render_template, request
+from flask import Flask, jsonify, render_template, request
 from flask_socketio import SocketIO, join_room, send
 from webdemo.AutoAgent import AutoCLiveAgent, AutoJavaLiveAgent, AutoPythonLiveAgent, AutoJavascriptLiveAgent, AutoJavaJDILiveAgent
 
@@ -77,6 +77,7 @@ class Session():
         self.thread = None
         self.launch()
         self.is_launched = True
+        self.current_execution = None
 
     def launch(self):
         self.thread = Thread(target=self.event_loop, daemon=True)
@@ -98,11 +99,15 @@ class Session():
 
     
     def handle_request(self, request):
+        print("got request")
         if request["event"] == "codeChange":
             session_id = request["session_id"]
             code = clean_code(request["code"], self.language)
             
-            exec_req = extract_exec_request(request["code"], self.language)
+            if self.current_execution is not None:
+                exec_req = self.current_execution
+            else:
+                exec_req = extract_exec_request(request["code"], self.language)
 
             if exec_req is not None:
                 changed = self.agent.update_code(code)
@@ -123,6 +128,13 @@ class Session():
         elif request["event"] == "initialize":
             session_id = request["session_id"]
             self.send_status("agent_up", session_id=session_id)
+
+        elif request["event"] == "setExecution":
+            session_id = request["session_id"]
+            method = request["functionName"]
+            args = request["args"]
+            self.current_execution = (method, args)
+            self.send_status("executionSet", session_id=session_id)
 
     def send(self, data, **kwargs):
         self.socketio.send(data, to=self.room, **kwargs)
@@ -146,6 +158,15 @@ def dap(language):
     session_id = str(uuid.uuid4())
     sessions[session_id] = Session(session_id, socketio, language, raw=False)
     return render_template('dap.html', language=language, session_id=session_id)
+
+@app.route('/direct/<language>')
+def direct(language):
+    session_id = str(uuid.uuid4())
+    sessions[session_id] = Session(session_id, socketio, language, raw=False)
+    return jsonify({
+        'session_id': session_id,
+        'socket_url': request.host_url,
+    })
 
 # Start the agent with a language parameter
 @app.route('/stack/<language>')
@@ -175,7 +196,7 @@ def on_join(data):
     language = data.get("language")
     join_room(session_id)
     if not session_id in sessions:
-        if "stack" in request.referrer:
+        if request.referrer is None or "stack" in request.referrer:
             sessions[session_id] = Session(session_id, socketio, language, raw=True)
         else:
             sessions[session_id] = Session(session_id, socketio, language, raw=False)
@@ -184,13 +205,15 @@ def on_join(data):
 
 @socketio.on('json')
 def handle_json(json_msg):
+    print(json_msg)
     session_id = json_msg.get("session_id")
     if session_id is None or session_id not in sessions or (session_id in sessions and sessions[session_id].is_launched is False):
         req = {
             "event": "status",
             "status": "launching"
         }
-        send(req, json=True)
+        print("notlaunched")
+        send(req, json=True) # type: ignore
         return
     sessions[session_id].queue.put(json_msg)
     

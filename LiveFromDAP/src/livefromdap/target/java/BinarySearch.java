@@ -1,7 +1,7 @@
 public class BinarySearch {
     public static int binarySearch(char[] array, char key) throws InterruptedException {
-        int low = 0;
-        int high = array.length - 1;
+        int low = 1;
+        int high = array.length - 2;
         while (low <= high) {
             int mid = (low + high) / 2;
             char value = array[mid];
