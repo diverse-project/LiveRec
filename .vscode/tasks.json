@@ -1,0 +1,54 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "npm",
+            "script": "watch",
+            "problemMatcher": "$tsc-watch",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "never"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/vscode"
+            }
+        },
+        {
+            "type": "npm",
+            "script": "build",
+            "problemMatcher": "$tsc",
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/vscode"
+            }
+        },
+        {
+            "label": "Run LiveRec Web Server",
+            "type": "shell",
+            "command": "python3 LiveFromDAP/src/webdemo/main.py",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always"
+            }
+        },
+        {
+            "label": "Run Web Server",
+            "type": "shell",
+            "command": "python3 testmonitoringpy/app.py",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always"
+            }
+        }
+    ]
+} 

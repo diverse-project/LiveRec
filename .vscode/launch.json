@@ -1,0 +1,36 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Extension",
+            "type": "extensionHost",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/vscode",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/vscode"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/vscode/out/**/*.js"
+            ],
+            "preLaunchTask": "npm: watch",
+        },
+        {
+            "name": "Python Web Server LiveRec",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "python3",
+            "program": "${workspaceFolder}/LiveFromDAP/src/webdemo/main.py",
+            "cwd": "${workspaceFolder}/LiveFromDAP/src/webdemo",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python Web Server TestMonitoring",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "python3",
+            "program": "${workspaceFolder}/testmonitoringpy/app.py",
+            "cwd": "${workspaceFolder}/testmonitoringpy",
+            "console": "integratedTerminal"
+        }
+    ]
+} 
