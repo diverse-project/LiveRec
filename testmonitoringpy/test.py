@@ -29,4 +29,5 @@ def test(v, tt):
 def add(x,y):
     return x+y+2
 
-test(4, tt2)
+add(1,4)
+add(3,4)
