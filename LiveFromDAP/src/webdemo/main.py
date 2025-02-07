@@ -1,3 +1,4 @@
+import json
 from queue import Queue
 import re
 from threading import Thread
@@ -114,7 +115,11 @@ class Session():
                 self.send_status("codeChange", session_id=session_id)
                 if changed or exec_req != self.last_execution_line:
                     try:
-                        result = self.agent.execute(*exec_req)
+                        if self.current_execution is not None:
+                            print("Executing from memory", exec_req)
+                            result = self.agent.execute_from_memory(*exec_req) # type: ignore
+                        else:
+                            result = self.agent.execute(*exec_req)
                         self.send({
                             "event": "executeOutput",
                             "output": result,
@@ -129,12 +134,19 @@ class Session():
             session_id = request["session_id"]
             self.send_status("agent_up", session_id=session_id)
 
-        elif request["event"] == "setExecution":
+        elif request["event"] == "selectExecution":
             session_id = request["session_id"]
             method = request["functionName"]
             args = request["args"]
+            print("Super args", method, args, type(args))
             self.current_execution = (method, args)
             self.send_status("executionSet", session_id=session_id)
+            result = self.agent.execute_from_memory(method, args) # type: ignore
+            self.send({
+                "event": "executeOutput",
+                "output": result,
+            }, json=True)
+            self.last_execution_line = (method, args)
 
     def send(self, data, **kwargs):
         self.socketio.send(data, to=self.room, **kwargs)

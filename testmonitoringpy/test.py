@@ -25,9 +25,6 @@ def test(v, tt):
     print(tt.useless2(2))
     return v
 
-#@add(1,4)
-def add(x,y):
-    return x+y+2
 
-add(1,4)
-add(3,4)
+def add(x,y):
+    return x+y+20

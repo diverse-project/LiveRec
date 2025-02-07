@@ -54,7 +54,7 @@ export function activate(context: vscode.ExtensionContext) {
     let serverReady = true;
     let lastExecution: any = null;
 
-    console.log("Starting exte");
+    console.log("Starting exte2");
 
     async function initSession(filePath: string): Promise<string> {
         console.log(`Initializing session for file: ${filePath}`);
@@ -380,13 +380,20 @@ export function activate(context: vscode.ExtensionContext) {
             
             const items = response.data.map((exec: any) => ({
                 label: exec.functionName,
-                description: `Args: ${exec.args.join(', ')}; Return: ${exec.return}`,
-            } as vscode.QuickPickItem & { executionId: string }));
+                description: `Args: ${exec.args.join(', ')}; Return: ${exec.return}`
+            }));
 
             const selected = await vscode.window.showQuickPick(items);
+            console.log(selected, typeof selected);
             if (selected) {
+                socket?.emit('json', {
+                    session_id: currentSession?.sessionId,
+                    event: 'selectExecution',
+                    functionName: "selected.label",
+                    args: "selected.description"
+                });
                 // Now TypeScript knows selected is a QuickPickItem with executionId
-                vscode.window.showInformationMessage(`Selected execution: ${selected}`);
+                vscode.window.showInformationMessage(`Selected execution: ${selected}, ${typeof selected}`);
             }
         } catch (error) {
             vscode.window.showErrorMessage('Error fetching executions');
@@ -423,17 +430,23 @@ export function activate(context: vscode.ExtensionContext) {
                     label: `Args: ${Object.entries(exec.args).map(([k, v]) => `${k}=${v}`).join(', ')}`,
                     description: `Return: ${exec.return}`,
                     detail: `Called at ${new Date(exec.timestamp).toLocaleString()}, ${exec.exec_time}s`,
-                    executionId: exec.id
+                    functionName: exec.functionName,
+                    args: exec.args
                 }));
 
                 const selected = await vscode.window.showQuickPick(items, {
                     placeHolder: `Select execution of ${functionName} to inspect`
                 });
 
-                
                 if (selected) {
-                    // Handle selected execution (could show details in webview)
-                    vscode.window.showInformationMessage(`Selected execution: ${selected}`);
+                    // Now we can access the QuickPickItem properties
+                    socket?.emit('json', {
+                        session_id: currentSession?.sessionId,
+                        event: 'selectExecution',
+                        functionName: selected.functionName,
+                        args: JSON.stringify(selected.args)
+                    });
+                    vscode.window.showInformationMessage(`Selected execution ${selected.functionName}`);
                 }
             } catch (error) {
                 vscode.window.showErrorMessage('Error fetching executions');
