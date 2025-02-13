@@ -15,8 +15,6 @@ RUN pip install -r requirements.txt
 RUN pip install -e .
 
 COPY LiveFromDAP/install.sh install.sh
-RUN pacman -Syu --noconfirm dos2unix
-RUN dos2unix install.sh install.sh
 RUN ./install.sh
 
 COPY LiveFromDAP/. .
