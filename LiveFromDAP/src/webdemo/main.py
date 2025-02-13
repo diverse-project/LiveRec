@@ -6,14 +6,14 @@ import time
 import uuid
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, join_room, send
-from webdemo.AutoAgent import AutoCLiveAgent, AutoExecutionAgent, AutoJavaLiveAgent, AutoPyJSDynamicAgent, \
-    AutoPythonLiveAgent, AutoJavascriptLiveAgent, AutoJavaJDILiveAgent, AutoPyJSAgent
+from webdemo.AutoAgent import AutoCLiveAgent, AutoExecutionAgent, AutoJavaLiveAgent, AutoPyJSDynamicAgent, AutoPythonLiveAgent, AutoJavascriptLiveAgent, AutoJavaJDILiveAgent, AutoPyJSAgent, AutoGoAgent
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 sessions = {}
-
+currentInputs = None
 sessions_to_sid = {}
 
 
@@ -30,6 +30,8 @@ def create_agent(language, raw=False):
         return AutoPyJSDynamicAgent(raw=raw)
     elif language == "pexec":
         return AutoExecutionAgent(raw=raw)
+    elif language == "go":
+        return AutoGoAgent(raw=raw)
     else:
         raise NotImplementedError()  # TODO implement other languages
 
@@ -37,7 +39,7 @@ def create_agent(language, raw=False):
 def get_language_prefix(language):
     if language == "python" or language == "pyjs":
         return "#@"
-    elif language == "java":
+    elif language == "java" or language == "go":
         return "//@"
     elif language == "c":
         return "//@"
@@ -111,21 +113,38 @@ class Session():
             self.queue.task_done()
 
     def handle_request(self, request):
+        global currentInputs
+
         if request["event"] == "codeChange" or request["event"] == "addSlider":
             session_id = request["session_id"]
             code = clean_code(request["code"], self.language)
 
             exec_req = extract_exec_request(request["code"], self.language)
+            result = ""
+
             if exec_req is not None:
+
                 changed = self.agent.update_code(code)
+
+                if currentInputs != request["outputSelected"]:
+                    currentInputs = request["outputSelected"]
+                    changed = True
+
                 self.send_status("codeChange", session_id=session_id)
+
                 if changed or exec_req != self.last_execution_line or request["event"] == "addSlider":
                     try:
-                        result = ""
                         for req in exec_req:
-                            result += self.agent.execute(*req)
-                            if request["event"] == "addSlider":
-                                self.count_iterations(request["lineNumber"], result)
+                            if currentInputs:
+                                if req[0] in currentInputs.keys() and currentInputs.get(req[0]) == req[1]:
+                                    if not result:
+                                        result += self.agent.execute(*req)
+                                    else:
+                                        second = self.agent.execute(*req)
+                                        result = superpose_strings(result, second)
+                                    if request["event"] == "addSlider":
+                                        self.count_iterations(request["lineNumber"], result)
+
                         self.send({
                             "event": "executeOutput",
                             "output": result,
@@ -240,6 +259,21 @@ def run():
     os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
     socketio.run(app)
 
+#helper
+def superpose_strings(first, second):
+    # Convert strings to lists to modify characters
+    first_list = first.split('\n')
+    second_list = second.split('\n')
+
+    # Iterate over the characters of both strings
+    for i in range(min(len(first_list), len(second_list))):
+        if second_list[i]:
+            first_list[i] = second_list[i] + '\n'
+        else:
+            first_list[i] = first_list[i] + '\n'
+
+    # Join the list back into a string
+    return ''.join(first_list)
 
 if __name__ == '__main__':
     run()

@@ -30,6 +30,7 @@ if [ ! -d "src/livefromdap/bin/jdt-language-server" ]; then
 else
     echo "JDT LS already installed."
 fi
+
 # Java Debug
 echo "[Java Debug] Checking for Java debug server..."
 if [ ! -f "src/livefromdap/bin/com.microsoft.java.debug.plugin.jar" ]; then
@@ -152,8 +153,14 @@ else
     echo "Js DAP already installed."
 fi
 
-
-
+# Go Debug
+echo "[Go Debug] Checking for Go debug server..."
+    echo "Installing Delve..."
+    cd src/livefromdap/bin
+    git clone https://github.com/go-delve/delve
+    cd delve
+    go install github.com/go-delve/delve/cmd/dlv
+    cd ../../../..
 
 # Tree sitter
 echo "[Tree sitter] Checking for tree sitters ..."
@@ -166,14 +173,17 @@ if [ ! -d "src/livefromdap/bin/treesitter" ]; then
     git clone https://github.com/tree-sitter/tree-sitter-python
     git clone https://github.com/tree-sitter/tree-sitter-java
     git clone https://github.com/tree-sitter/tree-sitter-c
+    git clone https://github.com/tree-sitter/tree-sitter-go
     python -c "from tree_sitter import Language;Language.build_library('javascript.so', ['tree-sitter-javascript'])"
     python -c "from tree_sitter import Language;Language.build_library('python.so', ['tree-sitter-python'])"
     python -c "from tree_sitter import Language;Language.build_library('java.so', ['tree-sitter-java'])"
     python -c "from tree_sitter import Language;Language.build_library('c.so', ['tree-sitter-c'])"
+    python -c "from tree_sitter import Language;Language.build_library('go.so', ['tree-sitter-go'])"
     rm -rf tree-sitter-javascript
     rm -rf tree-sitter-python
     rm -rf tree-sitter-java
     rm -rf tree-sitter-c
+    rm -rf tree-sitter-go
     cd ../../../..
 else
     echo "Js tree sitter already installed."

@@ -15,6 +15,10 @@ if (language=="python" || language=="pyjs"){
         version: 3,
         singleLineStringErrors: false};
 }
+if(language=="go"){
+    console.log(language);
+    CodeMirror_mode = "text/x-go";
+}
 
 var editor = CodeMirror.fromTextArea(editorArea, {
     lineNumbers: true,
@@ -91,7 +95,8 @@ function sendCode() {
         event: 'codeChange',
         session_id: session_id,
         language: language,
-        code: code
+        code: code,
+        outputSelected: outputSelected
     };
     socket.emit('json', json);
 }
@@ -127,6 +132,73 @@ editor.on('mousedown', function(instance, event) {
     }
 });
 
+var highlightedLines = {};
+var outputSelected = {};
+
+editor.on('mousedown', function(instance, event) {
+    const lineNumber = editor.coordsChar({left: event.clientX, top: event.clientY}).line;
+    const lineContent = editor.getLine(lineNumber).trim();
+
+    if (lineContent.startsWith("#@")) {
+        const func = lineContent.replace(/^#@\s*/, '').replace(/\s*\(.*\)$/, '');
+        const argsStr = lineContent.split('(')[1].slice(0, -1);
+        const args = argsStr.match(/(?:[^,(){}[\]]+|\([^)]*\)|\{[^}]*\}|\[[^\]]*\])+/g) || [];
+
+        // Check if we are within the same function
+        if (highlightedLines[func] !== undefined && highlightedLines[func] !== lineContent) {
+            // Clear previous highlights for the current function
+            clearMarkersByLineContent(highlightedLines[func]);
+        }
+        // Update the highlighted line for the function
+        highlightedLines[func] = lineContent;
+        outputSelected[func] = args;
+
+        // Highlight the selected line
+        editor.markText(
+            { line: lineNumber, ch: 0 },
+            { line: lineNumber, ch: lineContent.length },
+            { className: 'highlight-line' }
+        );
+        sendCode();
+    } else if (lineContent.startsWith("//@")) {
+        const func = lineContent.replace(/^\/\/@\s*/, '').replace(/\s*\(.*\)$/, '');
+        const argsStr = lineContent.split('(')[1].slice(0, -1);
+        const args = argsStr.match(/(?:[^,(){}[\]]+|\([^)]*\)|\{[^}]*\}|\[[^\]]*\])+/g) || [];
+
+        // Check if we are within the same function
+        if (highlightedLines[func] !== undefined && highlightedLines[func] !== lineContent) {
+            // Clear previous highlights for the current function
+            clearMarkersByLineContent(highlightedLines[func]);
+        }
+        // Update the highlighted line for the function
+        highlightedLines[func] = lineContent;
+        outputSelected[func] = args;
+
+        // Highlight the selected line
+        editor.markText(
+            { line: lineNumber, ch: 0 },
+            { line: lineNumber, ch: lineContent.length },
+            { className: 'highlight-line' }
+        );
+        sendCode();
+    }
+});
+
+function clearMarkersByLineContent(lineContent) {
+    const lines = editor.lineCount();
+    for (let i = 0; i < lines; i++) {
+        const line = editor.getLine(i);
+        if (line.trim().startsWith(lineContent)) {
+            var marks = editor.findMarks(
+                { line: i, ch: 0 },
+                { line: i, ch: line.length }
+            );
+            marks.forEach(function(mark) {
+                mark.clear();
+            });
+        }
+    }
+}
 // send code on evry change
 editor.on('change', function() {
     sendCode();
