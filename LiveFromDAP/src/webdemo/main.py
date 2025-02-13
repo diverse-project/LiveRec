@@ -1,3 +1,4 @@
+import json
 from queue import Queue
 import re
 from threading import Thread
@@ -7,12 +8,14 @@ from flask import Flask, render_template, request
 from flask_socketio import SocketIO, join_room, send
 from webdemo.AutoAgent import AutoCLiveAgent, AutoExecutionAgent, AutoJavaLiveAgent, AutoPyJSDynamicAgent, AutoPythonLiveAgent, AutoJavascriptLiveAgent, AutoJavaJDILiveAgent, AutoPyJSAgent, AutoGoAgent
 
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 sessions = {}
 currentInputs = None
 sessions_to_sid = {}
+
 
 def create_agent(language, raw=False):
     if language == "c":
@@ -30,7 +33,8 @@ def create_agent(language, raw=False):
     elif language == "go":
         return AutoGoAgent(raw=raw)
     else:
-        raise NotImplementedError() # TODO implement other languages
+        raise NotImplementedError()  # TODO implement other languages
+
 
 def get_language_prefix(language):
     if language == "python" or language == "pyjs":
@@ -44,9 +48,11 @@ def get_language_prefix(language):
     else:
         raise NotImplementedError()
 
+
 def clean_code(code, language="python"):
     prefix = get_language_prefix(language)
-    return "\n".join(["" if line.strip().startswith(prefix) else line for line in code.split("\n") ])
+    return "\n".join(["" if line.strip().startswith(prefix) else line for line in code.split("\n")])
+
 
 def extract_exec_request(code, language="python"):
     result = []
@@ -66,12 +72,13 @@ def extract_exec_request(code, language="python"):
         return None
     return result
 
+
 class Session():
     """A session is a unique identifier for a user. 
     It host the auto agent and the code of the user
     It has a queue of requests to execute and a thread that executes them
     """
-    
+
     is_launched = False
 
     def __init__(self, room, socketio, language, raw=False):
@@ -105,13 +112,13 @@ class Session():
             # Notify the queue that the request is done
             self.queue.task_done()
 
-    
     def handle_request(self, request):
         global currentInputs
 
-        if request["event"] == "codeChange":
+        if request["event"] == "codeChange" or request["event"] == "addSlider":
             session_id = request["session_id"]
             code = clean_code(request["code"], self.language)
+
             exec_req = extract_exec_request(request["code"], self.language)
             result = ""
 
@@ -125,7 +132,7 @@ class Session():
 
                 self.send_status("codeChange", session_id=session_id)
 
-                if changed or exec_req != self.last_execution_line:
+                if changed or exec_req != self.last_execution_line or request["event"] == "addSlider":
                     try:
                         for req in exec_req:
                             if currentInputs:
@@ -135,6 +142,8 @@ class Session():
                                     else:
                                         second = self.agent.execute(*req)
                                         result = superpose_strings(result, second)
+                                    if request["event"] == "addSlider":
+                                        self.count_iterations(request["lineNumber"], result)
 
                         self.send({
                             "event": "executeOutput",
@@ -160,10 +169,28 @@ class Session():
             **kwargs
         }
         self.send(req, json=True)
-        
+
+    def count_iterations(self, line_number, result):
+        first_occurrence = None
+        last_occurrence = None
+        result = json.loads(result)
+        for i in range(0, len(result['stacktrace'])):
+            if result["stacktrace"][i]["pos"]["line"] == line_number+1:
+                if first_occurrence is None:
+                    first_occurrence = i
+                last_occurrence = i
+        self.send({
+            "event": "addSlider",
+            "lineNumber": line_number,
+            "start": first_occurrence,
+            "end": last_occurrence,
+            "length": last_occurrence - first_occurrence
+        }, json=True)
+
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 # Start the agent with a language parameter
 @app.route('/dap/<language>')
@@ -173,6 +200,7 @@ def dap(language):
     sessions[session_id] = Session(session_id, socketio, language, raw=False)
     return render_template('dap.html', language=language, session_id=session_id)
 
+
 # Start the agent with a language parameter
 @app.route('/stack/<language>')
 def stack(language):
@@ -181,6 +209,7 @@ def stack(language):
     sessions[session_id] = Session(session_id, socketio, language, raw=True)
     return render_template('stackexplorer.html', language=language, session_id=session_id)
 
+
 @app.route('/stack2/<language>')
 def stackt(language):
     # create a unique session id
@@ -188,16 +217,18 @@ def stackt(language):
     sessions[session_id] = Session(session_id, socketio, language, raw=True)
     return render_template('stackexplorer2.html', language=language, session_id=session_id)
 
+
 @socketio.on('disconnect')
 def on_disconnect():
-    if request.sid in sessions_to_sid and (session_id:=sessions_to_sid[request.sid]) in sessions: # type: ignore
+    if request.sid in sessions_to_sid and (session_id := sessions_to_sid[request.sid]) in sessions:  # type: ignore
         sessions[session_id].agent.agent.stop_server()
         del sessions[session_id]
+
 
 @socketio.on('join')
 def on_join(data):
     session_id = data.get("session_id")
-    sessions_to_sid[request.sid] = session_id # type: ignore
+    sessions_to_sid[request.sid] = session_id  # type: ignore
     language = data.get("language")
     join_room(session_id)
     if not session_id in sessions:
@@ -211,7 +242,8 @@ def on_join(data):
 @socketio.on('json')
 def handle_json(json_msg):
     session_id = json_msg.get("session_id")
-    if session_id is None or session_id not in sessions or (session_id in sessions and sessions[session_id].is_launched is False):
+    if session_id is None or session_id not in sessions or (
+            session_id in sessions and sessions[session_id].is_launched is False):
         req = {
             "event": "status",
             "status": "launching"
@@ -219,7 +251,8 @@ def handle_json(json_msg):
         send(req, json=True)
         return
     sessions[session_id].queue.put(json_msg)
-    
+
+
 def run():
     # move the current path to this file's path
     import os

@@ -34,12 +34,19 @@ var send_code_sent = 0;
 
 
 socket.on('json', function(msg) {
+
     if (msg.event == 'codeChange') {
         editor.setValue(msg.code);
         return;
     }
     if (msg.event == 'executeOutput') {
         handle_executeOutput(msg);
+        document.getElementById("execution-spinner").style.display = "none";
+        return;
+    }
+    if(msg.event == "addSlider"){
+        addSlider(msg.lineNumber, msg.length, msg.start, msg.end);
+        document.getElementById("execution-spinner").style.display = "none";
         return;
     }
     if (msg.event == 'status') {
@@ -97,6 +104,33 @@ function sendCode() {
 CodeMirror.commands.save = function(insance) { 
     sendCode();
 };
+
+editor.on('mousedown', function(instance, event) {
+    const lineNumber = editor.coordsChar({left: event.clientX, top: event.clientY}).line;
+    const lineContent = editor.getLine(lineNumber);
+    const lineTrim = lineContent.trim();
+
+    if (!lineTrim.startsWith("#@")) {
+        if(lineTrim.startsWith("for")){
+            document.getElementById("execution-spinner").style.display = "block";
+            const json = {
+                event: 'addSlider',
+                session_id: session_id,
+                language: language,
+                code: editor.getValue(),
+                lineNumber: lineNumber
+            };
+            socket.emit('json', json);
+            displayStackByLine(lineNumber+1);
+        }else {
+            slider = document.getElementById("slider");
+            if (slider != undefined) {
+                slider.remove();
+            }
+            displayStackByLine(lineNumber+1);
+        }
+    }
+});
 
 var highlightedLines = {};
 var outputSelected = {};
@@ -165,7 +199,6 @@ function clearMarkersByLineContent(lineContent) {
         }
     }
 }
-
 // send code on evry change
 editor.on('change', function() {
     sendCode();
