@@ -44,14 +44,6 @@ def foo(a, b):
     for i in range(0, 5):
         t = polyglotEval("js", "x = x + 1; x")
     return a + b + t
-{% elif language == 'pexec' %}
-#@foo(1,2)
-def foo(a, b):
-    t = polyglotEval("js", "var x = 1; x")
-    x = a + t
-    for i in range(0, 5):
-        t = polyglotEval("js", "x = x + 1; x")
-    return a + b + t
 {% elif language == 'c' %}
 //@foo(1,2)
 int foo(int a, int b){

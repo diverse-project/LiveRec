@@ -6,7 +6,6 @@ import subprocess
 
 from tree_sitter import Language, Parser
 
-from livefromdap.polyglot_dap.PolyglotDebugAgent import PolyglotDebugAgent
 from livefromdap.agent.CLiveAgent import CLiveAgent
 from livefromdap.agent.JavaLiveAgent import JavaLiveAgent
 from livefromdap.agent.JavascriptLiveAgent import JavascriptLiveAgent
@@ -706,38 +705,3 @@ class AutoPyJSDynamicAgent(AutoLiveAgent):
         # Save the json result in a file
         return self.construct_result_json(method, output)
 
-
-class AutoExecutionAgent(AutoLiveAgent):
-    def __init__(self, raw=False):
-        self.raw = raw
-        self.agent = PolyglotDebugAgent()
-        self.agent.start_server()
-        self.agent.initialize()
-
-        print("oui")
-
-    def restart(self):
-        pass
-
-    def check_if_parsable(self, code):
-        pass
-
-    def update_code(self, code):
-        pass
-
-    def construct_result_json(self, method, output):
-        pass
-
-    def execute(self, method, args):
-        # print("foo", self.agent.get_stackframes()[0])
-        # self.agent.next_breakpoint()
-        # print("bar", self.agent.get_stackframes()[0])
-        self.agent.load_code("/code/src/livefromdap/runner/test.py")
-        self.agent.set_breakpoint("/code/src/livefromdap/runner/test.py", [7])
-        self.agent.set_breakpoint("/code/src/livefromdap/runner/test.js", [2])
-        self.agent.next_breakpoint()
-        print("autoagent test1:", self.agent.get_stackframes()[0])
-        # print(self.agent.evaluate("import_file", self.agent.get_stackframes()[0]["id"]))
-        self.agent.next_breakpoint()
-        print("autoagent test2:", self.agent.get_stackframes()[0])
-        return "success"
