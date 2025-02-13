@@ -65,7 +65,7 @@ class AutoCLiveAgent(AutoLiveAgent):
 
     def __init__(self, raw=False):
         self.raw = raw
-        self.agent = CLiveAgent(debug=True)
+        self.agent = CLiveAgent(debug=False)
         self.agent.start_server()
         self.agent.initialize()
         self.buzy = False
@@ -363,7 +363,7 @@ class AutoJavascriptLiveAgent(AutoLiveAgent):
 
     def __init__(self, raw=False):
         self.raw = raw
-        self.agent = JavascriptLiveAgent(debug=True)
+        self.agent = JavascriptLiveAgent(debug=False)
         self.agent.start_server()
         self.agent.initialize()
         self.source_path = os.path.abspath("src/webdemo/tmp/tmp.js")
