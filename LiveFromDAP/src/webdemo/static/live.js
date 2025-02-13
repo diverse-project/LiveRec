@@ -122,6 +122,27 @@ editor.on('mousedown', function(instance, event) {
             { className: 'highlight-line' }
         );
         sendCode();
+    } else if (lineContent.startsWith("//@")) {
+        const func = lineContent.replace(/^\/\/@\s*/, '').replace(/\s*\(.*\)$/, '');
+        const argsStr = lineContent.split('(')[1].slice(0, -1);
+        const args = argsStr.match(/(?:[^,(){}[\]]+|\([^)]*\)|\{[^}]*\}|\[[^\]]*\])+/g) || [];
+
+        // Check if we are within the same function
+        if (highlightedLines[func] !== undefined && highlightedLines[func] !== lineContent) {
+            // Clear previous highlights for the current function
+            clearMarkersByLineContent(highlightedLines[func]);
+        }
+        // Update the highlighted line for the function
+        highlightedLines[func] = lineContent;
+        outputSelected[func] = args;
+
+        // Highlight the selected line
+        editor.markText(
+            { line: lineNumber, ch: 0 },
+            { line: lineNumber, ch: lineContent.length },
+            { className: 'highlight-line' }
+        );
+        sendCode();
     }
 });
 
