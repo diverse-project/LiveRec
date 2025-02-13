@@ -21,7 +21,7 @@
         <div id="editor-container">
             <textarea id="editor" name="editor">
 {% if language == 'python' %}
-@foo(1,2)
+#@foo(1,2)
 #@foo(1,3)
 def foo(a, b):
     t = bar(a)
@@ -33,7 +33,7 @@ def foo(a, b):
 #@bar(1)
 def bar(x):
     r = x * 2
-return r
+    return r
 
 
 {% elif language == 'java' %}
