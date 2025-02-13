@@ -6,7 +6,7 @@ import time
 import uuid
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, join_room, send
-from webdemo.AutoAgent import AutoCLiveAgent, AutoExecutionAgent, AutoJavaLiveAgent, AutoPyJSDynamicAgent, AutoPythonLiveAgent, AutoJavascriptLiveAgent, AutoJavaJDILiveAgent, AutoPyJSAgent, AutoGoAgent
+from webdemo.AutoAgent import AutoCLiveAgent, AutoJavaLiveAgent, AutoPyJSDynamicAgent, AutoPythonLiveAgent, AutoJavascriptLiveAgent, AutoJavaJDILiveAgent, AutoPyJSAgent, AutoGoAgent
 
 
 app = Flask(__name__)
@@ -28,8 +28,6 @@ def create_agent(language, raw=False):
         return AutoJavascriptLiveAgent(raw=raw)
     elif language == "pyjs":
         return AutoPyJSDynamicAgent(raw=raw)
-    elif language == "pexec":
-        return AutoExecutionAgent(raw=raw)
     elif language == "go":
         return AutoGoAgent(raw=raw)
     else:

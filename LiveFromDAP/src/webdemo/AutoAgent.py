@@ -6,7 +6,6 @@ import subprocess
 
 from tree_sitter import Language, Parser
 
-from livefromdap.polyglot_execution.PyJSExecutionAgent import PyJSExecutionAgent
 from livefromdap.agent.CLiveAgent import CLiveAgent
 from livefromdap.agent.JavaLiveAgent import JavaLiveAgent
 from livefromdap.agent.JavascriptLiveAgent import JavascriptLiveAgent
@@ -703,23 +702,3 @@ class AutoPyJSDynamicAgent(AutoLiveAgent):
         # Save the json result in a file
         return self.construct_result_json(method, output)
 
-
-class AutoExecutionAgent(AutoLiveAgent):
-    def __init__(self, raw=False):
-        self.raw = raw
-        self.agent = PyJSExecutionAgent()
-        
-    def restart(self):
-        pass
-
-    def check_if_parsable(self, code):
-        pass
-
-    def update_code(self, code):
-        pass
-
-    def construct_result_json(self, method, output):
-        pass
-
-    def execute(self, method, args):
-        pass
