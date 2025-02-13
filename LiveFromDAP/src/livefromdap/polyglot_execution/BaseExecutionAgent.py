@@ -11,7 +11,7 @@ class DebuggeeTerminatedError(Exception):
         super().__init__("Debuggee terminated")
     
 
-class BaseLiveAgentInterface(ABC):
+class DAPManager(ABC):
     """Interface for the LiveAgent
     This class define all methods that a LiveAgent should implement"""
 
@@ -46,7 +46,7 @@ class BaseLiveAgentInterface(ABC):
         """Execute the method in the debuggee"""
         pass
     
-class BaseLiveAgent(BaseLiveAgentInterface):
+class BaseDAPManager(DAPManager):
     """Base class for the LiveAgent
     This class implements the common and utility methods for a LiveAgent
     This class should not be used directly, but should be inherited by a specific LiveAgent"""
@@ -222,22 +222,6 @@ class BaseLiveAgent(BaseLiveAgentInterface):
             "seq": self.new_seq(),
             "type": "request",
             "command": "next",
-            "arguments": {
-                "threadId": thread_id
-            }
-        }
-        self.io.write_json(step_request)
-
-    def step_in(self, thread_id : int = 1):
-        """Send the stepIn request to the debuggee
-
-        Args:
-            thread_id (int, optional): Defaults to 1.
-        """
-        step_request = {
-            "seq": self.new_seq(),
-            "type": "request",
-            "command": "stepIn",
             "arguments": {
                 "threadId": thread_id
             }
