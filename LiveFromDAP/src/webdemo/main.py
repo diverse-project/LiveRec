@@ -126,7 +126,7 @@ class Session():
 
                 changed = self.agent.update_code(code)
 
-                if currentInputs != request["outputSelected"]:
+                if (not request["event"] == "addSlider") and currentInputs != request["outputSelected"]:
                     currentInputs = request["outputSelected"]
                     changed = True
 
