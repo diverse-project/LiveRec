@@ -1,9 +1,0 @@
-sequenceDiagram
-    LiveAgent->>PY_debugger: step
-    PY_debugger-->>LiveAgent: stopped - breakpoint
-    LiveAgent->>PY_debugger: Request stackframe
-    PY_debugger-->>LiveAgent: Stackframe
-    LiveAgent->>JS_debugger: Execute code
-    JS_debugger-->>LiveAgent: Result
-    LiveAgent->>PY_debugger: Set return value
-    LiveAgent->>PY_debugger: step out
