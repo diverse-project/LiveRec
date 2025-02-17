@@ -11,7 +11,6 @@ from livefromdap.utils.StackRecording import Stackframe, StackRecording
 class GoLiveAgent(BaseLiveAgent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.debug = True
         self.compile_command = kwargs.get("compile_command", 'go build -gcflags="all=-N -l" -o {target_output} {'
                                                              'target_input}')
         self.runner_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "runner"))
