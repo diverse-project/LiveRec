@@ -110,7 +110,7 @@ editor.on('mousedown', function(instance, event) {
     const lineContent = editor.getLine(lineNumber);
     const lineTrim = lineContent.trim();
 
-    if (!lineTrim.startsWith("#@")) {
+    if (!lineTrim.startsWith("#@") && !lineTrim.startsWith("//@")) {
         if(lineTrim.startsWith("for")){
             document.getElementById("execution-spinner").style.display = "block";
             const json = {
