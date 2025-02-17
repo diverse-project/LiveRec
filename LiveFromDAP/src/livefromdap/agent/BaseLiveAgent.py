@@ -147,6 +147,51 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         }
         self.io.write_json(breakpoint_request)
 
+
+    def goto_target(self, path : str, line : int):
+        """Goto the target with the given id
+
+        Args:
+            target_id (int): id of the target to goto
+        """
+        goto_request = {
+            "seq": self.new_seq(),
+            "type": "request",
+            "command": "gotoTargets",
+            "arguments": {
+                "source": {
+                    "name": path,
+                    "path": path
+                },
+                "line": line,
+            }
+        }
+        self.io.write_json(goto_request)
+        output = self.wait("response", command="gotoTargets")
+        return output["body"]["targets"]
+    
+    def breakpoint_location(self, path : str, line : int):
+        """Get the breakpoint location for the given path and line
+
+        Args:
+            path (str): path of the source file
+            line (int): line to get the breakpoint location
+        """
+        breakpoint_location_request = {
+            "seq": self.new_seq(),
+            "type": "request",
+            "command": "breakpointLocations",
+            "arguments": {
+                "source": {
+                    "name": path,
+                    "path": path
+                },
+                "line": line
+            }
+        }
+        self.io.write_json(breakpoint_location_request)
+        return self.wait("response", command="breakpointLocations")
+
     def configuration_done(self):
         """Send the configurationDone request to the debuggee
         """
@@ -179,6 +224,7 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         }
         self.io.write_json(stackframe_request)
         output = self.wait("response", command="stackTrace")
+        #print("|".join([frame["name"]+":"+str(frame["line"]) for frame in output["body"]["stackFrames"]]))
         return output["body"]["stackFrames"]
             
     def next_breakpoint(self, thread_id : int = 1):
@@ -270,7 +316,7 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         self.io.write_json(variables_request)
         output = self.wait("response", command="variables")
         if "body" not in output:
-            return None
+            return []
         return output["body"]["variables"]
 
     def evaluate(self, expression : str, frame_id : int, context : str = "repl") -> dict:
@@ -317,6 +363,12 @@ class BaseLiveAgent(BaseLiveAgentInterface):
             if output["type"] == "request" and output["command"] == "runInTerminal":
                 if self._handleRunInTerminal(output):
                     continue
+            if output["type"] == "event" and output["event"] == "output":
+                if output["body"]["category"] == "stdout":
+                    # write the output to stdout
+                    print(output["body"]["output"], flush=True, end="")
+                elif output["body"]["category"] == "stderr":
+                    print(output["body"]["output"], flush=True, end="")
             if output["type"] == type:
                 if event == "" or output["event"] == event:
                     if command == "" or output["command"] == command:
