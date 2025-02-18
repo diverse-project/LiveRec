@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorting Algorithm Visualizer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Add Monaco Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.43.0/min/vs/loader.js"></script>
+    <style>
+        .visualization-container {
+            height: 50vh;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+        .trace-info {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+        }
+        #array-chart {
+            width: 100%;
+            height: 100%;
+        }
+        .slider-container {
+            margin: 20px 0;
+        }
+        #frame-slider {
+            width: 100%;
+        }
+        .split-view {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .visualization-panel {
+            flex: 1;
+        }
+        .code-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        #code-editor {
+            height: 50vh;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        .current-line {
+            background-color: rgba(255, 255, 0, 0.3) !important;
+        }
+        .file-info {
+            margin-bottom: 10px;
+            font-family: monospace;
+        }
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row p-3">
+            <div class="col-12">
+                <h1>Sorting Algorithm Visualizer</h1>
+                
+                <!-- File Selection -->
+                <div class="controls">
+                    <select id="file-select" class="form-select mb-2">
+                        <option value="">Select a trace file...</option>
+                    </select>
+                    <select id="execution-select" class="form-select mb-2" disabled>
+                        <option value="">Select an execution...</option>
+                    </select>
+                    <button id="load-file" class="btn btn-primary" disabled>Load Execution</button>
+                </div>
+
+                <!-- Split View -->
+                <div class="split-view">
+                    <!-- Left Panel: Visualization -->
+                    <div class="visualization-panel">
+                        <div class="visualization-container">
+                            <canvas id="array-chart"></canvas>
+                        </div>
+                        <div class="legend">
+                            <div class="legend-item">
+                                <span class="legend-color" style="background-color: rgba(255, 99, 132, 0.6);"></span>
+                                <span>Index i</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background-color: rgba(255, 206, 86, 0.6);"></span>
+                                <span>Index j</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Code -->
+                    <div class="code-panel">
+                        <div class="file-info">
+                            <span id="file-path">No file loaded</span>
+                        </div>
+                        <div id="code-editor"></div>
+                    </div>
+                </div>
+
+                <!-- Playback Controls -->
+                <div class="controls">
+                    <div class="slider-container">
+                        <input type="range" class="form-range" id="frame-slider" min="0" value="0">
+                    </div>
+                    <div class="btn-group">
+                        <button id="prev-frame" class="btn btn-secondary">Previous</button>
+                        <button id="play-pause" class="btn btn-primary">Play</button>
+                        <button id="next-frame" class="btn btn-secondary">Next</button>
+                    </div>
+                    <div class="btn-group ms-2">
+                        <button id="speed-down" class="btn btn-outline-secondary">-</button>
+                        <button id="speed-indicator" class="btn btn-outline-secondary" disabled>1x</button>
+                        <button id="speed-up" class="btn btn-outline-secondary">+</button>
+                    </div>
+                </div>
+
+                <!-- Current State Info -->
+                <div class="trace-info">
+                    <h5>Current State</h5>
+                    <p id="execution-info">No trace loaded</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let traces = [];
+        let currentTraceIndex = 0;
+        let isPlaying = false;
+        let playbackSpeed = 1;
+        let playbackInterval = null;
+        let chart = null;
+        let editor = null;
+        let currentDecorations = [];
+
+        // Initialize Monaco Editor
+        require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.43.0/min/vs' } });
+        require(['vs/editor/editor.main'], function () {
+            editor = monaco.editor.create(document.getElementById('code-editor'), {
+                value: '# Code will be loaded when you select a trace file',
+                language: 'python',
+                theme: 'vs',
+                readOnly: true,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 14,
+                lineNumbers: 'on',
+            });
+
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                editor.layout();
+            });
+        });
+
+        // Initialize Chart
+        function initChart() {
+            const ctx = document.getElementById('array-chart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [],
+                        borderColor: [],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 100
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Highlight current line in editor
+        function highlightLine(lineNumber) {
+            if (!editor) return;
+            
+            currentDecorations = editor.deltaDecorations(currentDecorations, [{
+                range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+                options: {
+                    isWholeLine: true,
+                    className: 'current-line'
+                }
+            }]);
+            
+            // Scroll to the line
+            editor.revealLineInCenter(lineNumber);
+        }
+
+        // Update visualization with current trace data
+        function updateVisualization(traceIndex) {
+            if (!traces[traceIndex]) return;
+            
+            const trace = traces[traceIndex];
+            const arrayData = trace.array_data;
+            const compareIndices = trace.compare_indices;
+            
+            // Update chart data
+            chart.data.labels = Array.from({length: arrayData.length}, (_, i) => i.toString());
+            chart.data.datasets[0].data = arrayData;
+            
+            // Update colors (highlight compared elements)
+            const colors = Array(arrayData.length).fill('rgba(54, 162, 235, 0.6)');
+            const borderColors = Array(arrayData.length).fill('rgba(54, 162, 235, 1)');
+            
+            // Highlight elements being compared
+            if (compareIndices.i !== null && compareIndices.j !== null) {
+                colors[compareIndices.i] = 'rgba(255, 99, 132, 0.6)';  // Red for first element
+                colors[compareIndices.j] = 'rgba(255, 206, 86, 0.6)';  // Yellow for second element
+                borderColors[compareIndices.i] = 'rgba(255, 99, 132, 1)';
+                borderColors[compareIndices.j] = 'rgba(255, 206, 86, 1)';
+            }
+            
+            chart.data.datasets[0].backgroundColor = colors;
+            chart.data.datasets[0].borderColor = borderColors;
+            chart.update();
+
+            // Update execution info
+            document.getElementById('execution-info').textContent = 
+                `Line ${trace.execution_line} - Frame ${traceIndex + 1}/${traces.length}` +
+                (compareIndices.i !== null ? ` - Comparing indices ${compareIndices.i} and ${compareIndices.j}` : '');
+            
+            // Update slider
+            document.getElementById('frame-slider').value = traceIndex;
+
+            // Highlight current line in editor
+            highlightLine(trace.execution_line);
+        }
+
+        // Load code file
+        async function loadCodeFile(filePath) {
+            try {
+                const response = await fetch(`/api/code?file=${encodeURIComponent(filePath)}`);
+                const code = await response.text();
+                if (editor) {
+                    editor.setValue(code);
+                    document.getElementById('file-path').textContent = filePath;
+                }
+            } catch (error) {
+                console.error('Error loading code file:', error);
+            }
+        }
+
+        // Playback controls
+        function togglePlayback() {
+            isPlaying = !isPlaying;
+            document.getElementById('play-pause').textContent = isPlaying ? 'Pause' : 'Play';
+            
+            if (isPlaying) {
+                playbackInterval = setInterval(() => {
+                    if (currentTraceIndex < traces.length - 1) {
+                        currentTraceIndex++;
+                        updateVisualization(currentTraceIndex);
+                    } else {
+                        isPlaying = false;
+                        document.getElementById('play-pause').textContent = 'Play';
+                        clearInterval(playbackInterval);
+                    }
+                }, 1000 / playbackSpeed);
+            } else {
+                clearInterval(playbackInterval);
+            }
+        }
+
+        // Initialize the application
+        async function init() {
+            initChart();
+
+            // Load available trace files
+            const response = await fetch('/api/list_trace_files');
+            const files = await response.json();
+            
+            const fileSelect = document.getElementById('file-select');
+            files.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file;
+                option.textContent = file;
+                fileSelect.appendChild(option);
+            });
+
+            // Enable execution select when file is selected
+            fileSelect.addEventListener('change', async () => {
+                const file = fileSelect.value;
+                const executionSelect = document.getElementById('execution-select');
+                executionSelect.innerHTML = '<option value="">Select an execution...</option>';
+                executionSelect.disabled = true;
+                document.getElementById('load-file').disabled = true;
+
+                if (file) {
+                    // Load available executions for this file
+                    const response = await fetch(`/api/executions?file=${encodeURIComponent(file)}`);
+                    const executions = await response.json();
+                    
+                    executions.forEach(execution => {
+                        const option = document.createElement('option');
+                        option.value = execution.id;
+                        option.textContent = `Initial array: [${execution.initial_array.join(', ')}]`;
+                        executionSelect.appendChild(option);
+                    });
+                    
+                    executionSelect.disabled = false;
+                }
+            });
+
+            // Enable load button when execution is selected
+            document.getElementById('execution-select').addEventListener('change', () => {
+                const executionSelect = document.getElementById('execution-select');
+                document.getElementById('load-file').disabled = !executionSelect.value;
+            });
+
+            // Load file button handler
+            document.getElementById('load-file').addEventListener('click', async () => {
+                const file = fileSelect.value;
+                const executionId = document.getElementById('execution-select').value;
+                if (!file || !executionId) return;
+
+                const response = await fetch(`/api/traces?file=${encodeURIComponent(file)}&execution=${encodeURIComponent(executionId)}`);
+                const data = await response.json();
+                
+                if (data.traces && data.traces.length > 0) {
+                    traces = data.traces;
+                    currentTraceIndex = 0;
+                    document.getElementById('frame-slider').max = traces.length - 1;
+                    
+                    // Load the corresponding code file
+                    if (data.source_file) {
+                        await loadCodeFile(data.source_file);
+                    }
+                    
+                    updateVisualization(currentTraceIndex);
+                }
+            });
+
+            // Playback controls
+            document.getElementById('play-pause').addEventListener('click', togglePlayback);
+            document.getElementById('prev-frame').addEventListener('click', () => {
+                if (currentTraceIndex > 0) {
+                    currentTraceIndex--;
+                    updateVisualization(currentTraceIndex);
+                }
+            });
+            document.getElementById('next-frame').addEventListener('click', () => {
+                if (currentTraceIndex < traces.length - 1) {
+                    currentTraceIndex++;
+                    updateVisualization(currentTraceIndex);
+                }
+            });
+
+            // Speed controls
+            document.getElementById('speed-up').addEventListener('click', () => {
+                playbackSpeed = Math.min(playbackSpeed * 2, 8);
+                document.getElementById('speed-indicator').textContent = playbackSpeed + 'x';
+                if (isPlaying) {
+                    clearInterval(playbackInterval);
+                    togglePlayback();
+                }
+            });
+            document.getElementById('speed-down').addEventListener('click', () => {
+                playbackSpeed = Math.max(playbackSpeed / 2, 0.25);
+                document.getElementById('speed-indicator').textContent = playbackSpeed + 'x';
+                if (isPlaying) {
+                    clearInterval(playbackInterval);
+                    togglePlayback();
+                }
+            });
+
+            // Slider control
+            document.getElementById('frame-slider').addEventListener('input', (e) => {
+                currentTraceIndex = parseInt(e.target.value);
+                updateVisualization(currentTraceIndex);
+            });
+        }
+
+        // Start the application
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html> 

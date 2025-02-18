@@ -1,0 +1,10 @@
+{
+    "tool_id": 1,
+    "tool_name": "livemonitor",
+    "monitor": {
+        "main.py": ["bubble_sort"]
+    },
+    "output": {
+        "file": "data.jsonl"
+    }
+}

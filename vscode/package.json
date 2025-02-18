@@ -18,15 +18,37 @@
       {
         "command": "livefromdap.showPanel",
         "title": "Show LiveFromDAP Panel"
+      },
+      {
+        "command": "extension.showExecutions",
+        "title": "Show Function Executions"
+      },
+      {
+        "command": "extension.loadDataFile",
+        "title": "Load Data File"
+      },
+      {
+        "command": "extension.loadDataFileFromContext",
+        "title": "Import as Data File"
       }
-    ]
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "when": "resourceExtname == .jsonl",
+          "command": "extension.loadDataFileFromContext",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts"
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
     "@types/vscode": "^1.86.0",

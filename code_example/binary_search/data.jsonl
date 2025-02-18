@@ -1,0 +1,2 @@
+{"event_type": "call", "execution_id": "075132fa-b590-4359-bcd0-af41e9ea6d41", "parent_id": null, "file": "/home/jbdod/STAGE/LiveProbes/code_example/binary_search/main.py", "function": "binary_search", "line": 8, "locals": {"arr": [1, 2, 3, 4, 5], "target": 3}, "globals": {}, "timestamp": "2025-02-12T16:29:57.843556"}
+{"event_type": "return", "execution_id": "075132fa-b590-4359-bcd0-af41e9ea6d41", "return_value": "2", "timestamp": "2025-02-12T16:29:57.843868"}

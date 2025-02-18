@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Execution Trace Explorer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        .trace-item {
+            cursor: pointer;
+            border-left: 3px solid #007bff;
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            position: relative;
+        }
+        .trace-item:hover {
+            background-color: #e9ecef;
+        }
+        .trace-item.selected {
+            border-left-color: #28a745;
+            background-color: #e8f5e9;
+        }
+        .compare-checkbox {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .stackframe {
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        .variable-list {
+            margin-left: 20px;
+            font-family: monospace;
+        }
+        .code-location {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .trace-panel {
+            height: 80vh;
+            overflow-y: auto;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        .graph-container {
+            height: 40vh;
+            border: 1px solid #dee2e6;
+            margin-top: 20px;
+        }
+        .selected-node {
+            background-color: #e3f2fd;
+            border-left: 3px solid #0d6efd;
+        }
+        .diff-highlight {
+            background-color: #ffeeba;
+        }
+        .comparison-controls {
+            margin-bottom: 15px;
+        }
+        .hidden {
+            display: none;
+        }
+        .matching-frame {
+            border-left: 3px solid #4caf50;
+            background-color: #e8f5e9;
+        }
+        .different-frame {
+            border-left: 3px solid #ff9800;
+            background-color: #fff3e0;
+        }
+        .trace-details-container {
+            display: flex;
+            gap: 20px;
+        }
+        .trace-details-panel {
+            flex: 1;
+            height: 40vh;
+            overflow-y: auto;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        .file-selector {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+        .file-selector select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row p-3">
+            <div class="col-12">
+                <h1>Execution Trace Explorer</h1>
+                <div class="file-selector">
+                    <select id="file-select" class="form-select">
+                        <option value="">Select a trace file...</option>
+                    </select>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Select a JSONL file containing execution traces</small>
+                        <button id="load-file" class="btn btn-primary btn-sm" disabled>Load File</button>
+                    </div>
+                </div>
+                <div class="comparison-controls">
+                    <button id="compare-btn" class="btn btn-primary" disabled>Compare Selected Traces</button>
+                    <button id="reset-btn" class="btn btn-secondary">Reset Comparison</button>
+                </div>
+                <hr>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-3" id="trace-list-container">
+                <div class="list-group" id="trace-list">
+                    <!-- Traces will be loaded here -->
+                </div>
+            </div>
+            <div class="col-9" id="comparison-container">
+                <div class="row" id="single-view">
+                    <div class="col-12">
+                        <div id="trace-details"></div>
+                        <div id="graph-container" class="graph-container"></div>
+                    </div>
+                </div>
+                <div class="row hidden" id="comparison-view">
+                    <div class="col-12">
+                        <div class="trace-details-container">
+                            <div id="trace-details-1" class="trace-details-panel"></div>
+                            <div id="trace-details-2" class="trace-details-panel"></div>
+                        </div>
+                        <div id="comparison-graph-container" class="graph-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let networks = {};
+        let selectedTraces = [];
+        let currentFile = null;
+
+        const graphOptions = {
+            layout: {
+                hierarchical: {
+                    direction: 'LR',
+                    sortMethod: 'directed',
+                    levelSeparation: 250,
+                    nodeSpacing: 150
+                }
+            },
+            nodes: {
+                shape: 'box',
+                margin: 10,
+                font: {
+                    size: 12
+                },
+                widthConstraint: {
+                    maximum: 200
+                }
+            },
+            physics: {
+                hierarchicalRepulsion: {
+                    nodeDistance: 200,
+                    springLength: 200
+                },
+                stabilization: true
+            },
+            groups: {
+                trace1: {
+                    color: { background: '#e3f2fd', border: '#2196f3' }
+                },
+                trace2: {
+                    color: { background: '#f3e5f5', border: '#9c27b0' }
+                },
+                matching: {
+                    color: { background: '#e8f5e9', border: '#4caf50' }
+                }
+            }
+        };
+
+        function createGraph(stacktrace, containerId) {
+            // Destroy existing network if it exists
+            if (networks[containerId]) {
+                networks[containerId].destroy();
+                networks[containerId] = null;
+            }
+
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.error(`Container ${containerId} not found`);
+                return null;
+            }
+
+            const nodes = new vis.DataSet();
+            const edges = new vis.DataSet();
+            
+            stacktrace.forEach(frame => {
+                const nodeId = containerId + '-' + frame.id;
+                const variables = frame.variables.map(v => v.name);
+                const shortVarList = variables.length > 5 
+                    ? variables.slice(0, 5).join(', ') + '...' 
+                    : variables.join(', ');
+                
+                nodes.add({
+                    id: nodeId,
+                    label: `Line ${frame.pos.line}\n${shortVarList}`,
+                    title: frame.variables.map(v => `${v.name}: ${v.value}`).join('\n'),
+                    originalId: frame.id
+                });
+
+                if (frame.predecessor) {
+                    edges.add({
+                        from: containerId + '-' + frame.predecessor,
+                        to: nodeId,
+                        arrows: 'to'
+                    });
+                }
+            });
+
+            const data = { nodes, edges };
+            try {
+                const network = new vis.Network(container, data, graphOptions);
+                networks[containerId] = network;
+                
+                network.on('click', function(params) {
+                    if (params.nodes.length > 0) {
+                        const nodeId = params.nodes[0].split('-')[1];
+                        highlightStackFrame(nodeId, containerId);
+                    }
+                });
+
+                return network;
+            } catch (error) {
+                console.error('Error creating network:', error);
+                return null;
+            }
+        }
+
+        function highlightStackFrame(nodeId, containerId) {
+            const container = containerId.includes('1') ? 'trace-details-1' : 
+                            containerId.includes('2') ? 'trace-details-2' : 
+                            'trace-details';
+            
+            document.querySelectorAll(`#${container} .stackframe`).forEach(el => {
+                el.classList.remove('selected-node');
+            });
+            
+            const frame = document.querySelector(`#${container} [data-frame-id="${nodeId}"]`);
+            if (frame) {
+                frame.classList.add('selected-node');
+                frame.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        function compareVariables(vars1, vars2) {
+            const varMap1 = new Map(vars1.map(v => [v.name, v]));
+            const varMap2 = new Map(vars2.map(v => [v.name, v]));
+            const allVarNames = new Set([...varMap1.keys(), ...varMap2.keys()]);
+            
+            const differences = [];
+            allVarNames.forEach(name => {
+                const var1 = varMap1.get(name);
+                const var2 = varMap2.get(name);
+                
+                if (!var1 || !var2 || var1.value !== var2.value) {
+                    differences.push(name);
+                }
+            });
+            
+            return differences;
+        }
+
+        function createComparisonGraph(trace1, trace2, containerId, matchingFrames) {
+            if (networks[containerId]) {
+                networks[containerId].destroy();
+                networks[containerId] = null;
+            }
+
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.error(`Container ${containerId} not found`);
+                return null;
+            }
+
+            const nodes = new vis.DataSet();
+            const edges = new vis.DataSet();
+            
+            // Create a map of line numbers to nodes to track shared frames
+            const lineToNode = new Map();
+            
+            // Process both traces to create nodes
+            [
+                { trace: trace1, prefix: 'trace1', color: '#2196f3' },
+                { trace: trace2, prefix: 'trace2', color: '#9c27b0' }
+            ].forEach(({ trace, prefix, color }) => {
+                trace.stacktrace.forEach(frame => {
+                    const lineKey = frame.pos.line;
+                    const variables = frame.variables.map(v => v.name);
+                    const shortVarList = variables.length > 5 
+                        ? variables.slice(0, 5).join(', ') + '...' 
+                        : variables.join(', ');
+
+                    // Check if we already have a node for this line
+                    if (!lineToNode.has(lineKey)) {
+                        // Create new node
+                        const nodeId = `line-${lineKey}`;
+                        nodes.add({
+                            id: nodeId,
+                            label: `Line ${frame.pos.line}\n${shortVarList}`,
+                            title: frame.variables.map(v => `${v.name}: ${v.value}`).join('\n'),
+                            group: matchingFrames.has(lineKey) ? 'matching' : 'different',
+                            frameIds: new Set([frame.id]),
+                            traces: new Set([prefix])
+                        });
+                        lineToNode.set(lineKey, nodeId);
+                    } else {
+                        // Update existing node
+                        const nodeId = lineToNode.get(lineKey);
+                        const node = nodes.get(nodeId);
+                        node.frameIds.add(frame.id);
+                        node.traces.add(prefix);
+                        nodes.update(node);
+                    }
+
+                    // Add edges
+                    if (frame.predecessor) {
+                        const predLineKey = trace.stacktrace.find(f => f.id === frame.predecessor)?.pos.line;
+                        if (predLineKey) {
+                            const fromNodeId = lineToNode.get(predLineKey);
+                            const toNodeId = lineToNode.get(lineKey);
+                            const edgeId = `${prefix}-${fromNodeId}-${toNodeId}`;
+                            
+                            edges.add({
+                                id: edgeId,
+                                from: fromNodeId,
+                                to: toNodeId,
+                                arrows: 'to',
+                                color: { color: color },
+                                width: 2
+                            });
+                        }
+                    }
+                });
+            });
+
+            const data = { nodes, edges };
+            const options = {
+                ...graphOptions,
+                layout: {
+                    hierarchical: {
+                        direction: 'LR',
+                        sortMethod: 'directed',
+                        levelSeparation: 200,
+                        nodeSpacing: 150
+                    }
+                },
+                nodes: {
+                    ...graphOptions.nodes,
+                    shape: 'box',
+                    margin: 10,
+                    borderWidth: 2
+                },
+                groups: {
+                    matching: {
+                        color: { background: '#e8f5e9', border: '#4caf50' },
+                        borderWidth: 3
+                    },
+                    different: {
+                        color: { background: '#fff3e0', border: '#ff9800' }
+                    }
+                }
+            };
+
+            try {
+                const network = new vis.Network(container, data, options);
+                networks[containerId] = network;
+                
+                network.on('click', function(params) {
+                    if (params.nodes.length > 0) {
+                        const nodeId = params.nodes[0];
+                        const node = nodes.get(nodeId);
+                        // Highlight all frames associated with this node
+                        node.frameIds.forEach(frameId => {
+                            node.traces.forEach(tracePrefix => {
+                                const containerId = tracePrefix === 'trace1' ? 'trace-details-1' : 'trace-details-2';
+                                highlightStackFrame(frameId, containerId);
+                            });
+                        });
+                    }
+                });
+
+                return network;
+            } catch (error) {
+                console.error('Error creating network:', error);
+                return null;
+            }
+        }
+
+        function findMatchingFrames(trace1, trace2) {
+            const matchingLines = new Set();
+            trace1.stacktrace.forEach(frame1 => {
+                const frame2 = trace2.stacktrace.find(f2 => 
+                    f2.pos.line === frame1.pos.line && 
+                    compareVariables(frame1.variables, f2.variables).length === 0
+                );
+                if (frame2) {
+                    matchingLines.add(frame1.pos.line);
+                }
+            });
+            return matchingLines;
+        }
+
+        function compareTraces(trace1, trace2) {
+            document.getElementById('single-view').classList.add('hidden');
+            document.getElementById('comparison-view').classList.remove('hidden');
+            
+            const matchingFrames = findMatchingFrames(trace1, trace2);
+            const diffMap = {};
+            
+            trace1.stacktrace.forEach(frame1 => {
+                const frame2 = trace2.stacktrace.find(f2 => f2.pos.line === frame1.pos.line);
+                if (frame2) {
+                    const differences = compareVariables(frame1.variables, frame2.variables);
+                    if (differences.length > 0) {
+                        diffMap[frame1.id] = differences;
+                        diffMap[frame2.id] = differences;
+                    }
+                }
+            });
+
+            showTraceDetails(trace1, 'trace-details-1', diffMap, matchingFrames);
+            showTraceDetails(trace2, 'trace-details-2', diffMap, matchingFrames);
+            
+            // Create combined graph visualization
+            setTimeout(() => {
+                createComparisonGraph(trace1, trace2, 'comparison-graph-container', matchingFrames);
+            }, 100);
+        }
+
+        function showTraceDetails(trace, containerId = 'trace-details', highlightDiffs = null, matchingFrames = null) {
+            const details = document.getElementById(containerId);
+            if (!details) {
+                console.error(`Container ${containerId} not found`);
+                return;
+            }
+
+            const stacktrace = trace.stacktrace;
+            
+            let html = `
+                <h3>Trace Details</h3>
+                <p><strong>Session ID:</strong> ${trace.session_id}</p>
+                <p><strong>Function:</strong> ${trace.execution_line[0]}</p>
+                <h4>Stacktrace:</h4>
+            `;
+
+            stacktrace.forEach(frame => {
+                const isMatching = matchingFrames && matchingFrames.has(frame.pos.line);
+                html += `
+                    <div class="stackframe ${isMatching ? 'matching-frame' : ''}" data-frame-id="${frame.id}">
+                        <div class="code-location">
+                            Line ${frame.pos.line}, Column ${frame.pos.column}
+                        </div>
+                        <div class="variable-list">
+                            <h5>Variables:</h5>
+                            ${frame.variables.map(v => {
+                                const isDiff = highlightDiffs && 
+                                             highlightDiffs[frame.id] && 
+                                             highlightDiffs[frame.id].includes(v.name);
+                                return `
+                                    <div class="${isDiff ? 'diff-highlight' : ''}">
+                                        ${v.name}: ${v.value} (${v.type})
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            details.innerHTML = html;
+            
+            // Create graph visualization for single view only
+            if (containerId === 'trace-details') {
+                setTimeout(() => {
+                    createGraph(stacktrace, 'graph-container');
+                }, 100);
+            }
+        }
+
+        function resetComparison() {
+            document.getElementById('comparison-view').classList.add('hidden');
+            document.getElementById('single-view').classList.remove('hidden');
+            selectedTraces = [];
+            document.querySelectorAll('.trace-item').forEach(el => {
+                el.classList.remove('selected');
+                el.querySelector('input[type="checkbox"]').checked = false;
+            });
+            document.getElementById('compare-btn').disabled = true;
+        }
+
+        function setupComparisonButtons() {
+            // Remove existing listeners
+            const compareBtn = document.getElementById('compare-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            
+            // Clone and replace the buttons to remove old event listeners
+            const newCompareBtn = compareBtn.cloneNode(true);
+            const newResetBtn = resetBtn.cloneNode(true);
+            compareBtn.parentNode.replaceChild(newCompareBtn, compareBtn);
+            resetBtn.parentNode.replaceChild(newResetBtn, resetBtn);
+            
+            // Add new listeners
+            newCompareBtn.addEventListener('click', () => {
+                if (selectedTraces.length === 2) {
+                    compareTraces(selectedTraces[0], selectedTraces[1]);
+                }
+            });
+
+            newResetBtn.addEventListener('click', resetComparison);
+        }
+
+        async function loadAvailableFiles() {
+            try {
+                const response = await fetch('/api/list_trace_files');
+                const files = await response.json();
+                const select = document.getElementById('file-select');
+                
+                files.forEach(file => {
+                    const option = document.createElement('option');
+                    option.value = file;
+                    option.textContent = file;
+                    select.appendChild(option);
+                });
+
+                // Add event listeners
+                select.addEventListener('change', (e) => {
+                    document.getElementById('load-file').disabled = !e.target.value;
+                });
+
+                document.getElementById('load-file').addEventListener('click', () => {
+                    const selectedFile = select.value;
+                    if (selectedFile) {
+                        currentFile = selectedFile;
+                        loadTraces(selectedFile);
+                        // Reset comparison when loading new file
+                        resetComparison();
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading available files:', error);
+            }
+        }
+
+        async function loadTraces(filePath = null) {
+            const url = filePath ? `/api/traces?file=${encodeURIComponent(filePath)}` : '/api/traces';
+            try {
+                const response = await fetch(url);
+                const traces = await response.json();
+                const traceList = document.getElementById('trace-list');
+                
+                // Clear existing traces
+                traceList.innerHTML = '';
+                
+                traces.forEach((trace, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'trace-item';
+                    div.innerHTML = `
+                        <strong>Session:</strong> ${trace.session_id.slice(0, 8)}...<br>
+                        <strong>Function:</strong> ${trace.execution_line[0]}
+                        <input type="checkbox" class="compare-checkbox" />
+                    `;
+                    
+                    const checkbox = div.querySelector('input[type="checkbox"]');
+                    checkbox.addEventListener('change', (e) => {
+                        if (e.target.checked) {
+                            if (selectedTraces.length >= 2) {
+                                e.target.checked = false;
+                                return;
+                            }
+                            selectedTraces.push(trace);
+                            div.classList.add('selected');
+                        } else {
+                            selectedTraces = selectedTraces.filter(t => t.session_id !== trace.session_id);
+                            div.classList.remove('selected');
+                        }
+                        document.getElementById('compare-btn').disabled = selectedTraces.length !== 2;
+                    });
+
+                    div.onclick = (e) => {
+                        if (e.target !== checkbox) {
+                            resetComparison();
+                            showTraceDetails(trace);
+                        }
+                    };
+                    traceList.appendChild(div);
+                });
+
+                // Show first trace by default if any exist
+                if (traces.length > 0) {
+                    showTraceDetails(traces[0]);
+                } else {
+                    document.getElementById('trace-details').innerHTML = '<p>No traces found in the selected file.</p>';
+                }
+
+                // Setup comparison buttons
+                setupComparisonButtons();
+
+            } catch (error) {
+                console.error('Error loading traces:', error);
+                document.getElementById('trace-details').innerHTML = '<p class="text-danger">Error loading traces. Please check the console for details.</p>';
+            }
+        }
+
+        // Initialize everything when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            // Ensure all container elements exist
+            const containers = ['graph-container', 'graph-container-1', 'graph-container-2'];
+            containers.forEach(id => {
+                const container = document.getElementById(id);
+                if (!container) {
+                    console.error(`Container ${id} not found`);
+                }
+            });
+
+            // Setup initial button listeners
+            setupComparisonButtons();
+            
+            // Load available files first
+            loadAvailableFiles();
+        });
+    </script>
+</body>
+</html> 

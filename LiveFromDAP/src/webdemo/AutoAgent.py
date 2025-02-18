@@ -9,7 +9,7 @@ from tree_sitter import Language, Parser
 from livefromdap.agent.CLiveAgent import CLiveAgent
 from livefromdap.agent.JavaLiveAgent import JavaLiveAgent
 from livefromdap.agent.JavascriptLiveAgent import JavascriptLiveAgent
-from livefromdap.agent.PythonLiveAgent2 import PythonLiveAgent
+from livefromdap.agent.PythonLiveAgent import PythonLiveAgent
 from livefromdap.utils.StackRecording import Stackframe
 from prettyprinter.CPrettyPrinter import CPrettyPrinter
 from pycparser import c_parser, parse_file, c_generator

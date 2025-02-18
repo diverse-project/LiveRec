@@ -1,0 +1,10 @@
+{
+    "tool_id": 1,
+    "tool_name": "livemonitor",
+    "monitor": {
+        "exemple.py": ["heavy_computation", "init_db", "get_items", "get_item", "create_item", "update_item", "delete_item"]
+    },
+    "output": {
+        "file": "data.jsonl"
+    }
+}

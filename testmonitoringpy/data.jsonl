@@ -1,4 +1,0 @@
-{"event_type": "call", "execution_id": "f41ccf3c-74f5-4c03-a5b2-3c41a4362bab", "parent_id": null, "file": "/home/jbdod/STAGE/LiveProbes/testmonitoringpy/test.py", "function": "add", "line": 29, "locals": {"x": 1, "y": 4}, "globals": {}, "timestamp": "2025-02-06T15:50:08.103343"}
-{"event_type": "return", "execution_id": "f41ccf3c-74f5-4c03-a5b2-3c41a4362bab", "return_value": "7", "timestamp": "2025-02-06T15:50:08.103595"}
-{"event_type": "call", "execution_id": "b569e226-0d4a-4008-aee2-6d7aad971829", "parent_id": null, "file": "/home/jbdod/STAGE/LiveProbes/testmonitoringpy/test.py", "function": "add", "line": 29, "locals": {"x": 3, "y": 4}, "globals": {}, "timestamp": "2025-02-06T15:50:08.103791"}
-{"event_type": "return", "execution_id": "b569e226-0d4a-4008-aee2-6d7aad971829", "return_value": "9", "timestamp": "2025-02-06T15:50:08.103927"}

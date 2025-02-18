@@ -171,7 +171,7 @@ class PythonLiveAgent(BaseLiveAgent):
         self.wait("event", "stopped")
 
         
-    def execute(self, method : str, args : dict, max_steps=50) -> tuple[Any, StackRecording]:
+    def execute(self, method : str, args : dict, max_steps=300) -> tuple[Any, StackRecording]:
         stackrecording = StackRecording()
         if not self.start_execution(method, args):
             return "Interrupted", stackrecording
