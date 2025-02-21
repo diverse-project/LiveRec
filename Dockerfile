@@ -24,3 +24,4 @@ RUN ./install.sh
 
 COPY LiveFromDAP/. .
 WORKDIR /code
+ENTRYPOINT [ "flask", "-A", "src/webdemo/main.py:app", "run" ]

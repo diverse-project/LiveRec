@@ -1,6 +1,7 @@
 import json
 from queue import Queue
 import re
+import requests as LivExReq
 from threading import Thread
 import time
 import uuid
@@ -59,13 +60,12 @@ def extract_exec_request(code, language="python"):
         line = line.strip()
         if line.startswith(prefix):
             exec_request = line[len(prefix):].strip()
-            if "(" in exec_request and exec_request.endswith(")"):
-                method = exec_request.split("(")[0]
-                args_str = exec_request.split("(")[1][:-1]
-                # magix regex to split the args
-                args = re.split(r',(?![^\[\]\(\)\{\}]*[\]\)\}])', args_str)
-                if not "" in map(lambda x: x.strip(), args):
-                    result.append((method, list(map(lambda x: x.strip(), args))))
+            r = LivExReq.post(url="http://172.17.0.1:3000/api/code", # note: this is the URL assuming this app is ran from a docker
+                              json={"example": exec_request})
+            response = r.json()
+            result.append((response["method"], 
+                           list(map(lambda x : str(x), 
+                                    response["args"]))))
     if len(result) == 0:
         return None
     return result

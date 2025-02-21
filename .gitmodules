@@ -1,0 +1,3 @@
+[submodule "LivEx"]
+	path = LivEx
+	url = https://github.com/phoudail/LivEx

@@ -5,4 +5,5 @@ pandas
 flask_socketio
 tree_sitter==0.21.3
 gopygo
+requests
 -e git+https://github.com/jbdoderlein/javalang#egg=javalang
