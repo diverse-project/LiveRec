@@ -115,7 +115,7 @@ class PythonLiveAgent(BaseLiveAgent):
         self.next_breakpoint()
         self.wait("event", "stopped")
             
-    def execute(self, method, args, max_steps=50):
+    def execute(self, method, args, probes, max_steps=50):
         self.set_function_breakpoint([method])
         stacktrace = self.get_stackframes()
         frameId = stacktrace[0]["id"]
@@ -132,8 +132,23 @@ class PythonLiveAgent(BaseLiveAgent):
         scope = None
         initial_height = None
         i = 0
+        probe_lines = []
+        probe_expressions = []
+        for probe in probes:
+            probe_lines.append(probe["line"]) # TODO: support multiple files
+            probe_expressions.append(probe["expr"])
+
+        ######## TODO: refactor out
+        stacktrace = self.get_stackframes()
+        if not scope:
+            scope = self.get_scopes(stacktrace[0]["id"])[0]
+        variables = self.get_variables(scope["variablesReference"])            
+        stackframe = Stackframe(stacktrace[0]["line"], stacktrace[0]["column"], 0, variables)
+        stackrecording.add_stackframe(stackframe)  
+        ########  
         while True:
             stacktrace = self.get_stackframes()
+            current_line = stacktrace[0]['line']
             if initial_height is None:
                 initial_height = len(stacktrace)
                 height = 0
@@ -142,10 +157,19 @@ class PythonLiveAgent(BaseLiveAgent):
             if stacktrace[0]["name"] != method:
                 break
             # We need to get local variables
+            if current_line+1 not in probe_lines:
+                self.step()
+                continue
+            self.step()
             if not scope:
                 scope = self.get_scopes(stacktrace[0]["id"])[0]
             variables = self.get_variables(scope["variablesReference"])
-            stackframe = Stackframe(stacktrace[0]["line"], stacktrace[0]["column"], height, variables)
+            probed_variables = []
+            for v in variables:
+                if v["name"] in probe_expressions:
+                    probed_variables.append(v)
+                print(v)
+            stackframe = Stackframe(stacktrace[0]["line"], stacktrace[0]["column"], height, probed_variables)
             stackrecording.add_stackframe(stackframe)
             i += 1
             if i > max_steps:
@@ -153,7 +177,7 @@ class PythonLiveAgent(BaseLiveAgent):
                 self.restart_server()
                 self.initialize()
                 return "Interrupted", stackrecording
-            self.step()
+            # self.step()
         # We are now out of the function, we need to get the return value
         scope = self.get_scopes(stacktrace[0]["id"])[0]
         variables = self.get_variables(scope["variablesReference"])

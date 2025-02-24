@@ -140,7 +140,7 @@ editor.on('mousedown', function(instance, event) {
     const lineContent = editor.getLine(lineNumber).trim();
 
     if (lineContent.startsWith("#@")) {
-        const func = lineContent.replace(/^#@\s*/, '').replace(/\s*\(.*\)$/, '');
+        const func = lineContent.replace(/^#@\s*/, '').replace(/\s*\(.*\)$/, '').split(':')[1];
         const argsStr = lineContent.split('(')[1].slice(0, -1);
         const args = argsStr.match(/(?:[^,(){}[\]]+|\([^)]*\)|\{[^}]*\}|\[[^\]]*\])+/g) || [];
 
@@ -161,7 +161,7 @@ editor.on('mousedown', function(instance, event) {
         );
         sendCode();
     } else if (lineContent.startsWith("//@")) {
-        const func = lineContent.replace(/^\/\/@\s*/, '').replace(/\s*\(.*\)$/, '');
+        const func = lineContent.replace(/^\/\/@\s*/, '').replace(/\s*\(.*\)$/, '').split(':')[1];
         const argsStr = lineContent.split('(')[1].slice(0, -1);
         const args = argsStr.match(/(?:[^,(){}[\]]+|\([^)]*\)|\{[^}]*\}|\[[^\]]*\])+/g) || [];
 

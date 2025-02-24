@@ -26,7 +26,9 @@ class TreeSitterPrettyPrinter():
         self.ast = self.parser.parse(bytes(code, "utf8"))
         self.output = ["" for _ in range(len(code.split("\n")))]
         self.setup_function({"method": self.method_name})
-        self.add_probes()
+        for stack in stacktrace.stackframes:
+            self.output[stack.pos.line] = ";".join([varName + " = " + stack.get_variable(varName) for varName in stack.get_variables()])
+        # self.add_probes()
         return "\n".join(self.output)
     
     def add_probes(self):
@@ -52,7 +54,7 @@ class TreeSitterPrettyPrinter():
             elif capture_type == "fparam":
                 params.append(capture.text.decode("utf8"))
                 
-        first_stackframe = self.stacktrace.stackframes[0]
+        first_stackframe = self.stacktrace.stackframes.pop(0)
         params_value = [first_stackframe.get_variable(p) for p in params]
         fdef_string = f"{self.method_name}({', '.join(params_value)}) -> {self.return_value}"
         self.output[self.function_start[0]] = fdef_string

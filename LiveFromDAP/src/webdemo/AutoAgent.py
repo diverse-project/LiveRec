@@ -349,8 +349,8 @@ class AutoPythonLiveAgent(AutoLiveAgent):
         output = printer.pretty_print(stacktrace, return_value=return_value)
         return output
 
-    def execute(self, method, args):
-        output = self.agent.execute(method, args)
+    def execute(self, method, args, probes):
+        output = self.agent.execute(method, args, probes)
         if output[0] == "Interrupted":
             self.agent.load_code(self.source_path)
         # Get the output of the thread

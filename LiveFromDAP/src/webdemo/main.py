@@ -55,17 +55,28 @@ def clean_code(code, language="python"):
 
 def extract_exec_request(code, language="python"):
     result = []
+    exec_requests = []
     prefix = get_language_prefix(language)
+    line_number = 0
     for line in code.split("\n"):
+        line_number += 1
         line = line.strip()
         if line.startswith(prefix):
-            exec_request = line[len(prefix):].strip()
-            r = LivExReq.post(url="http://172.17.0.1:3000/api/code", # note: this is the URL assuming this app is ran from a docker
+            if "probe" in line:
+                exec_requests.append(f"[{line_number}]" + line[len(prefix):].strip())
+            else:
+                exec_requests.append(line[len(prefix):].strip())
+    exec_request = "\n".join(exec_requests)
+    r = LivExReq.post(url="http://172.17.0.1:3000/api/code", # note: this is the URL assuming this app is ran from a docker
                               json={"example": exec_request})
-            response = r.json()
-            result.append((response["method"], 
-                           list(map(lambda x : str(x), 
-                                    response["args"]))))
+    response = r.json()
+    for ex in response:
+        example = response[ex]
+        result.append((example["method"], 
+                    list(map(lambda x : str(x), 
+                            example["args"])),
+                            example["probes"],
+                            ))
     if len(result) == 0:
         return None
     return result
