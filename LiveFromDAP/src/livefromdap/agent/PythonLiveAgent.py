@@ -104,7 +104,8 @@ class PythonLiveAgent(BaseLiveAgent):
         return 5
     
     def setup_runner_breakpoint(self):
-        self.set_breakpoint(self.runner_path, [16])
+        self.set_breakpoint(self.runner_path, [7,20])
+        # self.set_function_breakpoint(["polyglotEval"])
         self.configuration_done()
     
     def load_code(self, path: str):

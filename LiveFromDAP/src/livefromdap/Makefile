@@ -36,6 +36,5 @@ runner/bin/DynamicClassLoader.class: runner/DynamicClassLoader.java
 runner/bin/DynamicClassLoaderFactory.class: runner/DynamicClassLoaderFactory.java runner/bin/DynamicClassLoader.class
 	javac -g -d runner/bin -cp runner/bin runner/DynamicClassLoaderFactory.java
 
-
 clean:
 	rm -f $(EXAMPLES_C_TARGETS) $(EXAMPLES_JAVA_TARGETS) runner/c_runner runner/bin/*.class

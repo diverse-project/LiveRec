@@ -147,6 +147,21 @@ class BaseLiveAgent(BaseLiveAgentInterface):
         }
         self.io.write_json(breakpoint_request)
 
+    def set_expression(self, var_expr: str, val_expr: str, frame_id: int):
+        setexpr_request = {
+            "seq": self.new_seq(),
+            "type": "request",
+            "command": "setExpression",
+            "arguments": {
+                "expression": var_expr,
+                "value": val_expr,
+                "frameId": frame_id
+            }
+        }
+        self.io.write_json(setexpr_request)
+        output = self.wait("response", command="setExpression")
+        return output["body"]["value"]
+
     def configuration_done(self):
         """Send the configurationDone request to the debuggee
         """
@@ -207,6 +222,22 @@ class BaseLiveAgent(BaseLiveAgentInterface):
             "seq": self.new_seq(),
             "type": "request",
             "command": "next",
+            "arguments": {
+                "threadId": thread_id
+            }
+        }
+        self.io.write_json(step_request)
+
+    def step_in(self, thread_id : int = 1):
+        """Send the stepIn request to the debuggee
+
+        Args:
+            thread_id (int, optional): Defaults to 1.
+        """
+        step_request = {
+            "seq": self.new_seq(),
+            "type": "request",
+            "command": "stepIn",
             "arguments": {
                 "threadId": thread_id
             }

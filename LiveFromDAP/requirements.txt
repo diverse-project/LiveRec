@@ -1,6 +1,8 @@
+setuptools
 debugpy
 pycparser
 pandas
 flask_socketio
-tree_sitter
+tree_sitter==0.21.3
+gopygo
 -e git+https://github.com/jbdoderlein/javalang#egg=javalang

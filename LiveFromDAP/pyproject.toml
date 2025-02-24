@@ -12,6 +12,7 @@ dependencies = [
     "flask_socketio",
     "pandas",
     "tree_sitter",
+    "gopygo"
 ]
 
 [build-system]
