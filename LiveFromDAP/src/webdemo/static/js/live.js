@@ -16,7 +16,6 @@ if (language=="python" || language=="pyjs"){
         singleLineStringErrors: false};
 }
 if(language=="go"){
-    console.log(language);
     CodeMirror_mode = "text/x-go";
 }
 
@@ -34,7 +33,6 @@ var send_code_sent = 0;
 
 
 socket.on('json', function(msg) {
-
     if (msg.event == 'codeChange') {
         editor.setValue(msg.code);
         return;
@@ -44,13 +42,7 @@ socket.on('json', function(msg) {
         document.getElementById("execution-spinner").style.display = "none";
         return;
     }
-    if(msg.event == "addSlider"){
-        addSlider(msg.lineNumber, msg.length, msg.start, msg.end);
-        document.getElementById("execution-spinner").style.display = "none";
-        return;
-    }
     if (msg.event == 'status') {
-        console.log(msg.status);
         //M.toast({html: msg.status, displayLength: 3000});
         if (msg.status == "agent_up") {
             send_code_sent = 0;
@@ -112,22 +104,43 @@ editor.on('mousedown', function(instance, event) {
 
     if (!lineTrim.startsWith("#@") && !lineTrim.startsWith("//@")) {
         if(lineTrim.startsWith("for")){
-            document.getElementById("execution-spinner").style.display = "block";
-            const json = {
-                event: 'addSlider',
-                session_id: session_id,
-                language: language,
-                code: editor.getValue(),
-                lineNumber: lineNumber
-            };
-            socket.emit('json', json);
-            displayStackByLine(lineNumber+1);
-        }else {
-            slider = document.getElementById("slider");
+            // Only process if we have execution results
+            const lastOutput = window.socketManager.outputHandler.lastOutput;
+            if (lastOutput) {
+                try {
+                    const result = JSON.parse(lastOutput);
+                    let first = null;
+                    let last = null;
+                    
+                    // Find iteration bounds
+                    for (let i = 0; i < result.stacktrace.length; i++) {
+                        if (result.stacktrace[i].pos.line === lineNumber + 1) {
+                            if (first === null) first = i;
+                            last = i;
+                        }
+                    }
+                    
+                    if (first !== null && last !== null) {
+                        window.socketManager.outputHandler.addSlider(lineNumber, last - first, first, last);
+                    }
+                } catch (e) {
+                    console.error('Failed to process stacktrace:', e);
+                }
+            }
+            
+            // check if displayStackByLine is defined
+            if (typeof displayStackByLine !== "undefined") {
+                displayStackByLine(lineNumber+1);
+            }
+        } else {
+            const slider = document.getElementById("slider");
             if (slider != undefined) {
                 slider.remove();
             }
-            displayStackByLine(lineNumber+1);
+            // check if displayStackByLine is defined
+            if (typeof displayStackByLine !== "undefined") {
+                displayStackByLine(lineNumber+1);
+            }
         }
     }
 });

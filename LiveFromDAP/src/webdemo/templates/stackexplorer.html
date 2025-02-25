@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Web Demo</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css" integrity="sha512-uf06llspW44/LZpHzHT6qBOIVODjWtv4MxCricRxkzvopAlSWnTf6hpZTFxuuZcuNE9CBQhqE0Seu1CoRk84nQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <!-- Compiled and minified CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -20,19 +20,9 @@
     <div id="page">
         <div id="editor-container">
             <textarea id="editor" name="editor">{% if language == 'python' %}
-#@foo(1,3)
+#@foo(1,2)
 def foo(a, b):
-    x = 1
-    t = bar(a)
-    for i in range(0, 5):
-        t = t + 1
-        for j in range (0,2):
-            x = x + 1
-    return a + b + t
-
-def bar(x):
-    r = x * 2
-    return r
+    return a + b
 {% elif language == 'java' %}
 public class Live{
     //@foo(1,2)
@@ -43,14 +33,16 @@ public class Live{
 {% elif language == 'pyjs' %}
 #@foo(1,2)
 def foo(a, b):
-    t = polyglotEval("js", "var x = 1; x")
-    x = a + t
-    for i in range(0, 5):
-        t = polyglotEval("js", "x = x + 1; x")
+    t = polyglot.eval("js", "2+2")
     return a + b + t
 {% elif language == 'c' %}
 //@foo(1,2)
+//@foo(3,4)
 int foo(int a, int b){
+    int c = 0;
+    for(int i = 0;i < b;i++){
+        c++;
+    }
     return a + b;
 }
 {% elif language == 'javascript' %}
@@ -113,15 +105,23 @@ function foo(a, b){
     var language = "{{ language }}";
     var session_id = "{{ session_id }}";
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js" integrity="sha512-sSWQXoxIkE0G4/xqLngx5C53oOZCgFRxWE79CvMX2X0IKx14W3j9Dpz/2MpRh58xb2W/h+Y4WAHJQA0qMMuxJg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/clike/clike.min.js" integrity="sha512-x8RaqBHf5czJURmaGWqoI3DULFVYrC/GNPfk2iqL5wTCdEX8rlfQw2aHpuZhaEVuMJu1X654forBDVuahLivtQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js" integrity="sha512-vco9RAxEuv4PQ+iTQyuKElwoUOcsVdp+WgU6Lgo82ASpDfF7vI66LlWz+CZc2lMdn52tjjLOuHvy8BQJFp8a1A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js" integrity="sha512-Vs2GKxnxnTQBRW7o2xXZ9A28njjmu5RToS42efiKNEWmikov0inZY522EtGVK5CcVo0M/FQwmXsTfl9skgRnvw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js" integrity="sha512-I6CdJdruzGtvDyvdO4YsiAq+pkWf2efgd1ZUSK2FnM/u2VuRASPC7GowWQrWyjxCZn6CT89s3ddGI+be0Ak9Fg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="{{ url_for('static', filename='live.js') }}"></script>
-<script src="{{ url_for('static', filename='stack.js') }}"></script>
-<script src="{{ url_for('static', filename='resize.js') }}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js"></script>
+<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+<script src="{{ url_for('static', filename='js/output-handler.js') }}"></script>
+<script src="{{ url_for('static', filename='js/socket-manager.js') }}"></script>
+<script src="{{ url_for('static', filename='js/resize.js') }}"></script>
+<script>
+    // Initialize application
+    document.addEventListener('DOMContentLoaded', () => {
+        window.editor = new Editor('editor', language);
+        window.socketManager = new SocketManager(session_id, language);
+    });
+</script>
 </html>
 
 
