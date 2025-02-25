@@ -9,7 +9,7 @@ from .BaseLiveAgent import BaseLiveAgent
 from .JavaParams import *
 
 class JavaLiveAgent(BaseLiveAgent):
-    def __init__(self, *args : str, **kwargs : str): 
+    def __init__(self, *args, **kwargs): 
         super().__init__(*args, **kwargs) # type: ignore
         self.ls_server_path : str = kwargs.get("ls_server_path", os.path.join(os.path.dirname(__file__), "..", "bin", "jdt-language-server", "bin", "jdtls"))
         assert os.path.exists(self.ls_server_path), f"Could not find language server at {self.ls_server_path}"
@@ -80,6 +80,8 @@ class JavaLiveAgent(BaseLiveAgent):
             if self.debug: print("[LanguageServer]", response)
             if "method" in response and response["method"] == "client/registerCapability" and response["params"]["registrations"][0]["method"] == "workspace/executeCommand":
                 self.ls_capabilities += response["params"]["registrations"][0]["registerOptions"]["commands"]
+            if "java.resolvePath" in self.ls_capabilities or "java.reloadBundles" in self.ls_capabilities:
+                break
             if "method" in response and response["method"] == "workspace/executeClientCommand" and response["params"]["command"] == "_java.reloadBundles.command":
                 break
         
@@ -108,9 +110,7 @@ class JavaLiveAgent(BaseLiveAgent):
                 "method": "workspace/executeCommand",
                 "params": {
                     "command": "java.project.getAll",
-                    "arguments": [
-                        f"file://{runner_file_path}",
-                    ]
+                    "arguments": []
                 }
             })
         

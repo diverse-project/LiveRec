@@ -274,12 +274,12 @@ class AutoJavaLiveAgent(AutoLiveAgent):
     def construct_result_json(self, method, output):
         return_value, stacktrace = output
         if self.raw:
-            stacktrace.last_stackframe.variables.append({"name": "return", "value": return_value})
+            stacktrace.last_stackframe.variables.append({"name":"return", "value":return_value})
             return json.dumps({
                 "return_value": return_value,
                 "stacktrace": stacktrace.to_json()
             })
-        printer = JavaPrettyPrinter(self.source_path, "Live", method)
+        printer = JavaPrettyPrinter(self.source_path,"Live",method)
         output = printer.pretty_print(stacktrace, return_value=return_value)
         return output
 
@@ -450,7 +450,6 @@ class AutoJavaJDILiveAgent(AutoLiveAgent):
             shell=True)
         # read the first line
         init = self.agent.stdout.readline()
-        print(init)
         self.source_path = os.path.abspath("src/webdemo/tmp/Live.java")
         with open(self.source_path, "w") as f:
             f.write("")
@@ -491,7 +490,6 @@ class AutoJavaJDILiveAgent(AutoLiveAgent):
                 f.write(code)
             if self.compile_java() != 0:
                 return
-            print(self.compiled_classpath)
             payload = {
                 "command": "loadClass",
                 "params": {
@@ -500,7 +498,6 @@ class AutoJavaJDILiveAgent(AutoLiveAgent):
                 }
             }
             payload_str = json.dumps(payload) + "\n"
-            print(payload_str)
             self.agent.stdin.write(payload_str.encode("utf8"))
             self.agent.stdin.flush()
             line = self.agent.stdout.readline()
@@ -520,7 +517,6 @@ class AutoJavaJDILiveAgent(AutoLiveAgent):
         return output
 
     def execute(self, method, args):
-        print("execute")
         payload = {
             "command": "evaluate",
             "params": {
@@ -529,12 +525,10 @@ class AutoJavaJDILiveAgent(AutoLiveAgent):
             }
         }
         payload_str = json.dumps(payload) + "\n"
-        print(payload_str)
         self.agent.stdin.write(payload_str.encode("utf8"))
         self.agent.stdin.flush()
         line = self.agent.stdout.readline()
         response = json.loads(line.strip())
-        print(response)
         return json.dumps({
             "return_value": response["result"],
             "stacktrace": response["stack"]

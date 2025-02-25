@@ -1,6 +1,8 @@
+import json
 import os
 import subprocess
 import sys
+from typing import Any
 
 import debugpy
 from debugpy.common.messaging import JsonIOStream
@@ -13,8 +15,10 @@ class PythonLiveAgent(BaseLiveAgent):
     """Communicate with the debugpy adapter to get stackframes of the execution of a method"""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.runner_path = kwargs.get("runner_path", os.path.join(os.path.dirname(__file__), "..", "runner", "py_runner.py"))
+        self.runner_path = kwargs.get("runner_path", os.path.join(os.path.dirname(__file__), "..", "runner", "py_runner_2.py"))
         self.debugpy_adapter_path = kwargs.get("debugpy_adapter_path", os.path.join(os.path.dirname(debugpy.__file__), "adapter"))
+        self.tracked_functions = []
+        self.mocked_functions = {}
 
     def start_server(self):
         """Create a subprocess with the agent"""
@@ -104,62 +108,105 @@ class PythonLiveAgent(BaseLiveAgent):
         return 5
     
     def setup_runner_breakpoint(self):
-        self.set_breakpoint(self.runner_path, [7,20])
+        self.set_breakpoint(self.runner_path, [152])
         self.configuration_done()
     
-    def load_code(self, path: str):
+    def load_code(self):
         stacktrace = self.get_stackframes()
         frameId = stacktrace[0]["id"]
-        self.evaluate(f"set_import('{os.path.abspath(path)}')", frameId)
+        self.evaluate(f"set_reload_code(True)", frameId)
         self.next_breakpoint()
         self.wait("event", "stopped")
-            
-    def execute(self, method, args, max_steps=50):
-        self.set_function_breakpoint([method])
+
+    def set_source_path(self, path: str):
+        self.source_path = path
         stacktrace = self.get_stackframes()
         frameId = stacktrace[0]["id"]
-        self.evaluate(f"set_method('{method}',[{','.join(args)}])", frameId)
-        print("Evaluating")
+        self.evaluate(f"set_source_path('{os.path.abspath(path)}')", frameId)
+        self.next_breakpoint()
+        self.wait("event", "stopped")
+
+    def get_clean_name(self, function : str):
+        return function.split(".")[-1].strip()
+
+    def start_execution(self, method : str, args : dict):
+        if method not in self.tracked_functions:
+            self.track_function(method)
+        stacktrace = self.get_stackframes()
+        frameId = stacktrace[0]["id"]
+        data_dict = {
+            "locals": json.dumps(args),
+            "globals": "{}"
+        }
+        #print("Executing", method, args)
+        self.evaluate(f"load_data('{method}', {data_dict})", frameId)
         # We need to run the debug agent loop until we are on a breakpoint in the target method
-        stackrecording = StackRecording()
+        
         i = 0
         while True:
             stacktrace = self.get_stackframes()
-            if stacktrace[0]["name"] == method:
+            if stacktrace[0]["name"] == self.get_clean_name(method):
                 break
             self.next_breakpoint()
             self.wait("event", "stopped")
             i += 1
-            if i > 10: # Maybe code was not loaded
-                return "Interrupted", stackrecording
-        print("Starter found")
+            if i > 5: # Maybe code was not loaded
+                print("Failed to find breakpoint in", method)
+                return False
+        return True
+
+    def track_function(self, function : str):
+        function = self.get_clean_name(function)
+        if function not in self.tracked_functions:
+            self.tracked_functions.append(function)
+            self.set_function_breakpoint(self.tracked_functions)
+            self.wait("response", command="setFunctionBreakpoints")
+
+    def mock_function(self, function : str, data : str):
+        stacktrace = self.get_stackframes()
+        frameId = stacktrace[0]["id"]
+        self.evaluate(f"add_mocked_functions('{function}', '{data}')", frameId)
+        self.next_breakpoint()
+        self.wait("event", "stopped")
+
+        
+    def execute(self, method : str, args : dict, max_steps=300) -> tuple[Any, StackRecording]:
+        stackrecording = StackRecording()
+        if not self.start_execution(method, args):
+            return "Interrupted", stackrecording
         # We are now in the function, we need to get all information, step, and check if we are still in the function
         scope = None
         initial_height = None
         i = 0
+        stacktrace = self.get_stackframes()
         while True:
             stacktrace = self.get_stackframes()
-            if initial_height is None:
-                initial_height = len(stacktrace)
-                height = 0
+
+            if stacktrace[0]["name"] in self.tracked_functions:
+
+                # We are in a tracked function, we need to get the return value
+                if initial_height is None:
+                    initial_height = len(stacktrace)
+                    height = 0
+                else:
+                    height = len(stacktrace) - initial_height
+                if not scope:
+                    scope = self.get_scopes(stacktrace[0]["id"])[0]
+                variables = self.get_variables(scope["variablesReference"])
+                stackframe = Stackframe(stacktrace[0]["line"], stacktrace[0]["column"], height, variables)
+                stackrecording.add_stackframe(stackframe)
+                self.step()
+            
+            
+                i += 1
+                if i > max_steps:
+                    self.restart_server()
+                    self.initialize()
+                    return "Interrupted", stackrecording
             else:
-                height = len(stacktrace) - initial_height
-            if stacktrace[0]["name"] != method:
                 break
-            # We need to get local variables
-            if not scope:
-                scope = self.get_scopes(stacktrace[0]["id"])[0]
-            variables = self.get_variables(scope["variablesReference"])
-            stackframe = Stackframe(stacktrace[0]["line"], stacktrace[0]["column"], height, variables)
-            stackrecording.add_stackframe(stackframe)
-            i += 1
-            if i > max_steps:
-                # we need to pop the current frame
-                self.restart_server()
-                self.initialize()
-                print("Interrupted")
-                return "Interrupted", stackrecording
-            self.step()
+            
+
         # We are now out of the function, we need to get the return value
         scope = self.get_scopes(stacktrace[0]["id"])[0]
         variables = self.get_variables(scope["variablesReference"])
@@ -167,11 +214,10 @@ class PythonLiveAgent(BaseLiveAgent):
             return None, stackrecording
         return_value = None
         for variable in variables:
-            if variable["name"] == f'(return) {method}':
+            if variable["name"] == f'(return) {method}' or variable["name"] == f'res' or variable["name"].startswith("(return) "):
                 return_value = variable["value"]
         for i in range(2): # Needed to reset the debugger agent loop
             self.next_breakpoint()
             self.wait("event", "stopped")
-        print("Returning")
         return return_value, stackrecording
     
