@@ -1,3 +1,3 @@
 [submodule "LivEx"]
 	path = LivEx
-	url = https://github.com/phoudail/LivEx
+	url = git@github.com:phoudail/LivEx.git
