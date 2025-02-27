@@ -136,18 +136,8 @@ class PythonLiveAgent(BaseLiveAgent):
         for probe in probes:
             probe_lines.append(probe["line"]) # TODO: support multiple files
             probe_expressions.append(probe["expr"])
-
-        ######## TODO: refactor out
-        # stacktrace = self.get_stackframes()
-        # if not scope:
-        #     scope = self.get_scopes(stacktrace[0]["id"])[0]
-        # variables = self.get_variables(scope["variablesReference"])            
-        # stackframe = Stackframe(stacktrace[0]["line"], stacktrace[0]["column"], 0, variables)
-        # stackrecording.add_stackframe(stackframe)  
-        ########  
         while True:
             stacktrace = self.get_stackframes()
-            current_line = stacktrace[0]['line']
             if initial_height is None:
                 initial_height = len(stacktrace)
                 height = 0
@@ -156,9 +146,6 @@ class PythonLiveAgent(BaseLiveAgent):
             if stacktrace[0]["name"] == "<module>" and stacktrace[0]["line"] == 24:
                 break
             # We need to get local variables
-            # if current_line+1 not in probe_lines:
-            #     self.step()
-            #     continue
             scope = self.get_scopes(stacktrace[0]["id"])[0]
             variables = self.get_variables(scope["variablesReference"])
             probed_variables = variables
@@ -167,16 +154,19 @@ class PythonLiveAgent(BaseLiveAgent):
             for var in variables:
                 match var["name"]:
                     case "line":
-                        line_number = int(var["value"]) - 1
+                        line_number = int(var["value"])
                     case "expr":
                         probed_expr = var["value"].strip("'")
                     case "ret":
                         probe_var = var
-            if probe_var is not None:
+            if probe_var is not None and line_number in probe_lines:
                 probe_var["name"] = probed_expr
                 probe_var["evaluateName"] = probed_expr
                 probed_variables = [probe_var]
-            stackframe = Stackframe(line_number, stacktrace[0]["column"], 0, probed_variables)
+            elif probe_var is not None:
+                self.next_breakpoint()
+                continue
+            stackframe = Stackframe(line_number-1, stacktrace[0]["column"], 0, probed_variables)
             stackrecording.add_stackframe(stackframe)
             i += 1
             if i > max_steps:
