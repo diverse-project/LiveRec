@@ -1,22 +1,19 @@
-from tree_sitter import Language,Parser
+from tree_sitter import Language, Node,Parser
 from livefromdap.utils.StackRecording import StackRecording
 
 class TreeSitterPrettyPrinter():
-    tree_sitter_path : str
-    tree_sitter_name : str
+    language : object
     
     def __init__(self, file_path, method_name):
         self.file_path = file_path
         self.method_name = method_name
-        #check if tree_sitter_path has been set by a child class
-        if not hasattr(self, "tree_sitter_path") or not hasattr(self, "tree_sitter_name"):
-            raise Exception("tree_sitter_path and tree_sitter_name must be set by child class")
-    
+        if not hasattr(self, "language"):
+            raise Exception(f"language must be set by child class")
+
         if not hasattr(self, "setup_function_query"):
             raise Exception(f"setup_function_query must be set by child class")
-        self.lang = Language(self.tree_sitter_path, self.tree_sitter_name)
-        self.parser = Parser()
-        self.parser.set_language(self.lang)
+        self.lang = Language(self.language()) # type: ignore
+        self.parser = Parser(self.lang)
         
     def pretty_print(self, stacktrace : StackRecording, return_value=None):
         self.return_value = return_value
@@ -37,7 +34,7 @@ class TreeSitterPrettyPrinter():
         if hasattr(self, "for_query"):
             self.visit_for()
     
-    def is_in_range(self, node):
+    def is_in_range(self, node : Node):
         return node.start_point[0] >= self.function_start[0] and node.end_point[0] <= self.function_end[0]
     
     
@@ -45,12 +42,14 @@ class TreeSitterPrettyPrinter():
         function_params_query = self.lang.query(self.setup_function_query.format(**formatter)) # type: ignore
         captures = function_params_query.captures(self.ast.root_node)
         params = []
-        for capture, capture_type in captures:
+        for capture_type, capture in captures.items():
             if capture_type == "fdecl":
-                self.function_start = capture.start_point
-                self.function_end = capture.end_point
+                self.function_start = capture[0].start_point
+                self.function_end = capture[0].end_point
             elif capture_type == "fparam":
-                params.append(capture.text.decode("utf8"))
+                for c in capture:
+                    if c.text is not None:
+                        params.append(c.text.decode("utf8"))
                 
         first_stackframe = self.stacktrace.stackframes[0]
         params_value = [first_stackframe.get_variable(p) for p in params]
@@ -61,8 +60,9 @@ class TreeSitterPrettyPrinter():
         vardecl_query = self.lang.query(self.assignment_query) # type: ignore
         
         captures = vardecl_query.captures(self.ast.root_node)
-        for capture, _ in captures:
-            if self.is_in_range(capture):
+        all_captures = [node for capture in captures.values() for node in capture]
+        for capture in all_captures:
+            if self.is_in_range(capture) and capture.text is not None:
                 varname = capture.text.decode("utf8")
                 value = ""
                 for stack in self.stacktrace.get_stackframes_line(capture.start_point[0]+1):
@@ -76,12 +76,14 @@ class TreeSitterPrettyPrinter():
         while_decl_query = self.lang.query(self.while_query) # type: ignore
         captures = while_decl_query.captures(self.ast.root_node)
         variables = {}
-        for capture, capture_type in captures:
+        all_captures = [(node, capture_type) for capture_type,capture in captures.items() for node in capture]
+        for capture, capture_type in all_captures:
             if self.is_in_range(capture):
                 if capture_type == "whileleft" or capture_type == "whileright":
                     if not capture.start_point[0] in variables:
                         variables[capture.start_point[0]] = []
-                    variables[capture.start_point[0]].append(capture.text.decode("utf8"))
+                    if capture.text is not None:
+                        variables[capture.start_point[0]].append(capture.text.decode("utf8"))
         for line, vars in variables.items():
             stackframes = self.stacktrace.get_stackframes_line(line+1)
             output_string = ""
@@ -93,12 +95,14 @@ class TreeSitterPrettyPrinter():
         for_decl_query = self.lang.query(self.for_query) # type: ignore
         captures = for_decl_query.captures(self.ast.root_node)
         variables = {}
-        for capture, capture_type in captures:
+        all_captures = [(node, capture_type) for capture_type,capture in captures.items() for node in capture]  
+        for capture, capture_type in all_captures:
             if self.is_in_range(capture):
                 if capture_type == "forvar":
                     if not capture.start_point[0] in variables:
                         variables[capture.start_point[0]] = []
-                    variables[capture.start_point[0]].append(capture.text.decode("utf8").strip())
+                    if capture.text is not None:
+                        variables[capture.start_point[0]].append(capture.text.decode("utf8").strip())
         for line, vars in variables.items():
             stackframes = self.stacktrace.get_stackframes_line(line+1)
             output_string = ""

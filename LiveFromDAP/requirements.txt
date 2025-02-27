@@ -3,6 +3,12 @@ debugpy
 pycparser
 pandas
 flask_socketio
-tree_sitter==0.21.3
+tree_sitter
+tree-sitter-python==0.23.6
+tree-sitter-c==0.23.0
+tree-sitter-javascript==0.23.1
+tree-sitter-java==0.23.5
+tree-sitter-go==0.23.4
+
 gopygo
 -e git+https://github.com/jbdoderlein/javalang#egg=javalang

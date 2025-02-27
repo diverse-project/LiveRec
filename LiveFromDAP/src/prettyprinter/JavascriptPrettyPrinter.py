@@ -1,5 +1,5 @@
-import os
 from .TreeSitterPrettyPrinter import TreeSitterPrettyPrinter
+from tree_sitter_javascript import language
 
 class JavascriptPrettyPrinter(TreeSitterPrettyPrinter):
     setup_function_query = """
@@ -34,7 +34,6 @@ class JavascriptPrettyPrinter(TreeSitterPrettyPrinter):
     """
     
     def __init__(self, file, method):
-        self.tree_sitter_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "livefromdap", "bin","treesitter","javascript.so"))
-        self.tree_sitter_name = 'javascript'
+        self.language = language
         super().__init__(file, method) 
         

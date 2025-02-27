@@ -1,6 +1,7 @@
 import os
 import subprocess
 from tree_sitter import Language, Parser
+from tree_sitter_c import language
 from debugpy.common.messaging import JsonIOStream
 
 from livefromdap.utils.StackRecording import Stackframe, StackRecording
@@ -13,9 +14,8 @@ class CLiveAgent(BaseLiveAgent):
         self.runner_path = kwargs.get("runner_path", os.path.join(os.path.dirname(__file__), "..", "runner", "c_runner.c"))
         self.runner_path_exec = kwargs.pop("runner_path_exec", os.path.join(os.path.dirname(__file__), "..", "runner", "c_runner"))
         self.dap_server_path = kwargs.get("dap_server_path", os.path.join(os.path.dirname(__file__), "..", "bin", "OpenDebugAD7", "OpenDebugAD7"))
-        self.lang = Language(kwargs.get("tree_sitter_path", os.path.join(os.path.dirname(__file__), "..", "bin", "treesitter", "c.so")), 'c')
-        self.parser = Parser()
-        self.parser.set_language(self.lang)
+        self.lang = Language(language())
+        self.parser = Parser(self.lang)
         self.end_function_query_string = """
             (function_definition
                 declarator: (function_declarator
@@ -126,16 +126,12 @@ class CLiveAgent(BaseLiveAgent):
             code = file.read()
         query = self.lang.query(self.end_function_query_string.format(function_name=function_name))
         captures = query.captures(self.parser.parse(bytes(code, "utf8")).root_node)
-        captures = [c for c in captures if c[1] == "funcdef" or c[1] == "return"]
         if len(captures) == 0:
             raise Exception(f"Function {function_name} not found")
         else:
             res = []
-            for capture in captures:
-                if capture[1] == "funcdef":
-                    res.append(capture[0].end_point[0] + 1)
-                if capture[1] == "return":
-                    res.append(capture[0].start_point[0] + 1)
+            for capture in captures["funcdef"] + captures["return"]:
+                res.append(capture.end_point[0] + 1)
             return res
     
     def setup_runner_breakpoint(self):

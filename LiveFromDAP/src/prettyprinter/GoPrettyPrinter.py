@@ -1,5 +1,6 @@
 import os
 from .TreeSitterPrettyPrinter import TreeSitterPrettyPrinter
+from tree_sitter_go import language
 
 class GoPrettyPrinter(TreeSitterPrettyPrinter):
     setup_function_query = """
@@ -28,7 +29,5 @@ class GoPrettyPrinter(TreeSitterPrettyPrinter):
     """
 
     def __init__(self, file, method):
-        self.tree_sitter_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "livefromdap", "bin", "treesitter", "go.so"))
-        self.tree_sitter_name = 'go'
+        self.language = language
         super().__init__(file, method)

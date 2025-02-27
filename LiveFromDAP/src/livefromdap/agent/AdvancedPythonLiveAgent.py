@@ -11,7 +11,7 @@ from livefromdap.utils.StackRecording import Stackframe, StackRecording
 from .BaseLiveAgent import BaseLiveAgent
 
 
-class PythonLiveAgent(BaseLiveAgent):
+class AdvancedPythonLiveAgent(BaseLiveAgent):
     """Communicate with the debugpy adapter to get stackframes of the execution of a method"""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

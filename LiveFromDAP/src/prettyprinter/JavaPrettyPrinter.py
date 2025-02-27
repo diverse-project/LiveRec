@@ -2,6 +2,7 @@ import os
 
 from livefromdap.utils.StackRecording import StackRecording
 from .TreeSitterPrettyPrinter import TreeSitterPrettyPrinter
+from tree_sitter_java import language
 
 class JavaPrettyPrinter(TreeSitterPrettyPrinter):
     setup_function_query = """
@@ -36,7 +37,7 @@ class JavaPrettyPrinter(TreeSitterPrettyPrinter):
     while_query = """
         (while_statement
             condition : (
-                condition (
+                parenthesized_expression (
                     (binary_expression
                         left : (identifier)* @whileleft
                         right : (identifier)* @whileright
@@ -47,8 +48,7 @@ class JavaPrettyPrinter(TreeSitterPrettyPrinter):
     """
     
     def __init__(self, file, class_name, method):
-        self.tree_sitter_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "livefromdap", "bin","treesitter","java.so"))
-        self.tree_sitter_name = 'java'
+        self.language = language
         self.class_name = class_name
         super().__init__(file, method) 
     

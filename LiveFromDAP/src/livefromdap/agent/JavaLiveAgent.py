@@ -254,10 +254,16 @@ class JavaLiveAgent(BaseLiveAgent):
     def stop_server(self):
         """Stop the target program"""
         self.stop_debugee()
+        self.ls_io.write_json({
+            "jsonrpc": "2.0",
+            "method": "shutdown",
+            "params": {}
+        })
         self.ls_server.kill()
+
     
     def stop_debugee(self):
-        terminate_request = {
+        disconnect_request = {
             "seq": self.new_seq(),
             "type": "request",
             "command": "disconnect",
@@ -266,7 +272,8 @@ class JavaLiveAgent(BaseLiveAgent):
                 "terminateDebuggee": True
             }
         }
-        self.io.write_json(terminate_request)
+        self.io.write_json(disconnect_request)
+        self.wait("event", "terminated")
         self.server.close()
     
     def setup_runner_breakpoint(self):

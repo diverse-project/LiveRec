@@ -1,5 +1,6 @@
 import os
 from .TreeSitterPrettyPrinter import TreeSitterPrettyPrinter
+from tree_sitter_c import language
 
 class CPrettyPrinter(TreeSitterPrettyPrinter):
     setup_function_query = """
@@ -60,7 +61,6 @@ class CPrettyPrinter(TreeSitterPrettyPrinter):
     """
     
     def __init__(self, file, method):
-        self.tree_sitter_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "livefromdap", "bin","treesitter","c.so"))
-        self.tree_sitter_name = 'c'
+        self.language = language
         super().__init__(file, method) 
         

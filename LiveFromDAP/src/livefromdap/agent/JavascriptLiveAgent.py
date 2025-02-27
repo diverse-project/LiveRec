@@ -6,6 +6,7 @@ from debugpy.common import sockets
 from livefromdap.utils.StackRecording import Stackframe, StackRecording
 from .BaseLiveAgent import BaseLiveAgent, DebuggeeTerminatedError
 from tree_sitter import Language, Parser
+from tree_sitter_javascript import language
 
 
 class JavaScriptPreprocessor:
@@ -16,9 +17,8 @@ class JavaScriptPreprocessor:
     def __init__(self, input_path : str, output_path : str):
         self.input_path = input_path
         self.output_path = output_path
-        self.lang = Language(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "bin","treesitter","javascript.so")), 'javascript')
-        self.parser = Parser()
-        self.parser.set_language(self.lang)
+        self.lang = Language(language())
+        self.parser = Parser(self.lang)
         with open(self.input_path, "r") as f:
             source = f.read()
         self.tree = self.parser.parse(bytes(source, "utf8"))
@@ -38,11 +38,8 @@ class JavaScriptPreprocessor:
         captures = query.captures(self.tree.root_node)
         # The capture is a list of tuples (node, capture)
         # for each function we have to consecutive captures, the first one is the name, the second one is the body
-        for i in range(0, len(captures), 2):
-            fun_def = captures[i]
-            body = captures[i+1]
-            if fun_def[1] == "function.name" and body[1] == "function.body": 
-                self.functions[fun_def[0].text.decode("utf8")] = int(body[0].children[1].start_point[0])+1
+        for fun_def,body in zip(captures["function.name"], captures["function.body"]):
+            self.functions[fun_def.text.decode("utf8")] = int(body.children[1].start_point[0])+1 # type: ignore
     
     def add_module_exports(self):
         with open(self.input_path, "r") as f:
@@ -58,9 +55,9 @@ class JavaScriptPreprocessor:
             """
         )
         captures = query.captures(self.tree.root_node)
-        if any(c[0].text.decode("utf8") == "exports" for c in captures):
+        if "exports" in captures and len(captures["exports"]) > 0:
             old = source.split("\n")
-            source = "\n".join(old[:captures[0][0].start_point[0]] + old[captures[0][0].end_point[0]+1:])
+            source = "\n".join(old[:captures["exports"][0].start_point[0]] + old[captures["exports"][0].end_point[0]+1:])
             
         source += "\nmodule.exports = {" + ",".join([name for name in self.functions.keys()]) + "}"
         
@@ -127,14 +124,11 @@ class JavascriptLiveAgent(BaseLiveAgent):
                 "terminateDebuggee": True
             }
         }
-        try:
-            self.io.write_json(stop_request)
-            self.wait("event", "terminated")
-            self.io.close()
-        except:
-            pass
-        try:
-            self.io = self.main_io
+        self.io.write_json(stop_request)
+        self.wait("event", "terminated")
+        self.io.close()
+        """
+        self.io = self.main_io
             self.io.write_json(stop_request)
             self.main_io.close()
         except:
@@ -142,7 +136,7 @@ class JavascriptLiveAgent(BaseLiveAgent):
         try:
             self.server_process.kill()
         except:
-            pass
+            pass"""
          
     def initialize(self):
         """Send data to the agent"""   

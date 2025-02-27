@@ -5,6 +5,7 @@ from debugpy.common.messaging import JsonIOStream
 from debugpy.common import sockets
 from .BaseLiveAgent import BaseLiveAgent, DebuggeeTerminatedError
 from tree_sitter import Language, Parser
+from tree_sitter_go import language
 from livefromdap.utils.StackRecording import Stackframe, StackRecording
 
 
@@ -17,10 +18,8 @@ class GoLiveAgent(BaseLiveAgent):
         self.runner_name = "go_runner.go"
         self.runner_path_exec = os.path.abspath(os.path.join(self.runner_directory, "go_runner"))
         self.runner_path = os.path.abspath(os.path.join(self.runner_directory, self.runner_name))
-        self.lang = Language(kwargs.get("tree_sitter_path", os.path.join(os.path.dirname(__file__), "..", "bin",
-                                                                         "treesitter", "go.so")), 'go')
-        self.parser = Parser()
-        self.parser.set_language(self.lang)
+        self.lang = Language(language())
+        self.parser = Parser(self.lang)
         self.param_and_return_query_string = """
         (function_declaration
             name: (identifier) @func_name
@@ -92,7 +91,7 @@ class GoLiveAgent(BaseLiveAgent):
         }
         self.io.write_json(disconnect_request)
         self.wait("response", command="disconnect")
-        self.server_process.close()
+        self.server_process.close() # type: ignore
 
     def restart_server(self):
         self.server_process.kill()
@@ -152,7 +151,7 @@ class GoLiveAgent(BaseLiveAgent):
         brk = self.wait("event", "stopped")
         self.thread_id = brk["body"]["threadId"]
 
-    def get_param_and_return_type(self, node, source_code) -> (list[str], list[str]):
+    def get_param_and_return_type(self, node, source_code) -> tuple[list[str], list[str]]:
         params = node.child_by_field_name('parameters')
         result = node.child_by_field_name('result')
 
@@ -181,11 +180,10 @@ class GoLiveAgent(BaseLiveAgent):
         tree = self.parser.parse(bytes(code, "utf8"))
         query = self.lang.query(self.param_and_return_query_string.format(function_name=function_name))
         captures = query.captures(tree.root_node)
-        for capture in captures:
-            if capture[1] == 'func_name':
-                func_name_text = code[capture[0].start_byte:capture[0].end_byte]
-                if func_name_text == function_name:
-                    function_node = capture[0].parent
+        for capture in captures["func_name"]:
+            func_name_text = code[capture.start_byte:capture.end_byte]
+            if func_name_text == function_name:
+                function_node = capture.parent
 
         if function_node is None:
             raise Exception(f"Function {function_name} not found")
@@ -197,16 +195,12 @@ class GoLiveAgent(BaseLiveAgent):
             code = file.read()
         query = self.lang.query(self.end_function_query_string.format(function_name=function_name))
         captures = query.captures(self.parser.parse(bytes(code, "utf8")).root_node)
-        captures = [c for c in captures if c[1] == "funcdef" or c[1] == "return"]
         if len(captures) == 0:
             raise Exception(f"Function {function_name} not found")
         else:
             res = []
-            for capture in captures:
-                if capture[1] == "funcdef":
-                    res.append(capture[0].end_point[0] + 1)
-                if capture[1] == "return":
-                    res.append(capture[0].start_point[0] + 1)
+            for capture in captures["funcdef"] + captures["return"]:
+                res.append(capture.end_point[0] + 1)
             return res
 
     def add_variable(self, frame_id, stackframes, stackrecording):
