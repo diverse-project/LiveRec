@@ -101,13 +101,10 @@ body {
     z-index: 1000;
 }
 
-.material-icons.green {
-    color: #4caf50;
+.material-icons {
+    color: white;
 }
 
-.material-icons.red {
-    color: #f44336;
-}
 
 /* Slider */
 .slider-container {

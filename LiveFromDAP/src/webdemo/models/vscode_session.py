@@ -6,15 +6,13 @@ from typing import Any, Dict, List, Optional, Tuple
 from webdemo.services.agent_factory import AgentFactory
 from webdemo.services.code_processor import CodeProcessor
 
-class Session:
+class VSCodeSession:
     def __init__(self, room: str, socketio: Any, language: str, raw: bool = False):
         self.room = room
         self.socketio = socketio
         self.language = language
         self.raw = raw
-        print("Creating agent")
         self.agent = AgentFactory.create_agent(language, raw)
-        print("Agent created")
         self.code = ""
         self.queue: Queue = Queue()
         self.last_execution_line = None

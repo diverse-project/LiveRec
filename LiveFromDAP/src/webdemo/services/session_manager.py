@@ -1,7 +1,6 @@
 from typing import Dict, Optional
 import uuid
 from webdemo.models.session import Session
-from webdemo.services.agent_factory import AgentFactory
 
 class SessionManager:
     def __init__(self):

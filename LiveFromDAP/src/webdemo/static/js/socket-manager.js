@@ -89,6 +89,17 @@ class SocketManager {
                 this.updateUIState({ loading: true });
                 break;
 
+            case 'codeChange':
+                // Code change status is just informational, no UI update needed
+                console.log('Code change status received');
+                break;
+
+            case 'error':
+                this.updateUIState({ loading: false });
+                M.toast({ html: 'Error: ' + (msg.error || 'Unknown error'), displayLength: 5000 });
+                console.error('Server error:', msg.error);
+                break;
+
             default:
                 console.warn('Unknown status:', msg.status);
         }

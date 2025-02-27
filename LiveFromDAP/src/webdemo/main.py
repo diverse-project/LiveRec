@@ -16,7 +16,9 @@ def index():
 
 @app.route('/dap/<language>')
 def dap(language):
+    print("Creating session")
     session_id = session_manager.create_session(socketio, language, raw=False)
+    print("Session created")
     return render_template('dap.html', language=language, session_id=session_id)
 
 @app.route('/stack/<language>')
@@ -24,11 +26,15 @@ def stack(language):
     session_id = session_manager.create_session(socketio, language, raw=True)
     return render_template('stackexplorer.html', language=language, session_id=session_id)
 
+@app.route('/vscode/<language>')
+def vscode(language):
+    session_id = session_manager.create_session(socketio, language, raw=False)
+    return render_template('vscode.html', language=language, session_id=session_id)
+
 @socketio.on('disconnect')
 def on_disconnect():
-    socket_id = request.sid
-    if socket_id:
-        session_id = session_manager.get_session_by_socket(socket_id)
+    if hasattr(request, "sid"):
+        session_id = session_manager.get_session_by_socket(request.sid) # type: ignore
         if session_id:
             session_manager.remove_session(session_id)
 
@@ -36,7 +42,7 @@ def on_disconnect():
 def on_join(data):
     session_id = data.get("session_id")
     language = data.get("language")
-    socket_id = request.sid
+    socket_id = request.sid # type: ignore
     
     if not session_id or not socket_id:
         return

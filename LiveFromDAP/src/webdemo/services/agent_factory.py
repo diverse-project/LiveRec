@@ -1,5 +1,5 @@
 from typing import Any
-from webdemo.AutoAgent import (
+from webdemo.agents import (
     AutoCLiveAgent, 
     AutoJavaLiveAgent, 
     AutoPyJSDynamicAgent,
