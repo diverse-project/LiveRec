@@ -3,7 +3,7 @@ import os
 import time
 
 def test_c_binary_search():
-    agent = CLiveAgent(debug=True)
+    agent = CLiveAgent(debug=False)
     agent.start_server()
     agent.initialize()
     

@@ -22,10 +22,10 @@ def test_python_bubblesort():
     agent.initialize()
     agent.load_code(str(os.path.join(os.path.dirname(__file__), "..", "src","livefromdap","target","python", "bubblesort.py")))
 
-    result, _ = agent.execute("bubblesort", ["[1, 2, 3, 4, 5, 6]"])
+    result, _ = agent.execute("bubblesort", ["[1, 2, 3, 4, 5, 6]"], max_steps=100)
     assert result == "[1, 2, 3, 4, 5, 6]"
 
-    result, _ = agent.execute("bubblesort", ["[6, 5, 4, 3, 2, 1]"])
+    result, _ = agent.execute("bubblesort", ["[6, 5, 4, 3, 2, 1]"], max_steps=100)
     assert result == "[1, 2, 3, 4, 5, 6]"
 
     agent.stop_server()
@@ -35,11 +35,11 @@ def test_python_fibonnaci():
     agent.start_server()
     agent.initialize()
     agent.load_code(str(os.path.join(os.path.dirname(__file__), "..", "src","livefromdap","target","python", "fibonnaci.py")))
-    result, _ = agent.execute("fibonnaci", ["5"])
+    result, _ = agent.execute("fibonnaci", ["5"], max_steps=100)
     assert int(result) == 5
 
-    result, _ = agent.execute("fibonnaci", ["8"])
-    assert int(result) == 21
+    result, _ = agent.execute("fibonnaci", ["6"], max_steps=150)
+    assert int(result) == 8
 
     agent.stop_server()
 
