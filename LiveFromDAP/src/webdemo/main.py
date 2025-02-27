@@ -48,9 +48,19 @@ def get_language_prefix(language):
         raise NotImplementedError()
 
 
-def clean_code(code, language="python"):
+def clean_code(code:str, exec_req, language="python"):
     prefix = get_language_prefix(language)
-    return "\n".join(["" if line.strip().startswith(prefix) else line for line in code.split("\n")])
+    cleaned_code = ""
+    line_number = 0
+    for line in code.split("\n"):
+        line_number += 1
+        if line.strip().startswith(prefix):
+            for req in exec_req:
+                for probe in req[2]:
+                    if probe["line"] == line_number:
+                        line = line.split("#")[0] + f"probe({line_number}, globals(), locals(), \"{probe["expr"]}\")" # replace comment-probe with properly indented call to probe function
+        cleaned_code += line + "\n"
+    return cleaned_code
 
 
 def extract_exec_request(code, language="python"):
@@ -126,9 +136,9 @@ class Session():
 
         if request["event"] == "codeChange" or request["event"] == "addSlider":
             session_id = request["session_id"]
-            code = clean_code(request["code"], self.language)
 
             exec_req = extract_exec_request(request["code"], self.language)
+            code = clean_code(request["code"], exec_req, self.language)
             result = ""
 
             if exec_req is not None:

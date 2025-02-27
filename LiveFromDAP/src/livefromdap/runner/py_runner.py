@@ -7,6 +7,10 @@ def polyglotEval(i, j):
     ret = -1
     return ret
 
+def probe(line, global_dict, local_dict, expr):
+    ret = eval(expr, globals=global_dict, locals=local_dict)
+    return
+
 def set_import(import_fromp):
     global import_file
     import_file = import_fromp

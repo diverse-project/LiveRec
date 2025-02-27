@@ -104,8 +104,7 @@ class PythonLiveAgent(BaseLiveAgent):
         return 5
     
     def setup_runner_breakpoint(self):
-        self.set_breakpoint(self.runner_path, [7,20])
-        # self.set_function_breakpoint(["polyglotEval"])
+        self.set_breakpoint(self.runner_path, [7,12,24])
         self.configuration_done()
     
     def load_code(self, path: str):
@@ -139,12 +138,12 @@ class PythonLiveAgent(BaseLiveAgent):
             probe_expressions.append(probe["expr"])
 
         ######## TODO: refactor out
-        stacktrace = self.get_stackframes()
-        if not scope:
-            scope = self.get_scopes(stacktrace[0]["id"])[0]
-        variables = self.get_variables(scope["variablesReference"])            
-        stackframe = Stackframe(stacktrace[0]["line"], stacktrace[0]["column"], 0, variables)
-        stackrecording.add_stackframe(stackframe)  
+        # stacktrace = self.get_stackframes()
+        # if not scope:
+        #     scope = self.get_scopes(stacktrace[0]["id"])[0]
+        # variables = self.get_variables(scope["variablesReference"])            
+        # stackframe = Stackframe(stacktrace[0]["line"], stacktrace[0]["column"], 0, variables)
+        # stackrecording.add_stackframe(stackframe)  
         ########  
         while True:
             stacktrace = self.get_stackframes()
@@ -154,22 +153,30 @@ class PythonLiveAgent(BaseLiveAgent):
                 height = 0
             else:
                 height = len(stacktrace) - initial_height
-            if stacktrace[0]["name"] != method:
+            if stacktrace[0]["name"] == "<module>" and stacktrace[0]["line"] == 24:
                 break
             # We need to get local variables
-            if current_line+1 not in probe_lines:
-                self.step()
-                continue
-            self.step()
-            if not scope:
-                scope = self.get_scopes(stacktrace[0]["id"])[0]
+            # if current_line+1 not in probe_lines:
+            #     self.step()
+            #     continue
+            scope = self.get_scopes(stacktrace[0]["id"])[0]
             variables = self.get_variables(scope["variablesReference"])
-            probed_variables = []
-            for v in variables:
-                if v["name"] in probe_expressions:
-                    probed_variables.append(v)
-                print(v)
-            stackframe = Stackframe(stacktrace[0]["line"], stacktrace[0]["column"], height, probed_variables)
+            probed_variables = variables
+            probe_var = None
+            line_number = stacktrace[0]["line"]
+            for var in variables:
+                match var["name"]:
+                    case "line":
+                        line_number = int(var["value"]) - 1
+                    case "expr":
+                        probed_expr = var["value"].strip("'")
+                    case "ret":
+                        probe_var = var
+            if probe_var is not None:
+                probe_var["name"] = probed_expr
+                probe_var["evaluateName"] = probed_expr
+                probed_variables = [probe_var]
+            stackframe = Stackframe(line_number, stacktrace[0]["column"], 0, probed_variables)
             stackrecording.add_stackframe(stackframe)
             i += 1
             if i > max_steps:
@@ -177,13 +184,13 @@ class PythonLiveAgent(BaseLiveAgent):
                 self.restart_server()
                 self.initialize()
                 return "Interrupted", stackrecording
-            # self.step()
+            self.next_breakpoint()
         # We are now out of the function, we need to get the return value
         scope = self.get_scopes(stacktrace[0]["id"])[0]
         variables = self.get_variables(scope["variablesReference"])
         return_value = None
         for variable in variables:
-            if variable["name"] == f'(return) {method}':
+            if variable["name"] == f'res':
                 return_value = variable["value"]
         for i in range(2): # Needed to reset the debugger agent loop
             self.next_breakpoint()
