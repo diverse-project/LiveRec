@@ -108,7 +108,7 @@ class AdvancedPythonLiveAgent(BaseLiveAgent):
         return 5
     
     def setup_runner_breakpoint(self):
-        self.set_breakpoint(self.runner_path, [147])
+        self.set_breakpoint(self.runner_path, [144])
         self.configuration_done()
     
     def load_code(self):
