@@ -1,6 +1,7 @@
 import subprocess
 import os
 from abc import ABC, abstractmethod
+import sys
 from typing import Any
 from debugpy.common.messaging import JsonIOStream
 
@@ -346,6 +347,12 @@ class BaseLiveAgent(BaseLiveAgentInterface):
             if output["type"] == "request" and output["command"] == "runInTerminal":
                 if self._handleRunInTerminal(output):
                     continue
+            if output["type"] == "event" and output["event"] == "output":
+                if output["body"]["category"] == "stdout":
+                    print(output["body"]["output"], flush=True, end="")
+                elif output["body"]["category"] == "stderr":
+                    print(output["body"]["output"], flush=True, end="", file=sys.stderr)
+                
             if output["type"] == type:
                 if event == "" or output["event"] == event:
                     if command == "" or output["command"] == command:
