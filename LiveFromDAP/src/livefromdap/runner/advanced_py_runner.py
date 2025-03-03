@@ -1,70 +1,57 @@
+from collections import defaultdict
 from typing import Any
 import jsonpickle
 import os
-import ast
 import inspect
-_no_monitoring = True
+import sys
+
+class CustomMatchingDict:
+    def __init__(self, match_function=None):
+        self._data = []  # liste de tuples (clé_dict, valeur)
+        self._match_function = match_function or self._default_match
+        
+    def _default_match(self, key1, key2):
+        for k, v1 in key1.items():
+            v2 = key2.get(k)
+            eq_method = v1.__class__.__eq__
+            if eq_method is object.__eq__:
+                if not isinstance(v2, type(v1)):
+                    return False
+            else:
+                if not v1 == v2:
+                    return False
+        return True
+    
+    def __setitem__(self, key, value):
+        for i, (existing_key, _) in enumerate(self._data):
+            if self._match_function(existing_key, key):
+                self._data[i] = (key, value)
+                return
+        self._data.append((key, value))
+        
+    def __getitem__(self, key):
+        for existing_key, value in self._data:
+            if self._match_function(key, existing_key): # order is important because of the default matching function
+                return value
+        self._data.append((key, []))
+        return self._data[-1][1]
+        
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+        
 source_path = None
 reexecute = False
 method_name = None
 method_args = None
 reload_code = False
-mocked_functions = {}
+mocked_functions = defaultdict(lambda: defaultdict(CustomMatchingDict))
 
-class FunctionAndClassExtractor(ast.NodeVisitor):
-    def __init__(self, mocked_functions_names : list[str] = []):
-        self.definitions = []
-        self.mocked_functions_names = mocked_functions_names
-        self.inside_class = False
-
-    def visit_Import(self, node):
-        self.definitions.append(node)
-        self.generic_visit(node)
-
-    def visit_ImportFrom(self, node):
-        self.definitions.append(node)
-        self.generic_visit(node)
-
-    def visit_FunctionDef(self, node):
-        if node.name in self.mocked_functions_names:
-            decorator = ast.Name(id='mock', ctx=ast.Load(), lineno=node.lineno-1, col_offset=node.col_offset+1, end_lineno=node.lineno-1, end_col_offset=node.col_offset+5)
-            # add the decorator to the node, check if the decorator is already there
-            if not any(isinstance(d, ast.Name) and d.id == 'mock' for d in node.decorator_list):
-                node.decorator_list.append(decorator)
-        if not self.inside_class:
-            self.definitions.append(node)
-
-    def visit_ClassDef(self, node):
-        self.inside_class = True
-        self.generic_visit(node)
-        self.inside_class = False
-        self.definitions.append(node)
-
-def smart_equals(a: Any, b: Any) -> bool:
-    """
-    Smart equality comparison that:
-    1. Uses __eq__ if well-defined (not object's default)
-    2. Falls back to type checking if __eq__ is the default object implementation
-    """
-    # If either object is None, use direct comparison
-    if a is None or b is None:
-        return a is b
-    
-    # Get the __eq__ method from the object's class
-    eq_method = a.__class__.__eq__
-    
-    # Check if it's the default object.__eq__ implementation
-    if eq_method is object.__eq__:
-        # If it's the default implementation, just compare types
-        return isinstance(a, type(b))
-    
-    # Otherwise use the custom __eq__ implementation
-    return a == b
-
-def compute_mocked_result(function, args : tuple[Any], kwargs : dict[str, Any]):
+def compute_mocked_result(function, file : str, args : tuple[Any], kwargs : dict[str, Any]):
     global mocked_functions
     function_name = function.__name__
-    all_history : list[tuple[dict[str, Any], Any]]  = jsonpickle.decode(mocked_functions[function_name]) # type: ignore
     
     # Retrieve the function object from its name.
     sig = inspect.signature(function)
@@ -85,42 +72,46 @@ def compute_mocked_result(function, args : tuple[Any], kwargs : dict[str, Any]):
     for k, v in kwargs.items():
         call_locals[k] = v
     # Compare call_locals with stored execution histories.
-    for exec_locals, exec_result in all_history:
-        exec_keys = set(exec_locals.keys())
-        intersection = set(call_locals.keys()).intersection(exec_keys)
-        break_loop = False
-        for k in intersection:
-            if not smart_equals(call_locals[k], exec_locals[k]):
-                break_loop = True
-                break
-        if not break_loop:
-            return True, exec_result
-    return False, None # Default to the last picked result
+    possible_results = mocked_functions[file][function_name][call_locals]
+    if len(possible_results) == 0:
+        return False, None
+    else:
+        return True, possible_results[-1]["return_value"]
 
-def mock(func):
+def mock(func, file : str):
     """
     A decorator that allows a function to be mocked.
     It simply returns the original function without any modification.
     """
     def wrapper(*args, **kwargs):
-        is_mockable, mock_res = compute_mocked_result(func, args, kwargs)
+        is_mockable, mock_res = compute_mocked_result(func, file, args, kwargs)
         if is_mockable:
             return mock_res  # Return the mock result directly
         else:
             return func(*args, **kwargs)
     return wrapper
 
-def extract_exec_code(code : str):
-    tree = ast.parse(code)
-    extractor = FunctionAndClassExtractor(list(mocked_functions.keys()))
-    extractor.visit(tree)
-    new_tree = ast.Module(body=extractor.definitions)
-    return new_tree
-
-def add_mocked_functions(mocked_functionsp : str, data: str):
+def add_mocked_data(file_path : str):
     global mocked_functions, reload_code
-    mocked_functions[mocked_functionsp] = data
+    with open(file_path, "r") as file:
+        for line in file:
+            if line.strip() == "":
+                continue
+            data = jsonpickle.decode(line) # type: ignore
+            mocked_functions[data["file"]][data["function"]][data["locals"]].append(data)
     reload_code = True
+
+
+
+def apply_mock_decorators():
+    global mocked_functions
+    for file_name in mocked_functions.keys():
+        for module in sys.modules.values():
+            if hasattr(module, "__file__") and file_name == module.__file__:
+                for function_name in mocked_functions[file_name].keys():
+                    original_func = module.__dict__[function_name]
+                    mocked_func = mock(original_func, file_name)
+                    module.__dict__[function_name] = mocked_func
 
 def set_reload_code(reload_codep : bool):
     global reload_code
@@ -134,15 +125,16 @@ def set_source_path(source_pathp : str):
     global source_path, reload_code
     source_dir = os.path.dirname(source_pathp)
     os.chdir(source_dir)
+    sys.path.append(source_dir)
     source_path = source_pathp
     reload_code = True
 
-def load_data(method_namep : str, data : dict):
+def load_data(method_namep : str, data : str):
     global method_name, method_args, reexecute
     method_name = method_namep
-    datas : dict = data # type: ignore
-    local_vars : dict = jsonpickle.decode(datas["locals"]) # type: ignore
-    global_vars : dict = jsonpickle.decode(datas["globals"]) # type: ignore
+    datas : dict = jsonpickle.decode(data) # type: ignore
+    local_vars : dict = datas["locals"]
+    global_vars : dict = datas["globals"]
     globals().update(global_vars)
     method = eval(method_name) # type: ignore
     method_args = [local_vars[k] for k in method.__code__.co_varnames if k in local_vars]
@@ -154,12 +146,14 @@ if "__main__" in __name__:
             try:
                 if source_path is not None:
                     with open(source_path, "r") as source_file:
-                        code = compile(extract_exec_code(source_file.read()), source_path, "exec")
+                        code = compile(source_file.read(), source_path, "exec")
                         exec(code, globals())
             except Exception as e:
                 raise e
+            apply_mock_decorators()
             reload_code = False
         if reexecute:
+            res = None
             try:
                 method = eval(method_name) # type: ignore
                 res = method(*method_args)

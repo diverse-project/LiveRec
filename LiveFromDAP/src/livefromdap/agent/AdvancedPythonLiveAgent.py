@@ -15,7 +15,7 @@ class AdvancedPythonLiveAgent(BaseLiveAgent):
     """Communicate with the debugpy adapter to get stackframes of the execution of a method"""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.runner_path = kwargs.get("runner_path", os.path.join(os.path.dirname(__file__), "..", "runner", "py_runner_2.py"))
+        self.runner_path = kwargs.get("runner_path", os.path.join(os.path.dirname(__file__), "..", "runner", "advanced_py_runner.py"))
         self.debugpy_adapter_path = kwargs.get("debugpy_adapter_path", os.path.join(os.path.dirname(debugpy.__file__), "adapter"))
         self.tracked_functions = []
         self.mocked_functions = {}
@@ -108,7 +108,7 @@ class AdvancedPythonLiveAgent(BaseLiveAgent):
         return 5
     
     def setup_runner_breakpoint(self):
-        self.set_breakpoint(self.runner_path, [152])
+        self.set_breakpoint(self.runner_path, [147])
         self.configuration_done()
     
     def load_code(self):
@@ -129,17 +129,13 @@ class AdvancedPythonLiveAgent(BaseLiveAgent):
     def get_clean_name(self, function : str):
         return function.split(".")[-1].strip()
 
-    def start_execution(self, method : str, args : dict):
+    def start_execution(self, method : str, data_dict : str):
         if method not in self.tracked_functions:
             self.track_function(method)
         stacktrace = self.get_stackframes()
         frameId = stacktrace[0]["id"]
-        data_dict = {
-            "locals": json.dumps(args),
-            "globals": "{}"
-        }
-        #print("Executing", method, args)
-        self.evaluate(f"load_data('{method}', {data_dict})", frameId)
+        print("Executing", method, data_dict)
+        self.evaluate(f"load_data('{method}', '{data_dict}')", frameId)
         # We need to run the debug agent loop until we are on a breakpoint in the target method
         
         i = 0
@@ -162,10 +158,10 @@ class AdvancedPythonLiveAgent(BaseLiveAgent):
             self.set_function_breakpoint(self.tracked_functions)
             self.wait("response", command="setFunctionBreakpoints")
 
-    def mock_function(self, function : str, data : str):
+    def add_mocked_data(self, path : str):
         stacktrace = self.get_stackframes()
         frameId = stacktrace[0]["id"]
-        self.evaluate(f"add_mocked_functions('{function}', '{data}')", frameId)
+        self.evaluate(f"add_mocked_data('{path}')", frameId)
         self.next_breakpoint()
         self.wait("event", "stopped")
 
@@ -214,8 +210,9 @@ class AdvancedPythonLiveAgent(BaseLiveAgent):
             return None, stackrecording
         return_value = None
         for variable in variables:
-            if variable["name"] == f'(return) {method}' or variable["name"] == f'res' or variable["name"].startswith("(return) "):
+            if variable["name"].startswith("(return) "):
                 return_value = variable["value"]
+                break
         for i in range(2): # Needed to reset the debugger agent loop
             self.next_breakpoint()
             self.wait("event", "stopped")
