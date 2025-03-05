@@ -27,7 +27,7 @@ class TreeSitterPrettyPrinter():
         self.output = ["" for _ in range(len(code.split("\n")))]
         self.setup_function({"method": self.method_name})
         for stack in stacktrace.stackframes:
-            self.output[stack.pos.line] = ";".join([varName + " = " + stack.get_variable(varName) for varName in stack.get_variables()])
+            self.output[stack.pos.line] += ";".join([varName + " = " + stack.get_variable(varName) for varName in stack.get_variables()])
         # self.add_probes()
         return "\n".join(self.output)
     
