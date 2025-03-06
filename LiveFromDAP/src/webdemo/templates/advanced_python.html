@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Advanced Python Agent</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Compiled and minified CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Compiled and minified JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <style>
+        .highlight-line {
+            background-color: yellow;
+        }
+        #source-path-container {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="source-path-container" class="container">
+        <div class="row">
+            <div class="input-field col s10">
+                <input id="source-path" type="text" class="validate">
+                <label for="source-path">Source File Path</label>
+            </div>
+            <div class="col s2">
+                <button id="set-source-path" class="btn waves-effect waves-light" style="margin-top: 20px;">Set Path
+                    <i class="material-icons right">send</i>
+                </button>
+            </div>
+        </div>
+        <div id="path-message" class="row" style="display: none;">
+            <div class="col s12">
+                <div id="path-message-content" class="card-panel"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="page">
+        <div id="editor-container">
+            <textarea id="editor" name="editor"># Please set the source file path above
+# The editor will display the content of the file
+# You can then execute functions from the file
+            </textarea>
+            <div id="editor-resizer"></div>
+        </div>
+        <div id="output-container">
+            <div id="stack">
+                <div class="row">
+                    <div style="padding: 20px;padding-top: 0px;">
+                      <div class="card grey darken-3">
+                        <div class="card-content white-text">
+                          <span class="card-title" id="stack-title">StackFrame #? (line ?, height ?)</span>
+                            <p>
+                                <ul id="stack-var">
+                                    <li>var1 = 1</li>
+                                    <li>var2 = 2</li>
+                                </ul>
+                            </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+            </div>
+            <div id="control">
+                <!-- slider -->
+                <div class="row">
+                    <div class="col s12">
+                        <p id="stack-range" class="range-field">
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="execution-status">
+        <div id="execution-spinner" class="preloader-wrapper small active" style="display: none;">
+            <div class="spinner-layer spinner-black-only">
+              <div class="circle-clipper left">
+                <div class="circle"></div>
+              </div><div class="gap-patch">
+                <div class="circle"></div>
+              </div><div class="circle-clipper right">
+                <div class="circle"></div>
+              </div>
+            </div>
+        </div>
+        <i id="agent-ready" class="material-icons green" style="display: none;">check</i>
+        <i id="agent-not-ready" class="material-icons red">close</i>
+    </div>
+    
+</body>
+<script>
+    var language = "advanced_python";
+    var session_id = "{{ session_id }}";
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js"></script>
+<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+<script src="{{ url_for('static', filename='js/output-handler.js') }}"></script>
+<script src="{{ url_for('static', filename='js/socket-manager.js') }}"></script>
+<script src="{{ url_for('static', filename='js/resize.js') }}"></script>
+<script>
+    // Initialize application
+    document.addEventListener('DOMContentLoaded', function() {
+        window.editor = new Editor('editor', language);
+        window.socketManager = new SocketManager(session_id, language);
+        
+        // Add event listener for the set path button
+        document.getElementById('set-source-path').addEventListener('click', function() {
+            const sourcePath = document.getElementById('source-path').value;
+            if (sourcePath) {
+                window.socketManager.socket.send(JSON.stringify({
+                    event: 'set_source_path',
+                    session_id: session_id,
+                    source_path: sourcePath
+                }));
+            }
+        });
+        
+        // Listen for source path result events
+        window.socketManager.socket.on('message', function(data) {
+            if (data.event === 'source_path_result') {
+                const result = data.result;
+                const messageDiv = document.getElementById('path-message');
+                const messageContent = document.getElementById('path-message-content');
+                const sourcePath = document.getElementById('source-path').value;
+                
+                messageDiv.style.display = 'block';
+                messageContent.className = 'card-panel ' + (result.status === 'success' ? 'green lighten-4' : 'red lighten-4');
+                messageContent.textContent = result.message;
+                
+                if (result.status === 'success') {
+                    // If the file content is provided, display it in the editor
+                    if (result.file_content) {
+                        window.editor.setValue(result.file_content);
+                    } else {
+                        // Fallback message if no content is provided
+                        window.editor.setValue(
+                            "// File loaded: " + sourcePath + "\n" +
+                            "// To execute a function, add an annotation like #@function_name(arg1, arg2) above it\n" +
+                            "// For example:\n" +
+                            "// #@add(5, 10)\n" +
+                            "// def add(a, b):\n" +
+                            "//     return a + b\n" +
+                            "//\n" +
+                            "// Then the function will be executed and the result will be displayed in the output panel."
+                        );
+                    }
+                }
+                
+                // Hide the message after 5 seconds
+                setTimeout(function() {
+                    messageDiv.style.display = 'none';
+                }, 5000);
+            }
+        });
+    });
+</script>
+</html> 

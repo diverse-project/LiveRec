@@ -7,6 +7,7 @@ from .go_agent import AutoGoAgent
 from .java_jdi_agent import AutoJavaJDILiveAgent
 from .pyjs_agent import AutoPyJSAgent, PolyglotJSRemap
 from .pyjs_dynamic_agent import AutoPyJSDynamicAgent
+from .advanced_python_agent import AutoAdvancedPythonLiveAgent
 
 __all__ = [
     'AutoLiveAgent',
@@ -20,5 +21,6 @@ __all__ = [
     'AutoJavaJDILiveAgent',
     'AutoPyJSAgent',
     'PolyglotJSRemap',
-    'AutoPyJSDynamicAgent'
+    'AutoPyJSDynamicAgent',
+    'AutoAdvancedPythonLiveAgent'
 ] 

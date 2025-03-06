@@ -5,8 +5,8 @@ from prettyprinter.PythonPrettyPrinter import PythonPrettyPrinter
 from .base import BaseAutoLiveAgent
 
 class AutoAdvancedPythonLiveAgent(BaseAutoLiveAgent):
-    def __init__(self):
-        super().__init__(raw=True)
+    def __init__(self, raw=True):
+        super().__init__(raw=raw)
         self.agent = AdvancedPythonLiveAgent(debug=False)
         self.agent.start_server()
         self.agent.initialize()
@@ -55,7 +55,27 @@ class AutoAdvancedPythonLiveAgent(BaseAutoLiveAgent):
     def set_source_path(self, path):
         self.source_path = path
         self.agent.set_source_path(path)
-        
+    
+    def handle_source_path(self, request):
+        """Handle a request to set the source path from the web interface"""
+        if "source_path" in request:
+            path = request["source_path"]
+            if os.path.exists(path):
+                self.set_source_path(path)
+                # Read the file content to return it to the client
+                try:
+                    with open(path, "r") as f:
+                        file_content = f.read()
+                    return {
+                        "status": "success", 
+                        "message": f"Source path set to {path}",
+                        "file_content": file_content
+                    }
+                except Exception as e:
+                    return {"status": "error", "message": f"Error reading file: {str(e)}"}
+            else:
+                return {"status": "error", "message": f"File {path} does not exist"}
+        return {"status": "error", "message": "No source path provided"}
     
     def execute(self, method : str, args : dict):
         output = self.agent.execute(method, args)

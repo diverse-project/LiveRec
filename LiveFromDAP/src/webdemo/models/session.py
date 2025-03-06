@@ -12,9 +12,7 @@ class Session:
         self.socketio = socketio
         self.language = language
         self.raw = raw
-        print("Creating agent")
         self.agent = AgentFactory.create_agent(language, raw)
-        print("Agent created")
         self.code = ""
         self.queue: Queue = Queue()
         self.last_execution_line = None
@@ -47,6 +45,8 @@ class Session:
             self._handle_code_change(request)
         elif event == "initialize":
             self.send_status("agent_up", session_id=session_id)
+        elif event == "set_source_path":
+            self._handle_set_source_path(request)
             
     def _handle_code_change(self, request: Dict[str, Any]) -> None:
         session_id = request["session_id"]
@@ -118,4 +118,22 @@ class Session:
             "event": "status",
             "status": status,
             **kwargs
-        }, json=True) 
+        }, json=True)
+        
+    def _handle_set_source_path(self, request: Dict[str, Any]) -> None:
+        """Handle a request to set the source path for the agent"""
+        session_id = request.get("session_id")
+        
+        if hasattr(self.agent, "handle_source_path"):
+            result = self.agent.handle_source_path(request)
+            self.send({
+                "event": "source_path_result",
+                "result": result
+            }, json=True)
+        else:
+            self.send({
+                "event": "source_path_result",
+                "result": {"status": "error", "message": "Agent does not support setting source path"}
+            }, json=True)
+        
+        self.send_status("ready", session_id=session_id) 

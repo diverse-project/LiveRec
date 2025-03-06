@@ -35,6 +35,35 @@ class CustomMatchingDict:
                 return value
         self._data.append((key, []))
         return self._data[-1][1]
+    
+    def match_closest(self, key):
+        dist : list[int] = []
+        for existing_key, value in self._data:
+            # calculate the distance between the key and the existing key
+            dist.append(self.distance(key, existing_key))
+        # take the argmin of the distance (could return multiple if there is a tie)
+        min_dist = min(dist)
+        min_dist_indices = [index for index, value in enumerate(dist) if value == min_dist]
+        return [self._data[i][1] for i in min_dist_indices]
+    
+    def distance(self, key1, key2):
+        match type(key1):
+            case int():
+                return abs(key1 - key2)
+            case float():
+                return abs(key1 - key2)
+            case str():
+                return sum(1 for c1, c2 in zip(key1, key2) if c1 != c2) # Could use other string distance metrics
+            case list():
+                return sum(self.distance(a, b) for a, b in zip(key1, key2))
+            case dict():
+                s = 0
+                for k in key1.keys():
+                    if k in key2.keys():
+                        s += self.distance(key1[k], key2[k])
+                return s
+            case _:
+                raise 0
         
     def get(self, key, default=None):
         try:
@@ -48,9 +77,14 @@ method_name = None
 method_args = None
 reload_code = False
 mocked_functions = defaultdict(lambda: defaultdict(CustomMatchingDict))
+match_closest = False
+
+def set_match_closest(match_closestp : bool):
+    global match_closest
+    match_closest = match_closestp
 
 def compute_mocked_result(function, file : str, args : tuple[Any], kwargs : dict[str, Any]):
-    global mocked_functions
+    global mocked_functions, match_closest
     function_name = function.__name__
     
     # Retrieve the function object from its name.
@@ -74,7 +108,14 @@ def compute_mocked_result(function, file : str, args : tuple[Any], kwargs : dict
     # Compare call_locals with stored execution histories.
     possible_results = mocked_functions[file][function_name][call_locals]
     if len(possible_results) == 0:
-        return False, None
+        if match_closest:
+            possible_results = mocked_functions[file][function_name].match_closest(call_locals)
+            if len(possible_results) == 0:
+                return False, None
+            else:
+                return True, possible_results[-1]["return_value"]
+        else:
+            return False, None
     else:
         return True, possible_results[-1]["return_value"]
 

@@ -108,7 +108,7 @@ class AdvancedPythonLiveAgent(BaseLiveAgent):
         return 5
     
     def setup_runner_breakpoint(self):
-        self.set_breakpoint(self.runner_path, [144])
+        self.set_breakpoint(self.runner_path, [185])
         self.configuration_done()
     
     def load_code(self):
@@ -162,6 +162,13 @@ class AdvancedPythonLiveAgent(BaseLiveAgent):
         stacktrace = self.get_stackframes()
         frameId = stacktrace[0]["id"]
         self.evaluate(f"add_mocked_data('{path}')", frameId)
+        self.next_breakpoint()
+        self.wait("event", "stopped")
+
+    def set_match_closest(self, match_closest : bool):
+        stacktrace = self.get_stackframes()
+        frameId = stacktrace[0]["id"]
+        self.evaluate(f"set_match_closest({match_closest})", frameId)
         self.next_breakpoint()
         self.wait("event", "stopped")
 

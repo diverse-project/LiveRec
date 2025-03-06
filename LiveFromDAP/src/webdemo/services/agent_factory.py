@@ -7,7 +7,8 @@ from webdemo.agents import (
     AutoJavascriptLiveAgent,
     AutoJavaJDILiveAgent,
     AutoPyJSAgent,
-    AutoGoAgent
+    AutoGoAgent,
+    AutoAdvancedPythonLiveAgent
 )
 
 class AgentFactory:
@@ -19,7 +20,8 @@ class AgentFactory:
             "python": AutoPythonLiveAgent,
             "javascript": AutoJavascriptLiveAgent,
             "pyjs": AutoPyJSDynamicAgent,
-            "go": AutoGoAgent
+            "go": AutoGoAgent,
+            "advanced_python": AutoAdvancedPythonLiveAgent
         }
         
         if language not in agents:

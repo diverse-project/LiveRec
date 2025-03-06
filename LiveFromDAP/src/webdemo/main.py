@@ -31,6 +31,11 @@ def vscode(language):
     session_id = session_manager.create_session(socketio, language, raw=False)
     return render_template('vscode.html', language=language, session_id=session_id)
 
+@app.route('/advanced_python')
+def advanced_python():
+    session_id = session_manager.create_session(socketio, "advanced_python", raw=True)
+    return render_template('advanced_python.html', session_id=session_id)
+
 @socketio.on('disconnect')
 def on_disconnect():
     if hasattr(request, "sid"):
