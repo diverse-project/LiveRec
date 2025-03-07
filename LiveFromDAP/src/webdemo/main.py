@@ -58,7 +58,8 @@ def clean_code(code:str, exec_req, language="python"):
             for req in exec_req:
                 for probe in req[2]:
                     if probe["line"] == line_number:
-                        line = line.split("#")[0] + f"probe({line_number}, globals(), locals(), \"{probe["expr"]}\")" # replace comment-probe with properly indented call to probe function
+                        cond = probe["condition"]
+                        line = line.split("#")[0] +f"if {cond}: probe({line_number}, globals(), locals(), \"{probe["expr"]}\")" # replace comment-probe with properly indented call to probe function
         cleaned_code += line + "\n"
     return cleaned_code
 

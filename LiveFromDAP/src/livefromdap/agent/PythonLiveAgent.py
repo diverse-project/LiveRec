@@ -150,6 +150,7 @@ class PythonLiveAgent(BaseLiveAgent):
             variables = self.get_variables(scope["variablesReference"])
             probed_variables = variables
             probe_var = None
+            probed_expr = None
             line_number = stacktrace[0]["line"]
             for var in variables:
                 match var["name"]:
@@ -159,13 +160,13 @@ class PythonLiveAgent(BaseLiveAgent):
                         probed_expr = var["value"].strip("'")
                     case "ret":
                         probe_var = var
-            if probe_var is not None and line_number in probe_lines:
+            if stacktrace[0]["name"] == "probe" and line_number not in probe_lines:
+                self.next_breakpoint()
+                continue
+            elif probe_var is not None and line_number in probe_lines:
                 probe_var["name"] = probed_expr
                 probe_var["evaluateName"] = probed_expr
                 probed_variables = [probe_var]
-            elif probe_var is not None:
-                self.next_breakpoint()
-                continue
             stackframe = Stackframe(line_number-1, stacktrace[0]["column"], 0, probed_variables)
             stackrecording.add_stackframe(stackframe)
             i += 1
