@@ -250,7 +250,7 @@ class JavascriptLiveAgent(BaseLiveAgent):
         self.server.close()
     
     def setup_runner_breakpoint(self):
-        self.set_breakpoint(self.runner_path, [21])
+        self.set_breakpoint(self.runner_path, [22,26])
         self.configuration_done()
 
 
@@ -262,7 +262,7 @@ class JavascriptLiveAgent(BaseLiveAgent):
         self.evaluate(f'loadFile("{path}")', frame_id)
 
 
-    def execute(self, path : str, method : str, args : list[str], max_steps : int =100) -> tuple[str, StackRecording]:
+    def execute(self, path : str, method : str, args : list[str], probes, max_steps : int =100) -> tuple[str, StackRecording]:
         """Execute a method with the given arguments"""
         if not path in self._entry_line:
             self.load_code(path)
@@ -276,12 +276,18 @@ class JavascriptLiveAgent(BaseLiveAgent):
         self.evaluate(f"target_function = {method}", frame_id)
         self.evaluate(f"target_args = [{','.join(args)}]", frame_id)
         
+        stacktrace = self.get_stackframes()
         self.next_breakpoint()
         self.wait("event", "stopped")
         # We can now start the stack recording
         stackrecording = StackRecording()
         initial_height = None
         i = 0
+        probe_lines = []
+        probe_expressions = []
+        for probe in probes:
+            probe_lines.append(probe["line"]) # TODO: support multiple files
+            probe_expressions.append(probe["expr"])
         while True:
             stacktrace = self.get_stackframes()
             if initial_height is None:
@@ -289,19 +295,39 @@ class JavascriptLiveAgent(BaseLiveAgent):
                 height = 0
             else:
                 height = len(stacktrace) - initial_height
-            if stacktrace[0]["name"] != "global."+method:
+            if stacktrace[0]["name"] != "global."+method and stacktrace[0]["name"] != "global.probe" :
                 break
             # We need to get local variables
             scope = self.get_scopes(stacktrace[0]["id"])[0]
             variables = self.get_variables(scope["variablesReference"])
-            stackframe = Stackframe(stacktrace[0]["line"], stacktrace[0]["column"], height, variables)
+            probed_variables = variables
+            probe_var = None
+            probed_expr = None
+            line_number = stacktrace[0]["line"]
+            for var in variables:
+                match var["name"]:
+                    case "line_number":
+                        line_number = int(var["value"])
+                    case "expr":
+                        probed_expr = var["value"].strip("'")
+                    case "res":
+                        probe_var = var
+            if stacktrace[0]["name"] == "probe" and line_number not in probe_lines:
+                self.next_breakpoint()
+                continue
+            elif probe_var is not None and line_number in probe_lines:
+                probe_var["name"] = probed_expr
+                probe_var["evaluateName"] = probed_expr
+                probed_variables = [probe_var]
+                print(f"[DBG] Probe with name {probed_expr} at line {line_number}")      
+            stackframe = Stackframe(line_number-1, stacktrace[0]["column"], 0, probed_variables)
             stackrecording.add_stackframe(stackframe)
             i += 1
             if i > max_steps:
                 self.restart_server()
                 self.initialize()
                 return "Interrupted", stackrecording
-            self.step()
+            self.next_breakpoint()
             try:
                 self.wait("event", "stopped")
             except DebuggeeTerminatedError:
@@ -310,13 +336,12 @@ class JavascriptLiveAgent(BaseLiveAgent):
                 self.initialize()
                 return "Interrupted", stackrecording
         # We are now out of the function, we need to get the return value
-        # Pop the last stackframe
-        if len(stackrecording.stackframes) > 1:
-            last = stackrecording.stackframes.pop()
-            stackrecording.stackframes[-1].set_successor(None)
-            return_value = last.get_variable("Return value")
-        else:
-            return_value = "Unknown"
+        scope = self.get_scopes(stacktrace[0]["id"])[0]
+        variables = self.get_variables(scope["variablesReference"])
+        return_value = None
+        for variable in variables:
+            if variable["name"] == f'result':
+                return_value = variable["value"]
         for i in range(2): # Needed to reset the debugger agent loop
             self.next_breakpoint()
             self.wait("event", "stopped")

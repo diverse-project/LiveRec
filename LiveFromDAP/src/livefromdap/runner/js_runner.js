@@ -2,6 +2,7 @@
 var target_function = null;
 var target_args = null;
 var last_path = null;
+var result = null;
 
 var loadFile = function (filename) {
     if (last_path != null) {
@@ -16,13 +17,17 @@ var loadFile = function (filename) {
     }
 }
 
-// test file /home/jbdod/CWI/LiveProbes/test.js
+probe = function (line_number, expr, val) {
+    let res = eval(val);
+    return 
+}
+
 while (true) {
     if (target_function != null && target_args != null) {
-        let result = "Interrupted";
+        result = "Interrupted";
         try{
-            let result = target_function.apply(null, target_args);
-        } catch (e) {}
+            result = target_function.apply(null, target_args);
+        } catch (e) { console.log(e) }
         target_function = null;
         target_args = null;
     }  

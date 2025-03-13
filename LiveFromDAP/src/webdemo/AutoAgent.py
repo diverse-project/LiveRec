@@ -425,8 +425,8 @@ class AutoJavascriptLiveAgent(AutoLiveAgent):
         output = printer.pretty_print(stacktrace, return_value=return_value)
         return output
 
-    def execute(self, method, args):
-        output = self.agent.execute(self.source_path, method, args)
+    def execute(self, method, args, probes):
+        output = self.agent.execute(self.source_path, method, args, probes)
         if output is None:
             return ""
         if output[0] == "Interrupted":

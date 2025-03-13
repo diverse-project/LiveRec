@@ -47,6 +47,22 @@ def get_language_prefix(language):
     else:
         raise NotImplementedError()
 
+def get_probe_line(cond, line_number, expr, language="python"):
+    condition = convert_potential_true_value(cond, language).strip() # default value for probe condition is "True" in LivEx; not valid for all languages, so we convert
+    if language == "python":
+        return f"if {condition}: probe({line_number}, globals(), locals(), \"{expr}\")" # replace comment-probe with properly indented call to probe function
+    elif language == "javascript":
+        return f"if ({condition}) {{ global.probe({line_number}, \"{expr}\", {expr}); }}"
+    else:
+        raise NotImplementedError()
+
+
+def convert_potential_true_value(condition, language="python"):
+    if language == "javascript":
+        return "true" if condition == "True" else condition # JS needs lowercase boolean literal
+    else:
+        return condition
+
 
 def clean_code(code:str, exec_req, language="python"):
     prefix = get_language_prefix(language)
@@ -59,7 +75,7 @@ def clean_code(code:str, exec_req, language="python"):
                 for probe in req[2]:
                     if probe["line"] == line_number:
                         cond = probe["condition"]
-                        line = line.split("#")[0] +f"if {cond}: probe({line_number}, globals(), locals(), \"{probe["expr"]}\")" # replace comment-probe with properly indented call to probe function
+                        line = line.split(prefix.split("@")[0])[0] + get_probe_line(cond, line_number, probe["expr"], language)
         cleaned_code += line + "\n"
     return cleaned_code
 

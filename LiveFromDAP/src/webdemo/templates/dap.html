@@ -58,9 +58,15 @@ int foo(int a, int b){
     return a + b;
 }
 {% elif language == 'javascript' %}
-//@foo(1,2)
+//@ex1:foo(1,2)
 function foo(a, b){
-    return a + b;
+    var t = a * 2;
+    //@ex1:probe t
+    for(let i = 0; i < 5; i++) {
+        t = t + 1;
+        //@ex1:probe t if £ (t % 2) === 0 £
+    }
+    return a + b + t;
 }
 {% elif language == 'go' %}
 package main
