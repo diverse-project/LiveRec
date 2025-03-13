@@ -5,7 +5,6 @@ class Config:
     
     LANGUAGE_PREFIXES: Dict[str, str] = {
         "python": "#@",
-        "pyjs": "#@",
         "java": "//@",
         "go": "//@",
         "c": "//@",

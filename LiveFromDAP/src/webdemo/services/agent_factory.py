@@ -1,12 +1,10 @@
 from typing import Any
 from webdemo.agents import (
     AutoCLiveAgent, 
-    AutoJavaLiveAgent, 
-    AutoPyJSDynamicAgent,
+    AutoJavaLiveAgent,
     AutoPythonLiveAgent,
     AutoJavascriptLiveAgent,
     AutoJavaJDILiveAgent,
-    AutoPyJSAgent,
     AutoGoAgent
 )
 
@@ -18,7 +16,6 @@ class AgentFactory:
             "java": AutoJavaLiveAgent,
             "python": AutoPythonLiveAgent,
             "javascript": AutoJavascriptLiveAgent,
-            "pyjs": AutoPyJSDynamicAgent,
             "go": AutoGoAgent
         }
         

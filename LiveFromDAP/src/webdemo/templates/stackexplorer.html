@@ -30,11 +30,6 @@ public class Live{
         return a + b;
     }
 }
-{% elif language == 'pyjs' %}
-#@foo(1,2)
-def foo(a, b):
-    t = polyglot.eval("js", "2+2")
-    return a + b + t
 {% elif language == 'c' %}
 //@foo(1,2)
 //@foo(3,4)
