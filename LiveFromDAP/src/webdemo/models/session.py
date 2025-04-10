@@ -12,9 +12,7 @@ class Session:
         self.socketio = socketio
         self.language = language
         self.raw = raw
-        print("Creating agent")
         self.agent = AgentFactory.create_agent(language, raw)
-        print("Agent created")
         self.code = ""
         self.queue: Queue = Queue()
         self.last_execution_line = None

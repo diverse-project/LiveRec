@@ -1,0 +1,3 @@
+[submodule "PolyDebug"]
+	path = PolyDebug
+	url = git@github.com:diverse-project/PolyDebug.git

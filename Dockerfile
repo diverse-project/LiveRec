@@ -22,5 +22,13 @@ COPY LiveFromDAP/src/livefromdap/Makefile ./src/livefromdap/Makefile
 COPY LiveFromDAP/install.sh install.sh
 RUN ./install.sh
 
+COPY PolyDebug/PolyDebug/src/polydebug/runner/. ./PolyDebug/src/polydebug/runner/
+COPY PolyDebug/PolyDebug/src/polydebug/Makefile ./PolyDebug/src/polydebug/Makefile
+COPY PolyDebug/PolyDebug/install.sh ./PolyDebug/install.sh
+WORKDIR /code/PolyDebug
+RUN ./install.sh
+WORKDIR /code
+
+COPY PolyDebug/PolyDebug /code/PolyDebug
 COPY LiveFromDAP/. .
 WORKDIR /code

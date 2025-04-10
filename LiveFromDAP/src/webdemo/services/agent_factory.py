@@ -5,7 +5,8 @@ from webdemo.agents import (
     AutoPythonLiveAgent,
     AutoJavascriptLiveAgent,
     AutoJavaJDILiveAgent,
-    AutoGoAgent
+    AutoGoAgent,
+    AutoPolyglotAgent
 )
 
 class AgentFactory:
@@ -16,7 +17,8 @@ class AgentFactory:
             "java": AutoJavaLiveAgent,
             "python": AutoPythonLiveAgent,
             "javascript": AutoJavascriptLiveAgent,
-            "go": AutoGoAgent
+            "go": AutoGoAgent,
+            "polyglot": AutoPolyglotAgent,
         }
         
         if language not in agents:

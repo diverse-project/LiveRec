@@ -21,6 +21,11 @@ def dap(language):
     print("Session created")
     return render_template('dap.html', language=language, session_id=session_id)
 
+@app.route('/polylive/<language>')
+def polylive(language):
+    session_id = session_manager.create_session(socketio, "polyglot", raw=False)
+    return render_template('polylive.html', language=language, session_id=session_id)
+
 @app.route('/stack/<language>')
 def stack(language):
     session_id = session_manager.create_session(socketio, language, raw=True)

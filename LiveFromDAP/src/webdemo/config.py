@@ -8,7 +8,8 @@ class Config:
         "java": "//@",
         "go": "//@",
         "c": "//@",
-        "javascript": "//@"
+        "javascript": "//@",
+        "polyglot": "#@", # bandaid fix, TODO: handle polyglot top-level language in session
     }
     
     @classmethod

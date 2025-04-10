@@ -3,9 +3,9 @@ method_name = None
 method_args = None
 import_file = None
 
-def polyglotEval(i, j):
-    ret = -1
-    return ret
+
+
+
 
 def set_import(import_fromp):
     global import_file
