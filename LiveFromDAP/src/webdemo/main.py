@@ -26,6 +26,11 @@ def polylive(language):
     session_id = session_manager.create_session(socketio, "polyglot", raw=False)
     return render_template('polylive.html', language=language, session_id=session_id)
 
+@app.route('/polylivex/<language>')
+def polylivex(language):
+    session_id = session_manager.create_livex_session(socketio, "polyglot_livex", raw=False)
+    return render_template('polylivex.html', language=language, session_id=session_id)
+
 @app.route('/stack/<language>')
 def stack(language):
     session_id = session_manager.create_session(socketio, language, raw=True)

@@ -6,7 +6,8 @@ from webdemo.agents import (
     AutoJavascriptLiveAgent,
     AutoJavaJDILiveAgent,
     AutoGoAgent,
-    AutoPolyglotAgent
+    AutoPolyglotAgent,
+    AutoPolyLiveAgent
 )
 
 class AgentFactory:
@@ -19,6 +20,7 @@ class AgentFactory:
             "javascript": AutoJavascriptLiveAgent,
             "go": AutoGoAgent,
             "polyglot": AutoPolyglotAgent,
+            "polyglot_livex": AutoPolyLiveAgent,
         }
         
         if language not in agents:

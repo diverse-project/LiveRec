@@ -1,5 +1,6 @@
 from typing import Dict, Optional
 import uuid
+from webdemo.models.livex_session import LivExSession
 from webdemo.models.session import Session
 
 class SessionManager:
@@ -10,6 +11,11 @@ class SessionManager:
     def create_session(self, socketio, language: str, raw: bool = False) -> str:
         session_id = str(uuid.uuid4())
         self._sessions[session_id] = Session(session_id, socketio, language, raw)
+        return session_id
+    
+    def create_livex_session(self, socketio, language: str, raw: bool = False) -> str:
+        session_id = str(uuid.uuid4())
+        self._sessions[session_id] = LivExSession(session_id, socketio, language, raw)
         return session_id
     
     def get_session(self, session_id: str) -> Optional[Session]:

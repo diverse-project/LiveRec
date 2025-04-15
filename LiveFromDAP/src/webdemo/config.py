@@ -10,6 +10,7 @@ class Config:
         "c": "//@",
         "javascript": "//@",
         "polyglot": "#@", # bandaid fix, TODO: handle polyglot top-level language in session
+        "polyglot_livex": "#@"
     }
     
     @classmethod

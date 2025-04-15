@@ -6,6 +6,7 @@ from .java_agent import AutoJavaLiveAgent
 from .go_agent import AutoGoAgent
 from .java_jdi_agent import AutoJavaJDILiveAgent
 from .polyglot_agent import AutoPolyglotAgent
+from .polylive_agent import AutoPolyLiveAgent
 
 __all__ = [
     'AutoLiveAgent',
@@ -17,5 +18,6 @@ __all__ = [
     'AutoJavaLiveAgent',
     'AutoGoAgent',
     'AutoJavaJDILiveAgent',
-    'AutoPolyglotAgent'
+    'AutoPolyglotAgent',
+    'AutoPolyLiveAgent'
 ] 

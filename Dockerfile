@@ -32,3 +32,4 @@ WORKDIR /code
 COPY PolyDebug/PolyDebug /code/PolyDebug
 COPY LiveFromDAP/. .
 WORKDIR /code
+ENTRYPOINT [ "flask", "-A", "src/webdemo/main.py:app", "run" ]

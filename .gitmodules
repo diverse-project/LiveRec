@@ -1,3 +1,7 @@
 [submodule "PolyDebug"]
 	path = PolyDebug
 	url = git@github.com:diverse-project/PolyDebug.git
+	
+[submodule "LivEx"]
+	path = LivEx
+	url = git@github.com:phoudail/LivEx.git

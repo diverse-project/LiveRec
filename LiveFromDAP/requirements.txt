@@ -9,6 +9,7 @@ tree-sitter-c==0.23.0
 tree-sitter-javascript==0.23.1
 tree-sitter-java==0.23.5
 tree-sitter-go==0.23.4
-
 gopygo
+requests
+
 -e git+https://github.com/jbdoderlein/javalang#egg=javalang

@@ -216,7 +216,8 @@ class Editor {
         }
         
         this.highlightedLines.set(funcData.func, lineContent);
-        this.outputSelected[funcData.func] = funcData.args;
+        const funcName = funcData.func.split(":")
+        this.outputSelected[funcName[funcName.length-1]] = funcData.args;
         
         // Get the original line with potential whitespace
         const originalLine = this.editor.getLine(lineNumber);
