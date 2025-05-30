@@ -4,7 +4,7 @@ description = "Live backend builded on DAP"
 readme = "README.md"
 version = "0.1.0"
 authors = [
-    { name = "Jean-Baptiste Döderlein", email = "jean-baptiste.doderlein@ens-rennes.fr" },
+    { name = "anonymous" },
 ]
 dependencies = [
     "debugpy",
