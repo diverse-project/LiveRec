@@ -135,7 +135,7 @@ if [ ! -f "src/livefromdap/bin/js-dap/dapDebugServer.js" ]; then
     echo "Downloading Js DAP..."
     mkdir -p src/livefromdap/bin/js-dap
     cd src/livefromdap/bin/js-dap
-    git clone https://github.com/microsoft/vscode-js-debug
+    git clone https://github.com/jbdoderlein/vscode-js-debug
     cd vscode-js-debug
     npm install
     # check if gulp is installed

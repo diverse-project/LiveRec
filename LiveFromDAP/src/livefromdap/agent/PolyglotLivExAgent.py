@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import time
 
 from debugpy.common.messaging import JsonIOStream
 from livefromdap.utils.StackRecording import Stackframe, StackRecording
@@ -103,7 +104,7 @@ class PolyglotLivExAgent(BaseLiveAgent):
         return 5
     
     def setup_runner_breakpoint(self):
-        self.set_breakpoint(self.runner_path, [8,20])
+        self.set_breakpoint(self.runner_path, [12,49])
         self.configuration_done()
     
     def load_code(self, path: str):
@@ -130,19 +131,28 @@ class PolyglotLivExAgent(BaseLiveAgent):
         scope = None
         initial_height = None
         i = 0
-        probe_lines = []
-        probe_expressions = []
+        probes_by_loc = {}
+        scoped_probes = {}
+        recorded_probes = {}
         for probe in probes:
-            probe_lines.append(probe["line"]) # TODO: support multiple files
-            probe_expressions.append(probe["expr"])
+            probes_by_loc[int(probe["line"])] = probe # TODO: support multiple files
+            # We need to check the probes ahead of time to see if there are cross-language scopes involved, and ready breakpoints for these
+            probe_scopes = probe["expr"]["scopes"]
+            if probe_scopes != []:
+                # print(f"[DBG] Scopes: {probe_scopes}")
+                self.set_function_breakpoint([probe_scopes[-1]])
+                scoped_probes[probe_scopes[-1]] = probe
+
         while True:
+            start = time.time()
             stacktrace = self.get_stackframes()
+            # print(f"[DBG] Breakpointed at {stacktrace[0]}")
             if initial_height is None:
                 initial_height = len(stacktrace)
                 height = 0
             else:
                 height = len(stacktrace) - initial_height
-            if stacktrace[0]["name"] == "<module>" and stacktrace[0]["line"] == 20:
+            if stacktrace[0]["name"] == "<module>" and stacktrace[0]["line"] == 49:
                 break
             # We need to get local variables
             scope = self.get_scopes(stacktrace[0]["id"])[0]
@@ -151,6 +161,32 @@ class PolyglotLivExAgent(BaseLiveAgent):
             probe_var = None
             probed_expr = None
             line_number = stacktrace[0]["line"]
+            if (funcName := stacktrace[0]["name"].removeprefix("global.")) in scoped_probes:
+                future_probe = scoped_probes[funcName]
+                step_count = 0
+                # print(f"[DBG] Probe: {scoped_probes[funcName]}")
+                # TODO: check call stack matches scopes
+                # TODO: step until specific point in the function
+                # We now need to record the value of the target expression for the future probe while stepping out
+                step_start = time.time()
+                while (frame := self.get_stackframes()[0])["name"].removeprefix("global.") == funcName:
+                    try:
+                        tmp_value = self.evaluate(future_probe["expr"]["target"], frame["id"])["body"]["body"]["result"]
+                    except KeyError:
+                        pass
+                    self.step()
+                    end = time.time()
+                    print(f"Foreign recording time: {end-step_start}")
+                    step_start = time.time()
+                # print(f"[DBG] Exited {self.get_stackframes()[0]}")
+                recorded_probes[
+                    (int(future_probe["line"]), 
+                    future_probe["expr"]["lang"], 
+                    funcName)
+                    ] = tmp_value
+                
+                self.next_breakpoint()
+                continue
             for var in variables:
                 match var["name"]:
                     case "line":
@@ -159,15 +195,31 @@ class PolyglotLivExAgent(BaseLiveAgent):
                         probed_expr = var["value"].strip("'")
                     case "ret":
                         probe_var = var
-            if stacktrace[0]["name"] == "probe" and line_number not in probe_lines:
+            # print(f"[DBG] Line: {line_number}")
+            try:
+                current_probe = probes_by_loc[line_number]
+                # print(f"[DBG] Selected probe {current_probe}")
+                if current_probe["expr"]["lang"] != "":
+                    stackframe = self._resolve_polyglot_probe(current_probe, stacktrace, recorded_probes)
+                    stackrecording.add_stackframe(stackframe)
+                    end = time.time()
+                    print(f"Probe time: {end-start}")
+                    self.next_breakpoint()
+                    continue
+            except KeyError as e:
+                # print(f"[DBG] Key error: {e}")
+                pass
+            if stacktrace[0]["name"] == "probe" and line_number not in probes_by_loc:
                 self.next_breakpoint()
                 continue
-            elif probe_var is not None and line_number in probe_lines:
+            elif probe_var is not None and line_number in probes_by_loc:
                 probe_var["name"] = probed_expr
                 probe_var["evaluateName"] = probed_expr
                 probed_variables = [probe_var]
             stackframe = Stackframe(line_number-1, stacktrace[0]["column"], 0, probed_variables)
             stackrecording.add_stackframe(stackframe)
+            end = time.time()
+            print(f"Probe time: {end-start}")
             i += 1
             if i > max_steps:
                 # we need to pop the current frame
@@ -186,3 +238,60 @@ class PolyglotLivExAgent(BaseLiveAgent):
             self.next_breakpoint()
             self.wait("event", "stopped")
         return return_value, stackrecording
+    
+    def _resolve_polyglot_probe(self, current_probe, stacktrace, recorded_probes):
+        # print(f"[DBG] Resolving probe: {current_probe}")
+        # print(f"[DBG] Recorded probes: {recorded_probes}")
+        if (key := 
+            (int(current_probe["line"]), 
+             current_probe["expr"]["lang"], 
+             current_probe["expr"]["scopes"][-1])
+             ) in recorded_probes:
+            probed_var = {}
+            probed_var["name"] = current_probe["expr"]["target"]
+            probed_var["evaluateName"] = current_probe["expr"]["target"]
+            probed_var["value"] = recorded_probes[key]
+            # print(f"[DBG] Recorded probe var: {probed_var}")
+        elif current_probe["expr"]["lang"] == "JS":
+            previous_lang = self.switch_dap_lang("js")
+            js_frame = self.get_stackframes()
+            js_frameid = js_frame[0]["id"]
+            probe_value = self.evaluate(current_probe["expr"]["target"], js_frameid)["body"]["body"]
+            # print(f"[DBG] Value: {probe_value}")
+            probed_var = {}
+            probed_var["name"] = current_probe["expr"]["target"]
+            probed_var["evaluateName"] = current_probe["expr"]["target"]
+            try:
+                probed_var["value"] = probe_value["result"]
+            except KeyError:
+                print(f"[DBG] Eval result could not be retrieved from: {probe_value}")
+            # TODO: either pre-process polyglot probes or have polydebug record variables
+            self.switch_dap_lang(previous_lang)
+        elif current_probe["expr"]["lang"]  == "PY":
+            raise NotImplementedError() #TODO
+        else:
+            raise NotImplementedError()
+        return Stackframe(current_probe["line"]-1, stacktrace[0]["column"], 0, [probed_var])
+    
+
+    def switch_dap_lang(self, lang : str) -> str:
+        """Changes the active DAP server of PolyDebug to the specified language
+        WARNING: make sure to set the language back once you are done doing operations in the new language.
+
+        Args:
+            lang (str): the language id to set to
+
+        Returns:
+            str: the previous language id
+        """
+        switch_request = {
+            "seq": self.new_seq(),
+            "type": "request",
+            "command": "switchLanguage",
+            "arguments": {
+                "language": lang
+            }
+        }
+        self.io.write_json(switch_request)
+        output = self.wait("response", command="switchLanguage")
+        return output["body"]["previous"]

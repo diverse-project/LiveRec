@@ -34,6 +34,7 @@ class LivExSession:
             try:
                 self._handle_request(request)
             except Exception as e:
+                print(f"[DBG] {type(e)} - {e.args} - {e}")
                 self.send_status("error", error=str(e))
             self.queue.task_done()
             
@@ -50,7 +51,7 @@ class LivExSession:
         session_id = request["session_id"]
         exec_req = LivExCodeProcessor.extract_exec_request(request["code"], self.language)
         code = LivExCodeProcessor.clean_code(request["code"], exec_req, self.language)
-        
+       
         
         if not exec_req:
             self.send_status("ready", session_id=session_id)

@@ -62,7 +62,7 @@ class LivExCodeProcessor:
                     for probe in req[2]:
                         if probe["line"] == line_number:
                             cond = probe["condition"]
-                            line = line.split(prefix.split("@")[0])[0] + LivExCodeProcessor.get_probe_line(cond, line_number, probe["expr"], language)
+                            line = line.split(prefix.split("@")[0])[0] + LivExCodeProcessor.get_probe_line(cond, line_number, probe["expr"]["target"], language)
             cleaned_code += line + "\n"
         return cleaned_code
     
@@ -84,7 +84,7 @@ class LivExCodeProcessor:
             return condition
 
     @staticmethod
-    def extract_exec_request(code, language="python"):
+    def extract_exec_request(code, language="python", example_name=None):
         result = []
         exec_requests = []
         prefix = Config.get_language_prefix(language)
@@ -101,6 +101,13 @@ class LivExCodeProcessor:
         r = LivExReq.post(url="http://172.17.0.1:3000/api/code", # note: this is the URL assuming this app is ran from a docker
                               json={"example": exec_request})
         response = r.json()
+        if example_name != None:
+            example = response[example_name]
+            return (example["method"], 
+                    list(map(lambda x : str(x), 
+                            example["args"])),
+                            example["probes"],
+                            )
         for ex in response:
             example = response[ex]
             result.append((example["method"], 
