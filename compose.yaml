@@ -1,7 +1,7 @@
 services:
   web:
     build: .
-    container_name: liverec
+    container_name: polylive
     ports:
       - "5000:5000"
       - "9000:9000"
