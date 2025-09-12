@@ -59,7 +59,7 @@ class LivExCodeProcessor:
             line_number += 1
             if line.strip().startswith(prefix):
                 for req in exec_req:
-                    for probe in req[2]:
+                    for probe in req[2]: #TODO: check replacements, regexp match/replace the next line
                         if probe["line"] == line_number:
                             cond = probe["condition"]
                             line = line.split(prefix.split("@")[0])[0] + LivExCodeProcessor.get_probe_line(cond, line_number, probe["expr"]["target"], language)
@@ -72,7 +72,7 @@ class LivExCodeProcessor:
         if language == "python" or language == "polyglot_livex":
             return f"if {condition}: probe({line_number}, globals(), locals(), \"{expr}\")" # replace comment-probe with properly indented call to probe function
         elif language == "javascript":
-            return f"if ({condition}) {{ global.probe({line_number}, \"{expr}\", {expr}); }}"
+            return f"if ({condition}) {{ global.probe({line_number}, \"{expr}\"); }}"
         else:
             raise NotImplementedError()
 

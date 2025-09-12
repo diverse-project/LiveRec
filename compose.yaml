@@ -14,3 +14,7 @@ services:
       - OLDPWD=/code/src
     stdin_open: true
     tty: true 
+    volumes:
+      - type: bind
+        source: ./LiveFromDAP/src/launcher/results
+        target: /results

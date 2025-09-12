@@ -1,2 +1,5 @@
 def foobar(x):
-    return x + 7
+    t = x + 3
+    return t * 2
+
+test_var = 42

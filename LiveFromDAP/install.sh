@@ -196,4 +196,5 @@ make all
 chmod +x runner/*
 cd ../..
 
-
+# Install benchmark dependency
+npm install moment

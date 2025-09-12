@@ -1,7 +1,3 @@
-// The Computer Language Benchmarks Game
-// https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
-//
-//  Contributed by Ian Osgood
 
 var last = 42, A = 3877, C = 29573, M = 139968;
 
@@ -75,16 +71,3 @@ function fastaRandom(n, table) {
     n -= line.length;
   }
 }
-
-var n = 10000000;
-
-console.log(">ONE Homo sapiens alu")
-fastaRepeat(2*n, ALU)
-
-console.log(">TWO IUB ambiguity codes")
-fastaRandom(3*n, IUB)
-
-console.log(">THREE Homo sapiens frequency")
-fastaRandom(5*n, HomoSap)
-
-console.log("hello")

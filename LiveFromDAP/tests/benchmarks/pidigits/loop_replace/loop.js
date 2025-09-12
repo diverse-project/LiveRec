@@ -8,17 +8,17 @@
 */
 
 
-const n = 30000;
+const n = 30;
 
-let i = 0, ns = 0;
-let k = 0;
-let k2 = 1;
-let acc = 0n;
-let den = 1n;
-let num = 1n;
-let tmp = 0n;
-let d3 = 0n;
-let d4 = 0n;
+var i = 0, ns = 0;
+var k = 0;
+var k2 = 1;
+var acc = 0n;
+var den = 1n;
+var num = 1n;
+var tmp = 0n;
+var d3 = 0n;
+var d4 = 0n;
 
 while (i < n) {
   k++;
@@ -63,15 +63,6 @@ while (i < n) {
   num *= 10n;
 }
 
-function pad(i, last) {
-  var res = i.toString(), count;
-  count = 10 - res.length;
-  while (count > 0) {
-  last ? res += ' ' : res = '0' + res;
-  count--;
-  }
-  return res;
-}
 
 module.exports = ns
 

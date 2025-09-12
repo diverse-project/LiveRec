@@ -1,4 +1,4 @@
-# PolyLive
+# LivEx artifact
 
-This repository holds the code implementing the PolyLive system, as well as the data used to evaluate it. Make sure to install the submodules through `git submodule update --init --recursive`.
-The `start_demo.sh` script can be used to build and launch the system. A web-demo is then available on port 5000 of localhost. Alternatively, you can connect to the docker console ( `docker exec -it polylive bash` ) and then launch the system on any file using the `src/launcher/launcher.py` script.
+This repository holds the code implementing the LivEx, as well as the data used to evaluate it. Make sure to install the submodules through `git submodule update --init --recursive`.
+The `start_demo.sh` script can be used to build and launch the system in a docker container. A web-demo is then available on port 5000 of localhost to get an idea of the envisioned user experience. Alternatively, you can connect to the docker console ( `docker exec -it polylive bash` ) and then launch the full experiments by typing `python src/launcher/launcher.py`. The data and graphs should appear in the `LiveFromDAP/src/launcher/results` folder. Be mindful that the experiments take a few hours to complete; you can lower this amount by changing the `repeats` variable in `launcher.py` to reduce the amount of time each examples is ran.

@@ -69,16 +69,25 @@ def randomFasta(table, n):
     if n % width:
         print(jn([chars[bb(probs, gR())] for i in range(n % width)]))
 
-def main():
-    n = 10000000
-
-    # print('>ONE Homo sapiens alu')
-    # polyglotEval("c", "/code/tests/polyglot_tests/benchmarks/fasta/fasta_replace/HOMO.c")# repeatFasta(alu, n*2)
-
-    # print('>TWO IUB ambiguity codes')
-    # polyglotEval("c", "/code/tests/polyglot_tests/benchmarks/fasta/fasta_replace/IUB.c")
+#@ex1: main(10)
+def main(n):
+    # n = 10000000
+    polyglotEval("js", "/code/tests/benchmarks/fasta/fasta_replace/fasta_lib.js")
+    print('>ONE Homo sapiens alu')
+    polyglotEval("js", "/code/tests/benchmarks/fasta/fasta_replace/HOMO.js")# repeatFasta(alu, n*2)
+    #@ex1: probe JS : n
+    #@ex1: probe JS.fastaRepeat : lenOut
+    #@ex1: probe JS.fastaRepeat : seqi
+    print('>TWO IUB ambiguity codes')
+    polyglotEval("js", "/code/tests/benchmarks/fasta/fasta_replace/IUB.js")
+    #@ex1: probe JS.fastaRandom : line
+    #@ex1: probe JS.makeCumulative : last
     # randomFasta(iub, n*3)
-    # polyglotEval("c", "/code/tests/polyglot_tests/benchmarks/fasta/fasta_replace/FREQ.c")# print('>THREE Homo sapiens frequency')
+    print('>THREE Homo sapiens frequency')
+    polyglotEval("js", "/code/tests/benchmarks/fasta/fasta_replace/FREQ.js")
+    #@ex1: probe JS : n
+    #@ex1: probe JS.fastaRandom : line
+    #@ex1: probe JS.makeCumulative : last
     # randomFasta(homosapiens, n*5)
 
 

@@ -14,7 +14,6 @@
             <div class="editor-wrapper">
                 <textarea id="editor" name="editor">
 {% if language == 'python' %}
-
 #@ex1:foo(1,2)
 #@ex2:foo(1,3)
 def foo(a, b):
@@ -29,10 +28,30 @@ def foo(a, b):
 #@ex4:bar(1)
 def bar(x):
     polyglotEval("js", "/test/square.js")
-    r = polyglotEval("js", "square(2 + 3)")
+    #@ex1:probe JS: t0
+    r = polyglotEval("js", "square(5)")
     #@ex2:probe : r
     #@ex1:probe JS.square: t1
+    #@ex1:probe JS.foo: t3
     return r*2
+{% elif language == 'javascript' %}
+//@ex1:foo(1,2)
+function foo(a, b){
+    var t = bar(a);
+    //@ex1:probe : t
+    for (let i = 0; i < 5; i++) {
+        t = t + 1;
+        //@ex1:probe : t if £ t % 2 == 0 £
+    }
+    return a + b + t;
+}
+
+function bar(x) {
+    polyglotEval("py", "/test/foobar.py");
+    let r = polyglotEval("py", "foobar(2)");
+    //@ex1:probe PY.foobar: t
+    return r*2;
+}
 {% endif %}
                 </textarea>
             </div>

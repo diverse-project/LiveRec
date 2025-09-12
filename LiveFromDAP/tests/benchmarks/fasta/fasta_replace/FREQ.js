@@ -76,7 +76,7 @@ function fastaRandom(n, table) {
   }
 }
 
-var n = 10000000;
+var n = 10;
 
 // console.log(">ONE Homo sapiens alu")
 // fastaRepeat(2*n, ALU)
@@ -85,6 +85,6 @@ var n = 10000000;
 // fastaRandom(3*n, IUB)
 
 console.log(">THREE Homo sapiens frequency")
-module.exports = fastaRandom(5*n, HomoSap)
+fastaRandom(5*n, HomoSap)
 
 // console.log("hello")

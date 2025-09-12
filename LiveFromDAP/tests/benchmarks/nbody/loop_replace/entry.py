@@ -8,12 +8,17 @@
 
 import sys 
 
+t0 = [[1,2],[3,4],[5,6]]
+#@ex1: combinations(t0)
 def combinations(l):
     result = []
     for x in range(len(l) - 1):
         ls = l[x+1:]
+        #@ex1: probe : ls if £ x < 3 £
         for y in ls:
+            #@ex1: probe : y
             result.append((l[x],y))
+        #@ex1: probe : result
     return result
 
 PI = 3.14159265358979323
@@ -83,34 +88,45 @@ def advance(dt, n, bodies=SYSTEM, pairs=PAIRS):
             r[2] += dt * vz
 
 
+#@ex2: report_energy()
 def report_energy(bodies=SYSTEM, pairs=PAIRS, e=0.0):
 
     for (((x1, y1, z1), v1, m1),
          ((x2, y2, z2), v2, m2)) in pairs:
+        #@ex2: probe : m1
+        #@ex2: probe : m2
         dx = x1 - x2
         dy = y1 - y2
         dz = z1 - z2
         e -= (m1 * m2) / ((dx * dx + dy * dy + dz * dz) ** 0.5)
+        #@ex2: probe : e
     for (r, [vx, vy, vz], m) in bodies:
         e += m * (vx * vx + vy * vy + vz * vz) / 2.
+        #@ex4: probe : e if £ m >= 1 £
     print("%.9f" % e)
 
+t1 = BODIES['jupiter']
+#@ex3: offset_momentum(t1)
 def offset_momentum(ref, bodies=SYSTEM, px=0.0, py=0.0, pz=0.0):
 
     for (r, [vx, vy, vz], m) in bodies:
         px -= vx * m
         py -= vy * m
         pz -= vz * m
+        #@ex3: probe : r
+    #@ex3: probe : m
     (r, v, m) = ref
+    #@ex3: probe : m
     v[0] = px / m
     v[1] = py / m
     v[2] = pz / m
 
+#@ex4: main(10)
 def main(n, ref='sun'):
+    polyglotEval("js", "/code/tests/benchmarks/nbody/loop_replace/advance_lib.js")
     offset_momentum(BODIES[ref])
     report_energy()
-    polyglotEval("js", "/code/tests/polyglot_tests/benchmarks/nbody/loop_replace/loop.js")# advance(0.01, n)
+    polyglotEval("js", "/code/tests/benchmarks/nbody/loop_replace/loop.js")# advance(0.01, n)
+    #@ex4: probe JS.advance : size
     report_energy()
 
-main(250000000)
-print("hi")

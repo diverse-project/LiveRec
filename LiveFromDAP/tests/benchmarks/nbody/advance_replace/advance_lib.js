@@ -153,13 +153,3 @@
        return e;
    }
    
-   const n = 250000000;
-   
-   offsetMomentum();
-   
-   console.log(energy().toFixed(9));
-   polyglotEval("py", "/code/tests/polyglot_tests/benchmarks/nbody/loop_replace/loop.py");//    for (let i = 0; i < n; i++) {
-//        advance(0.01);
-//    }
-   console.log(energy().toFixed(9));
-   console.log("hi")

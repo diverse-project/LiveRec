@@ -28,7 +28,7 @@ def polylive(language):
 
 @app.route('/polylivex/<language>')
 def polylivex(language):
-    session_id = session_manager.create_livex_session(socketio, "polyglot_livex", raw=False)
+    session_id = session_manager.create_livex_session(socketio, language, raw=False)
     return render_template('polylivex.html', language=language, session_id=session_id)
 
 @app.route('/stack/<language>')

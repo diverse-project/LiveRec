@@ -1,8 +1,4 @@
-last = 42, A = 3877, C = 29573, M = 139968;
 
-function rand(max) {
-  last = (last * A + C) % M;
-  return max * last / M;
-}
+var res = rand(1);
 
-module.exports = rand(1)
+module.exports = res;

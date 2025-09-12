@@ -153,13 +153,3 @@
        return e;
    }
    
-   const n = 250000000;
-   
-   offsetMomentum();
-   
-   console.log(energy().toFixed(9));
-   for (let i = 0; i < n; i++) {
-       advance(0.01);
-   }
-   console.log(energy().toFixed(9));
-   console.log("hi")

@@ -3,7 +3,7 @@ from queue import Queue
 from threading import Thread
 from typing import Any, Dict, List, Optional, Tuple
 
-from webdemo.services.agent_factory import AgentFactory
+from webdemo.agents import AutoPolyLiveAgent
 from webdemo.services.code_processor import LivExCodeProcessor
 
 class LivExSession:
@@ -12,7 +12,7 @@ class LivExSession:
         self.socketio = socketio
         self.language = language
         self.raw = raw
-        self.agent = AgentFactory.create_agent(language, raw)
+        self.agent = AutoPolyLiveAgent(language, raw)
         self.code = ""
         self.queue: Queue = Queue()
         self.last_execution_line = None
@@ -34,7 +34,7 @@ class LivExSession:
             try:
                 self._handle_request(request)
             except Exception as e:
-                print(f"[DBG] {type(e)} - {e.args} - {e}")
+                print(f"[DBG] Event loop met the following error: {type(e)} - {e.args} - {e}")
                 self.send_status("error", error=str(e))
             self.queue.task_done()
             
