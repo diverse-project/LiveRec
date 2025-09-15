@@ -3,7 +3,7 @@ debugpy
 pycparser
 pandas
 flask_socketio
-tree_sitter
+tree_sitter==0.24.0
 tree-sitter-python==0.23.6
 tree-sitter-c==0.23.0
 tree-sitter-javascript==0.23.1
